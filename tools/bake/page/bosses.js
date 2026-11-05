@@ -287,6 +287,7 @@ function buildWarden() {
     ball.add(c);
   }
   h.pivot.add(ball);
+  h.ballNode = ball;
   const N = 9;
   const links = [];
   const linkM = M('#7a7f8e', { metal: 1, thr: [0.36, 0.56, 0.8] });
@@ -295,6 +296,7 @@ function buildWarden() {
     h.pivot.add(m);
     links.push(m);
   }
+  h.linkNodes = links;
   const A = new THREE.Vector3();
   h.post2 = (P) => {
     h.gripR.updateMatrix();

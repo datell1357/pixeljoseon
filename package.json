@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "등불길 — 쿼터뷰 실시간 액션 RPG",
+  "description": "등불길 — 실시간 액션 RPG",
   "scripts": {
     "dev": "node tools/dev.mjs",
     "dev:server": "tsx watch server/src/index.ts",
@@ -29,6 +29,7 @@
     "@preact/signals": "^2.11.4",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.6",
+    "@types/three": "^0.187.0",
     "galmuri": "^2.40.3",
     "phaser": "^4.2.1",
     "playwright": "^1.64.1",

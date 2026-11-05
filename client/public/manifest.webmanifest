@@ -1,7 +1,7 @@
 {
   "name": "등불길",
   "short_name": "등불길",
-  "description": "쿼터뷰 실시간 액션 RPG",
+  "description": "실시간 액션 RPG",
   "lang": "ko",
   "start_url": "/",
   "display": "fullscreen",

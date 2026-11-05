@@ -45,6 +45,12 @@ export function tone(h: Hex, k: number): Hex {
   return (f(r, warm - cool * 0.6) << 16) | (f(g, 0) << 8) | f(b, cool - warm * 0.7);
 }
 
+let leafDensity = 1;
+/** 낮은 그래픽에서 잎 카드 수를 줄인다 */
+export function setLeafDensity(k: number) {
+  leafDensity = k;
+}
+
 const v3 = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const A = v3();
 const B = v3();
@@ -340,7 +346,9 @@ export class Geo {
     const c = v3(cx, cy, cz);
     const ax = v3();
     const ay = v3();
-    for (let i = 0; i < n; i++) {
+    const count = Math.max(4, Math.round(n * leafDensity));
+    size /= Math.sqrt(leafDensity) * 1.05;
+    for (let i = 0; i < count; i++) {
       // 위쪽 겉면에 더 많이
       const th = r() * Math.PI * 2;
       const uy = -0.45 + r() * 1.45;

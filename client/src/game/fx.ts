@@ -1,9 +1,10 @@
 // 전투 연출: 입자, 베기 궤적, 경고 표시, 탄환, 숫자
 import * as Phaser from 'phaser';
-import { toX, toY } from '@shared/core';
+import { PX_U, PX_V, toX, toY } from '@shared/core';
 import { DEPTH } from './actor';
 
 const ADD = Phaser.BlendModes.ADD;
+const RATIO = PX_V / PX_U;
 
 interface Part {
   img: Phaser.GameObjects.Image;
@@ -199,10 +200,10 @@ export class Fx {
   groundRing(u: number, v: number, r: number, color: number, life = 0.35, width = 1) {
     const x = toX(u, v);
     const y = toY(u, v);
-    const px = (r * 45.25 * 2) / 96;
+    const px = (r * PX_U * 2) / 96;
     const img = this.img('ring');
     img.setBlendMode(ADD).setTint(color).setDepth(DEPTH.DARK + 2).setPosition(x, y);
-    this.parts.push({ img, x, y, vx: 0, vy: 0, g: 0, drag: 0, t: 0, life, s0: px * 0.3, s1: px, a0: 0.95 * width, a1: 0, spin: 0, sx: 0.5 });
+    this.parts.push({ img, x, y, vx: 0, vy: 0, g: 0, drag: 0, t: 0, life, s0: px * 0.3, s1: px, a0: 0.95 * width, a1: 0, spin: 0, sx: RATIO });
   }
 
   glowAt(u: number, v: number, r: number, color: number, life = 0.25, lift = 6) {
@@ -223,8 +224,8 @@ export class Fx {
     for (let i = 0; i < c.n; i++) {
       const a = Math.random() * Math.PI * 2;
       const rr = inner ? inner + Math.random() * (r - inner) : Math.random() * r * 0.8;
-      const px = x + Math.cos(a) * rr * 45.25;
-      const py = y + Math.sin(a) * rr * 22.6;
+      const px = x + Math.cos(a) * rr * PX_U;
+      const py = y + Math.sin(a) * rr * PX_V;
       const up = 30 + Math.random() * 80;
       this.part({
         tex: 'px',
@@ -246,8 +247,8 @@ export class Fx {
       const rr = Math.random() * r * 0.7;
       this.part({
         tex: 'soft',
-        x: x + Math.cos(a) * rr * 45.25,
-        y: y + Math.sin(a) * rr * 22.6 - 6,
+        x: x + Math.cos(a) * rr * PX_U,
+        y: y + Math.sin(a) * rr * PX_V - 6,
         vy: -14 - Math.random() * 14,
         life: 0.5 + Math.random() * 0.4,
         s0: 0.7,
@@ -265,10 +266,10 @@ export class Fx {
   slash(u: number, v: number, aim: [number, number], reach: number, color: number, flip: boolean, big = false) {
     const x = toX(u + aim[0] * reach * 0.42, v + aim[1] * reach * 0.42);
     const y = toY(u + aim[0] * reach * 0.42, v + aim[1] * reach * 0.42) - 16;
-    const sx = aim[0] - aim[1];
-    const sy = (aim[0] + aim[1]) * 0.5;
+    const sx = aim[0] * PX_U;
+    const sy = aim[1] * PX_V;
     const rot = Math.atan2(sy, sx);
-    const s = ((reach * 45) / 64) * (big ? 1.3 : 1);
+    const s = ((reach * PX_U) / 64) * (big ? 1.3 : 1);
     const img = this.img('slash');
     img.setBlendMode(ADD).setTint(color).setRotation(rot).setDepth(DEPTH.FX).setPosition(x, y).setFlipY(flip);
     this.parts.push({ img, x, y, vx: Math.cos(rot) * 34, vy: Math.sin(rot) * 34, g: 0, drag: 4, t: 0, life: big ? 0.22 : 0.16, s0: s * 0.72, s1: s * 1.06, a0: 1, a1: 0, spin: 0 });
@@ -296,9 +297,9 @@ export class Fx {
     const y = toY(u, v) - 12;
     for (let i = 0; i < 2; i++) {
       const img = this.img('slash');
-      const s = (r * 45) / 56;
+      const s = (r * PX_U) / 56;
       img.setBlendMode(ADD).setTint(color).setDepth(DEPTH.FX).setPosition(x, y).setRotation((i * Math.PI) as number);
-      this.parts.push({ img, x, y, vx: 0, vy: 0, g: 0, drag: 0, t: 0, life: 0.34, s0: s * 0.78, s1: s * 1.05, a0: 0.62, a1: 0, spin: 13, sx: 0.55 });
+      this.parts.push({ img, x, y, vx: 0, vy: 0, g: 0, drag: 0, t: 0, life: 0.34, s0: s * 0.78, s1: s * 1.05, a0: 0.62, a1: 0, spin: 13, sx: RATIO });
     }
     this.groundRing(u, v, r, color, 0.4);
   }
@@ -406,7 +407,7 @@ export class Fx {
     const img = this.img(st.tex);
     img.setBlendMode(st.tex === 'arrow' ? Phaser.BlendModes.NORMAL : ADD);
     img.setTint(st.color).setScale(st.scale).setDepth(DEPTH.FX);
-    img.setRotation(Math.atan2((m.du + m.dv) * 0.5, m.du - m.dv));
+    img.setRotation(Math.atan2(m.dv * PX_V, m.du * PX_U));
     const glow = this.img('glow');
     glow.setBlendMode(ADD).setTint(st.glowColor).setScale(st.glow).setAlpha(0.75).setDepth(DEPTH.LIGHT);
     this.projs.set(m.id, { id: m.id, kind: m.kind, u: m.u, v: m.v, du: m.du, dv: m.dv, speed: m.speed, left: m.range, img, glow, trail: st.trail, color: st.glowColor, friendly: m.friendly });
@@ -439,14 +440,14 @@ export class Fx {
     const img = this.img('glow');
     img.setBlendMode(ADD).setTint(0xff5a22).setAlpha(0.55).setDepth(DEPTH.DARK + 1);
     img.setPosition(toX(u, v), toY(u, v));
-    img.setScale((r * 92) / 128, (r * 46) / 128);
+    img.setScale((r * PX_U * 2.04) / 128, (r * PX_V * 2.04) / 128);
     this.patches.set(id, { imgs: [img], until: performance.now() + ttl * 1000, u, v, r, next: 0 });
   }
 
   addTrap(id: number, u: number, v: number, r: number) {
     const img = this.img('cross');
     img.setBlendMode(ADD).setTint(0xd8ff7a).setDepth(DEPTH.DARK + 1);
-    img.setPosition(toX(u, v), toY(u, v)).setScale(0.8, 0.4);
+    img.setPosition(toX(u, v), toY(u, v)).setScale(0.8, 0.8 * RATIO);
     this.traps.set(id, { img, u, v, r });
     this.groundRing(u, v, r * 0.7, 0xd8ff7a, 0.5);
   }
@@ -520,8 +521,8 @@ export class Fx {
         const rr = Math.random() * pa.r;
         this.part({
           tex: 'px',
-          x: toX(pa.u, pa.v) + Math.cos(a) * rr * 45,
-          y: toY(pa.u, pa.v) + Math.sin(a) * rr * 22,
+          x: toX(pa.u, pa.v) + Math.cos(a) * rr * PX_U,
+          y: toY(pa.u, pa.v) + Math.sin(a) * rr * PX_V,
           vy: -30 - Math.random() * 30,
           life: 0.5,
           s0: 0.6,

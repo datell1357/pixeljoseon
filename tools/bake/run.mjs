@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // 등불길 아트 굽기. 사용법: npm run bake [-- 대상...]
-//   대상 없음 = 전부. 대상: 캐릭터 id, chars players npcs monsters bosses props terrain icons preview check
+//   게임이 쓰는 건 icons뿐이다. 인물·소품·지형은 실시간 3D(client/src/render3d)로 옮겼다.
+//   대상 없음 = icons. 옛 시트 대상: 캐릭터 id, chars players npcs monsters bosses props terrain preview check
 import { chromium } from 'playwright';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, extname, resolve } from 'node:path';
@@ -54,8 +55,8 @@ async function writeJson(path, obj) {
 async function main() {
   const args = process.argv.slice(2).filter((a) => !a.startsWith('--'));
   const jobs = Number(process.env.BAKE_JOBS ?? 3);
-  const want = new Set(args);
-  const all = want.size === 0;
+  const want = new Set(args.length ? args : ['icons']);
+  const all = false;
   const t0 = Date.now();
 
   const has = (k) => all || want.has(k);

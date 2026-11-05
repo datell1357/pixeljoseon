@@ -2,8 +2,10 @@
 import * as THREE from 'three';
 import { PX_H, PX_U, PX_V } from '@shared/core';
 import type { MapData } from '@shared/mapdata';
+import type { ActorView } from './actor3d';
 import { atmosphereOf, type Atmos } from './atmos';
-import { propGeometry, propVariants, PROP_LIGHTS, propSpin } from './props';
+import { setLeafDensity } from './geo';
+import { clearPropCache, propGeometry, propVariants, PROP_LIGHTS, propSpin } from './props';
 import {
   BLUR_FRAG,
   BRIGHT_FRAG,
@@ -23,6 +25,7 @@ import { TerrainData } from './terrain';
 const CHUNK = 12;
 const SHADOW_SIZE = 3072;
 const SHADOW_SPAN = 58;
+export const PORTRAIT = 96;
 const COS_E = PX_H / PX_U;
 const SIN_E = PX_V / PX_U;
 export const CAM_DIR = new THREE.Vector3(0, SIN_E, COS_E).normalize();
@@ -109,12 +112,23 @@ export class Stage3D {
   terrainMesh: THREE.Mesh | null = null;
   waterMesh: THREE.Mesh | null = null;
   lamps: Lamp[] = [];
+  ghosts: { mesh: THREE.Mesh; mat: THREE.ShaderMaterial; tex: THREE.DataTexture; t: number }[] = [];
   atmos: Atmos | null = null;
   map: MapData | null = null;
   grassGeo: THREE.BufferGeometry;
   time = 0;
   stats = { calls: 0, tris: 0 };
   blank = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
+  black = new THREE.DataTexture(new Uint8Array([0, 0, 0, 255]), 1, 1);
+  /** 1: 전부 / 0: 그림자·풀 끄고 잎 줄임 */
+  quality = 1;
+  /** 프레임이 오래 느리면 부른다 */
+  onSlow: (() => void) | null = null;
+  private lastNow = 0;
+  private shadowTick = 0;
+  private shadowLive: boolean | null = null;
+  private slowEma = 16;
+  private slowN = 0;
 
   constructor(parent: HTMLElement) {
     this.canvas = document.createElement('canvas');
@@ -130,6 +144,7 @@ export class Stage3D {
     this.scene.add(this.actors);
 
     this.blank.needsUpdate = true;
+    this.black.needsUpdate = true;
     const sd = new THREE.DepthTexture(SHADOW_SIZE, SHADOW_SIZE, THREE.UnsignedIntType);
     this.shadow = new THREE.WebGLRenderTarget(SHADOW_SIZE, SHADOW_SIZE, { depthTexture: sd, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter });
     shared.uShadowMap.value = sd;
@@ -165,6 +180,7 @@ export class Stage3D {
         uHaloCol: { value: Array.from({ length: MAX_LAMPS }, () => new THREE.Vector3()) },
         uHaloN: { value: 0 },
         uHaloK: { value: 1 },
+        uKey: { value: 0 },
       },
     });
     this.brightMat = new THREE.ShaderMaterial({ glslVersion: THREE.GLSL3, vertexShader: FS_VERT, fragmentShader: BRIGHT_FRAG, depthTest: false, depthWrite: false, uniforms: { tC: { value: null } } });
@@ -244,9 +260,15 @@ export class Stage3D {
     this.lamps = [];
   }
 
+  /** 다음 프레임에 그림자를 바로 다시 그린다 */
+  invalidateShadow() {
+    this.shadowLive = null;
+  }
+
   loadMap(map: MapData) {
     this.clearMap();
     this.map = map;
+    this.shadowLive = null;
     const at = (this.atmos = atmosphereOf(map));
     shared.uSunDir.value.copy(at.sunDir).normalize();
     shared.uSunCol.value.copy(at.sun);
@@ -271,9 +293,10 @@ export class Stage3D {
       uBase: { value: t.baseKind },
       uKinds: { value: t.kindsVec },
       uKindN: { value: t.kindN },
+      uBiome: { value: at.ground },
     };
-    this.terrainMat ??= new THREE.ShaderMaterial({ glslVersion: THREE.GLSL3, vertexShader: TERRAIN_VERT, fragmentShader: TERRAIN_FRAG, uniforms: tu, blending: THREE.NoBlending });
-    this.terrainMat.uniforms = tu;
+    this.terrainMat?.dispose();
+    this.terrainMat = new THREE.ShaderMaterial({ glslVersion: THREE.GLSL3, vertexShader: TERRAIN_VERT, fragmentShader: TERRAIN_FRAG, uniforms: tu, blending: THREE.NoBlending });
     this.terrainMesh = new THREE.Mesh(t.buildMesh(), this.terrainMat);
     this.terrainMesh.frustumCulled = false;
     this.terrainMesh.userData.noShadow = true;
@@ -290,7 +313,7 @@ export class Stage3D {
     }
 
     this.grassMat ??= new THREE.ShaderMaterial({ glslVersion: THREE.GLSL3, vertexShader: GRASS_VERT, fragmentShader: GRASS_FRAG, uniforms: { ...shared }, blending: THREE.NoBlending, side: THREE.DoubleSide });
-    for (const c of t.grassChunks(CHUNK)) {
+    for (const c of t.grassChunks(CHUNK, at.ground)) {
       const g = new THREE.InstancedBufferGeometry();
       g.setAttribute('position', this.grassGeo.getAttribute('position'));
       g.setAttribute('iPos', new THREE.InstancedBufferAttribute(c.pos, 3));
@@ -311,7 +334,10 @@ export class Stage3D {
       h = (h ^ (h >>> 13)) * 1274126177;
       return (h ^ (h >>> 16)) >>> 0;
     };
+    const clearSpots = map.objects.filter((o) => o.type === 'door' || o.type === 'arrive');
     const place = (id: string, u: number, v: number) => {
+      // 문 앞을 가리는 나무는 심지 않는다 (충돌은 그대로)
+      if (id.startsWith('tree_') && clearSpots.some((o) => Math.abs(o.u - u) < 2.6 && v - o.v > -0.5 && v - o.v < 4.2)) return;
       const n = propVariants(id);
       const hv = hash(u, v);
       const variant = hv % n;
@@ -362,6 +388,138 @@ export class Stage3D {
       if (this.lamps.some((m) => Math.abs(m.x - u) < 0.6 && Math.abs(m.z - v) < 0.6)) continue;
       this.lamps.push({ x: u + l.x, y: l.y, z: v + l.z, r: l.r, col: new THREE.Color(l.col), ph: Math.random() * 10, k: l.k });
     }
+  }
+
+  /** 게임 중에 생기고 없어지는 소품 (균열 문 등) */
+  addProp(id: string, u: number, v: number) {
+    const m = new THREE.Mesh(propGeometry(id, 0), this.statics);
+    m.position.set(u, this.terrain?.heightAt(u, v) ?? 0, v);
+    m.frustumCulled = false;
+    this.scene.add(m);
+    return m;
+  }
+
+  removeProp(o: THREE.Object3D) {
+    this.scene.remove(o);
+  }
+
+  /** 그래픽 수준을 바꾼다. 잎 모델을 다시 지으므로 지도를 다시 읽는다. */
+  setQuality(q: number) {
+    if (q === this.quality) return;
+    this.quality = q;
+    setLeafDensity(q > 0 ? 1 : 0.32);
+    clearPropCache();
+    if (this.map) this.loadMap(this.map);
+  }
+
+  // ─── 잔상 ─────────────────────────────────────
+
+  ghost(view: ActorView) {
+    const tex = new THREE.DataTexture(view.data.slice(), 4, view.tex.image.height, THREE.RGBAFormat, THREE.FloatType);
+    tex.minFilter = tex.magFilter = THREE.NearestFilter;
+    tex.needsUpdate = true;
+    const mat = uberMaterial({ bones: tex });
+    mat.uniforms.uFlash.value.set(0.62, 0.82, 1, 0.75);
+    mat.uniforms.uAlpha.value = 0.5;
+    const mesh = new THREE.Mesh(view.mesh.geometry, mat);
+    mesh.frustumCulled = false;
+    this.actors.add(mesh);
+    this.ghosts.push({ mesh, mat, tex, t: 0 });
+  }
+
+  private updateGhosts(dt: number) {
+    for (let i = this.ghosts.length - 1; i >= 0; i--) {
+      const g = this.ghosts[i];
+      g.t += dt;
+      g.mat.uniforms.uAlpha.value = 0.5 * (1 - g.t / 0.2);
+      if (g.t >= 0.2) {
+        this.actors.remove(g.mesh);
+        g.mat.dispose();
+        g.tex.dispose();
+        this.ghosts.splice(i, 1);
+      }
+    }
+  }
+
+  // ─── 미리보기 ─────────────────────────────────
+
+  private pv: { rt: THREE.WebGLRenderTarget; out: THREE.WebGLRenderTarget; scene: THREE.Scene; cam: THREE.OrthographicCamera; buf: Uint8Array; img: ImageData } | null = null;
+
+  /** 인물 미리보기를 2D 캔버스에 그린다. 창 UI에서 쓴다. */
+  portrait(view: ActorView, ctx: CanvasRenderingContext2D) {
+    const size = PORTRAIT;
+    if (!this.pv) {
+      const dt = new THREE.DepthTexture(size, size, THREE.UnsignedIntType);
+      const rt = new THREE.WebGLRenderTarget(size, size, { count: 2, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, depthTexture: dt });
+      const out = new THREE.WebGLRenderTarget(size, size, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, depthBuffer: false });
+      const cam = new THREE.OrthographicCamera(-size / 2 / PX_U, size / 2 / PX_U, size / 2 / PX_U, -size / 2 / PX_U, 1, 500);
+      cam.position.set(CAM_DIR.x * 200, 0.92 + CAM_DIR.y * 200, CAM_DIR.z * 200);
+      cam.lookAt(0, 0.92, 0);
+      cam.updateMatrixWorld(true);
+      this.pv = { rt, out, cam, scene: new THREE.Scene(), buf: new Uint8Array(size * size * 4), img: new ImageData(size, size) };
+    }
+    const { rt, out, cam, scene, buf, img } = this.pv;
+    const r = this.renderer;
+    const parent = view.mesh.parent;
+    scene.add(view.mesh);
+    const lampN = shared.uLampN.value;
+    const cloud = shared.uCloud.value;
+    const map = shared.uShadowMap.value;
+    const focus = shared.uFocusOn.value;
+    const sun = shared.uSunDir.value.clone();
+    const sc = shared.uSunCol.value.clone();
+    const sk = shared.uSky.value.clone();
+    const gn = shared.uGnd.value.clone();
+    shared.uLampN.value = 0;
+    shared.uCloud.value = 0;
+    shared.uShadowMap.value = this.blank;
+    shared.uFocusOn.value = 0;
+    shared.uPass.value = 0;
+    shared.uSunDir.value.set(-0.5, 0.7, 0.6).normalize();
+    shared.uSunCol.value.setRGB(0.95, 0.82, 0.62);
+    shared.uSky.value.setRGB(0.5, 0.55, 0.7);
+    shared.uGnd.value.setRGB(0.36, 0.32, 0.38);
+    r.setClearColor(0x000000, 0);
+    r.setRenderTarget(rt);
+    r.clear(true, true, true);
+    r.render(scene, cam);
+    const u = this.postMat.uniforms;
+    const save = { tC: u.tC.value, tN: u.tN.value, tD: u.tD.value, tB1: u.tB1.value, tB2: u.tB2.value, res: u.uRes.value.clone(), fog: u.uFog.value, hn: u.uHaloN.value, key: u.uKey.value, tint: u.uShadowTint.value.clone(), high: u.uHighTint.value.clone(), sat: u.uSat.value };
+    u.tC.value = rt.textures[0];
+    u.tN.value = rt.textures[1];
+    u.tD.value = rt.depthTexture;
+    u.tB1.value = this.black;
+    u.tB2.value = this.black;
+    u.uRes.value.set(size, size);
+    u.uFog.value = 0;
+    u.uHaloN.value = 0;
+    u.uKey.value = 1;
+    this.fs(this.postMat, out);
+    u.tC.value = save.tC;
+    u.tN.value = save.tN;
+    u.tD.value = save.tD;
+    u.tB1.value = save.tB1;
+    u.tB2.value = save.tB2;
+    u.uRes.value.copy(save.res);
+    u.uFog.value = save.fog;
+    u.uHaloN.value = save.hn;
+    u.uKey.value = save.key;
+    shared.uLampN.value = lampN;
+    shared.uCloud.value = cloud;
+    shared.uShadowMap.value = map;
+    shared.uFocusOn.value = focus;
+    shared.uSunDir.value.copy(sun);
+    shared.uSunCol.value.copy(sc);
+    shared.uSky.value.copy(sk);
+    shared.uGnd.value.copy(gn);
+    if (this.atmos) r.setClearColor(this.atmos.fog, 1);
+    r.readRenderTargetPixels(out, 0, 0, size, size, buf);
+    r.setRenderTarget(null);
+    if (parent) parent.add(view.mesh);
+    // 위아래가 뒤집혀 있다
+    const row = size * 4;
+    for (let y = 0; y < size; y++) img.data.set(buf.subarray((size - 1 - y) * row, (size - y) * row), y * row);
+    ctx.putImageData(img, 0, 0);
   }
 
   // ─── 카메라 ───────────────────────────────────
@@ -434,7 +592,17 @@ export class Stage3D {
     let n = 0;
     let hn = 0;
     const lampK = this.atmos?.lampK ?? 1;
+    const my = this.atmos?.myLight ?? 0;
+    if (my > 0 && shared.uFocusOn.value > 0) {
+      const f = shared.uFocus.value;
+      const c = this.atmos!.lamp;
+      const k = 0.62 * (0.96 + Math.sin(t * 5.3) * 0.03);
+      shared.uLampPos.value[n].set(f.x, f.y + 0.7, f.z, my);
+      shared.uLampCol.value[n].set(c.r * k, c.g * k, c.b * k);
+      n++;
+    }
     for (const { l } of list) {
+      if (n >= MAX_LAMPS) break;
       const flick = 0.92 + Math.sin(t * 3.1 + l.ph) * 0.05 + Math.sin(t * 7.7 + l.ph * 2) * 0.03;
       const k = flick * l.k * lampK;
       shared.uLampPos.value[n].set(l.x, l.y, l.z, l.r * (0.97 + (flick - 0.92) * 0.3));
@@ -476,16 +644,34 @@ export class Stage3D {
 
   render(dt: number) {
     if (!this.map) return;
+    // 프레임이 계속 느리면 알린다
+    const now = performance.now();
+    if (this.lastNow) {
+      const ms = now - this.lastNow;
+      if (ms < 500) {
+        this.slowEma += (ms - this.slowEma) * 0.03;
+        this.slowN++;
+        if (this.slowN > 150 && this.slowEma > 36 && this.quality > 0) {
+          this.slowN = 0;
+          this.onSlow?.();
+        }
+      }
+    }
+    this.lastNow = now;
     this.time += dt;
     shared.uTime.value = this.time;
+    this.updateGhosts(dt);
     this.renderer.info.reset();
     this.updateCamera();
-    this.updateSun();
     this.updateLamps();
     const r = this.renderer;
 
-    // 그림자
-    if (this.atmos && this.atmos.sunShadow) {
+    // 그림자: 세 프레임에 한 번만 그려 부담을 줄인다. 표는 월드 기준이라 카메라가 움직여도 맞다.
+    this.shadowTick = (this.shadowTick + 1) % 3;
+    const wantShadow = !!this.atmos?.sunShadow && this.quality > 0;
+    if (wantShadow && (this.shadowTick === 0 || !this.shadowLive)) {
+      this.shadowLive = true;
+      this.updateSun();
       shared.uPass.value = 1;
       const vis = this.cull(8);
       void vis;
@@ -503,7 +689,8 @@ export class Stage3D {
       r.render(this.scene, this.sunCam);
       shared.uShadowMap.value = this.shadow.depthTexture;
       for (const o of hide) o.visible = true;
-    } else {
+    } else if (!wantShadow && this.shadowLive !== false) {
+      this.shadowLive = false;
       r.setRenderTarget(this.shadow);
       r.clear(true, true, true);
     }
@@ -511,7 +698,7 @@ export class Stage3D {
     // 본 장면
     shared.uPass.value = 0;
     const vis = this.cull(0.5);
-    for (const g of this.grassChunks) g.mesh.visible = vis(g.cx, g.cz, 1);
+    for (const g of this.grassChunks) g.mesh.visible = this.quality > 0 && vis(g.cx, g.cz, 1);
     r.setRenderTarget(this.main);
     r.clear(true, true, true);
     r.render(this.scene, this.camera);

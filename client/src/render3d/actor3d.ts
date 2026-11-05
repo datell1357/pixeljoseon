@@ -1,75 +1,13 @@
 // 움직이는 인물 하나의 3D 모습. 동작 재생, 옷자락·머리카락, 뼈 행렬 올리기.
 import * as THREE from 'three';
-import { BOSSES } from '@bake/bosses.js';
-import { MONSTERS } from '@bake/monsters.js';
+import { monsterAsset } from './monsters3d';
 import { humanAsset, retarget, type BuiltRig, type CharAsset, type Chain, type Panel } from './chars';
 import { uberMaterial } from './stage';
 
 const D2R = Math.PI / 180;
 
-/** 예전 모델(뼈대 + 메시 묶음)을 뼈 하나 짜리 정점으로 합친다 */
-function convertOld(id: string, def: { build: () => any; float?: boolean }): CharAsset {
-  const proto = def.build();
-  const meshes: THREE.Mesh[] = [];
-  proto.root.traverse((o: THREE.Object3D) => {
-    if ((o as THREE.Mesh).isMesh) meshes.push(o as THREE.Mesh);
-  });
-  const P: number[] = [];
-  const N: number[] = [];
-  const C: number[] = [];
-  const A: number[] = [];
-  const U: number[] = [];
-  const B: number[] = [];
-  meshes.forEach((m, bi) => {
-    const g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone();
-    g.computeVertexNormals();
-    const mat = m.material as THREE.ShaderMaterial;
-    const src = mat.userData.src ?? { hex: '#ff00ff', metal: false, em: 0, alpha: 1 };
-    const col = new THREE.Color(src.hex);
-    col.convertLinearToSRGB();
-    const p = g.getAttribute('position');
-    const n = g.getAttribute('normal');
-    const id8 = ((bi * 7) % 240) + 1;
-    for (let i = 0; i < p.count; i++) {
-      P.push(p.getX(i), p.getY(i), p.getZ(i));
-      N.push(n.getX(i), n.getY(i), n.getZ(i));
-      C.push(col.r, col.g, col.b);
-      A.push(src.metal ? 0.6 : 0, src.em, 0, id8 / 255);
-      U.push(0, 0);
-      B.push(bi);
-    }
-    g.dispose();
-  });
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
-  geometry.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3));
-  geometry.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
-  geometry.setAttribute('aux', new THREE.Float32BufferAttribute(A, 4));
-  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(U, 2));
-  geometry.setAttribute('bone', new THREE.Float32BufferAttribute(B, 1));
-  const rigFactory = (): BuiltRig => {
-    const rig = def.build();
-    const list: THREE.Object3D[] = [];
-    rig.root.traverse((o: THREE.Object3D) => {
-      if ((o as THREE.Mesh).isMesh) list.push(o);
-    });
-    return { rig, bones: list, panels: [], chains: [] };
-  };
-  return { geometry, boneOrder: [], rigFactory, anims: proto.anims, retarget: false, height: 1.2 };
-}
-
-const oldCache = new Map<string, CharAsset>();
-
 export function assetOf(id: string): CharAsset | null {
-  const h = humanAsset(id);
-  if (h) return h;
-  let a = oldCache.get(id);
-  if (a) return a;
-  const def = MONSTERS[id] ?? BOSSES[id];
-  if (!def) return null;
-  a = convertOld(id, def);
-  oldCache.set(id, a);
-  return a;
+  return humanAsset(id) ?? monsterAsset(id);
 }
 
 function lerpPose(a: Record<string, number>, b: Record<string, number>, t: number) {
@@ -124,7 +62,7 @@ export class ActorView {
   }
 
   setAlpha(a: number) {
-    this.mat.uniforms.uAlpha.value = a;
+    this.mat.uniforms.uAlpha.value = a * (this.asset.alpha ?? 1);
   }
 
   /** name 동작의 p(0~1 또는 그 이상) 지점 자세 */
@@ -171,7 +109,7 @@ export class ActorView {
     const root = this.root;
     root.position.set(x, y, z);
     root.rotation.set(0, this.heading, 0);
-    root.scale.setScalar(scale);
+    root.scale.setScalar(scale * this.asset.baseScale);
     this.scale = scale;
 
     const c = Math.cos(this.heading);

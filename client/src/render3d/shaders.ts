@@ -194,7 +194,7 @@ ${LIT}
 in vec3 vWorld; in vec3 vN;
 layout(location=0) out vec4 oC;
 layout(location=1) out vec4 oN;
-uniform sampler2D uSplat; uniform vec2 uMapSize; uniform int uBase; uniform ivec4 uKinds; uniform int uKindN;
+uniform sampler2D uSplat; uniform vec2 uMapSize; uniform int uBase; uniform ivec4 uKinds; uniform int uKindN; uniform vec3 uBiome;
 
 vec3 ramp3(vec3 a, vec3 b, vec3 c, float t){ return t<.5? mix(a,b,t*2.) : mix(b,c,t*2.-1.); }
 
@@ -216,10 +216,11 @@ vec3 groundColor(int k, vec2 p, inout vec3 n, inout float spec, inout float em){
     vec3 c = ramp3(vec3(.46,.47,.24),vec3(.60,.56,.28),vec3(.74,.65,.33),big*.5+mid*.6-.05);
     c *= .92+fine*.16; n = normalize(n+vec3(mid-.5,0.,fine-.5)*.1); return c;
   }
-  if(k==2){ // 숲바닥: 낙엽
-    vec3 cb = cobbles(p+mid,5.); float h = hash12(cb.xy);
-    vec3 c = h>.72? vec3(.50,.28,.16): h>.5? vec3(.36,.26,.15): vec3(.22,.21,.14);
-    c *= .78+mid*.4; return c;
+  if(k==2){ // 숲바닥: 이끼 낀 흙에 드문드문 낙엽
+    vec3 c = ramp3(vec3(.15,.19,.13),vec3(.21,.26,.15),vec3(.29,.32,.17),big*.6+mid*.6-.1);
+    vec3 cb = cobbles(p+mid*.3,9.); float h = hash12(cb.xy);
+    if(h>.84 && cb.z>.05) c = h>.94? vec3(.60,.33,.16): vec3(.46,.38,.18);
+    return c*(.9+fine*.2);
   }
   if(k==3){ // 흙길: 바퀴 자국과 자갈
     vec3 c = ramp3(vec3(.43,.33,.24),vec3(.52,.41,.29),vec3(.60,.49,.35),mid*.7+big*.4-.05);
@@ -248,8 +249,14 @@ vec3 groundColor(int k, vec2 p, inout vec3 n, inout float spec, inout float em){
   }
   if(k==6){ // 그을린 땅
     vec3 cb = cobbles(p,1.3);
-    vec3 c = mix(vec3(.13,.10,.10),vec3(.27,.20,.17),mid);
-    if(cb.z<.035){ float g = .6+.4*sin(uTime*1.3+hash12(cb.xy)*6.); c = mix(c,vec3(1.,.42,.10),.85*g); em=.8*g; }
+    vec3 c = mix(vec3(.15,.12,.12),vec3(.30,.23,.20),mid);
+    c *= .9+fine*.2;
+    // 금은 군데군데만 달아오른다
+    float heat = smoothstep(.5,.64,fbm(p*.26+3.));
+    if(cb.z<.028){
+      float g = (.6+.4*sin(uTime*1.3+hash12(cb.xy)*6.))*heat;
+      c = mix(c*.55,vec3(1.,.42,.10),.85*g); em=.8*g;
+    }
     return c;
   }
   if(k==7){ // 동굴 바닥
@@ -286,6 +293,7 @@ void main(){
   }
   vec3 n = normalize(vN); float spec=0.,em=0.;
   vec3 alb = groundColor(kind,p,n,spec,em);
+  if(kind<=1) alb *= uBiome;
   // 길 가장자리는 진한 경계로 땅에 묻힌 느낌을 준다
   if(kind==4 && edge<.05) alb *= .55;
   if(kind==3 && edge<.04) alb *= .78;
@@ -416,7 +424,7 @@ uniform sampler2D tC, tN, tD, tB1, tB2;
 uniform vec2 uRes; uniform vec2 uCamPx; uniform float uTime;
 uniform float uDepthRange; uniform vec3 uSunDir; uniform mat4 uInvVP; uniform vec2 uMapSize;
 uniform vec3 uFogCol; uniform float uFog; uniform vec3 uShadowTint; uniform vec3 uHighTint; uniform float uSat;
-uniform vec4 uHalo[${MAX_LAMPS}]; uniform vec3 uHaloCol[${MAX_LAMPS}]; uniform int uHaloN; uniform float uHaloK;
+uniform vec4 uHalo[${MAX_LAMPS}]; uniform vec3 uHaloCol[${MAX_LAMPS}]; uniform int uHaloN; uniform float uHaloK; uniform float uKey;
 
 float D(vec2 uv){ return texture(tD,uv).r*uDepthRange; }
 vec3 WP(vec2 uv, float raw){ vec4 c = vec4(uv*2.-1.,raw*2.-1.,1.); vec4 w = uInvVP*c; return w.xyz/w.w; }
@@ -502,7 +510,7 @@ void main(){
   col = floor(col*levels+.5+dither*.4)/levels;
   // 가장자리 어둡게
   vec2 c = vUv-.5; float vig = 1.-dot(c,c)*.42;
-  col *= vig;
-  o = vec4(col,1.);
+  col *= uKey>.5 ? 1. : vig;
+  o = vec4(col, uKey>.5 && sky ? 0. : 1.);
 }
 `;

@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { Human, STAND } from '@bake/rig.js';
 import { archerAnims, idleFrames, mageAnims, warriorAnims } from '@bake/humans.js';
+import { MONSTERS } from '@bake/monsters.js';
 import { Geo, mix, tone, v3, type Hex } from './geo';
 
 export const DIMS = {
@@ -67,6 +68,9 @@ export interface CharAsset {
   anims: Record<string, { frames: number; dur: number; loop?: boolean; poses: Record<string, number>[] }>;
   retarget: boolean;
   height: number;
+  /** 모델 자체 배율. 예전 비율 모델을 키울 때 쓴다 */
+  baseScale: number;
+  alpha?: number;
 }
 
 export interface BuiltRig {
@@ -926,7 +930,7 @@ function finish(id: string, { body, anims, bow }: Build): CharAsset {
     }
     return built;
   };
-  return { geometry, boneOrder: order, rigFactory, anims, retarget: true, height: 1.8 };
+  return { geometry, boneOrder: order, rigFactory, anims, retarget: true, height: 1.86, baseScale: 1 };
 }
 
 const WARRIOR_LOOK: Record<string, { coat: Hex; trim: Hex; under: Hex; hair: Hex; band: Hex; pants: Hex; shield: Hex; ring: Hex; female?: boolean; style: number; skin: number }> = {
@@ -1228,6 +1232,95 @@ function buildNpc(id: string): Build {
   }
 }
 
+/** 찢어진 자락 */
+function raggedSkirt(b: Body, col: Hex, alt: Hex, len: number) {
+  skirtPanels(b, { n: 10, len, col, trim: tone(col, 0.7), flare: 0.1, widthK: 1.05, alt });
+}
+
+function buildCultist(): Build {
+  const b = new Body();
+  const robe = 0x26222c;
+  const robeL = 0x38323f;
+  // 어둠 속 얼굴과 희미한 눈
+  const id = b.next();
+  b.on('head', (g) => {
+    g.set({ id });
+    g.loft(HEAD_PROFILE.map(([y, rx, rz, cz]) => [0, y, cz, rx, rz]), 0x14101a, 10, { flat: false });
+    g.set({ id, em: 0.8 });
+    for (const s of [-1, 1]) g.box(s * 0.05, 0.17, 0.118, 0.034, 0.018, 0.006, 0xb8aee0);
+    g.set({ em: 0 });
+  });
+  // 두건
+  const hid = b.next();
+  b.on('head', (g) => {
+    g.set({ id: hid });
+    const seg = 16;
+    for (let i = 0; i < seg; i++) {
+      const a0 = 0.62 + (i / seg) * (Math.PI * 2 - 1.24);
+      const a1 = 0.62 + ((i + 1) / seg) * (Math.PI * 2 - 1.24);
+      const prof = [
+        [-0.02, 0.17],
+        [0.14, 0.158],
+        [0.26, 0.15],
+        [0.36, 0.1],
+        [0.43, 0.02],
+      ];
+      for (let k = 0; k < prof.length - 1; k++) {
+        const P = (a: number, q: number[]) => v3(Math.sin(a) * q[1], q[0], Math.cos(a) * q[1] - 0.012);
+        g.quad(P(a0, prof[k]), P(a1, prof[k]), P(a1, prof[k + 1]), P(a0, prof[k + 1]), i % 2 ? robe : robeL);
+      }
+    }
+  });
+  torso(b, { col: robe, collar: robeL, dark: 0x5a4a3a, w: 0.96 });
+  pelvis(b, robe);
+  belt(b, 0x4a3a2c);
+  raggedSkirt(b, robe, robeL, 0.84);
+  legs(b, { pants: 0x18151c, wrap: 0x18151c, boot: 0x201c22 });
+  arms(b, { sleeve: robe, cuff: robeL, skin: 0x9a8e88, flare: 0.08 });
+  // 꺼진 등불
+  const lid = b.next();
+  addChain(b, 'gripR', 'deadLamp', 0, 0, 0, 1, 0.1, (g) => {
+    g.set({ id: lid, spec: 0.3 });
+    g.box(0, -0.08, 0, 0.012, 0.16, 0.012, 0x3c3c44);
+    g.loft([[0, -0.2, 0, 0.11, 0.11], [0, -0.16, 0, 0.13, 0.13], [0, -0.12, 0, 0.03, 0.03]], 0x34343c, 8);
+    g.set({ id: b.next(), spec: 0 });
+    g.loft([[0, -0.4, 0, 0.1, 0.1], [0, -0.2, 0, 0.1, 0.1]], (_i, s) => (s % 2 ? 0x4c4e5c : 0x34343c), 8);
+    g.set({ id: b.next(), spec: 0.3 });
+    g.loft([[0, -0.42, 0, 0.11, 0.11], [0, -0.4, 0, 0.11, 0.11]], 0x34343c, 8);
+    g.set({ spec: 0 });
+  }, 0, 18);
+  return { body: b, anims: MONSTERS.cultist.build().anims };
+}
+
+function buildShade(): Build {
+  const b = new Body();
+  const c = 0x4a3478;
+  const d = 0x332458;
+  const id = b.next();
+  b.on('head', (g) => {
+    g.set({ id });
+    g.loft(HEAD_PROFILE.map(([y, rx, rz, cz]) => [0, y, cz, rx, rz]), c, 8);
+    for (const [x, z, l] of [[0, -0.08, 0.26], [0.09, -0.07, 0.2], [-0.09, -0.07, 0.2]] as const) g.tube([v3(x, 0.3, z), v3(x * 1.3, 0.3 + l * 0.6, z - 0.1), v3(x * 1.5, 0.3 + l, z - 0.22)], [0.06, 0.04, 0.004], d, 4);
+    g.set({ id, em: 1 });
+    for (const s of [-1, 1]) g.box(s * 0.052, 0.17, 0.118, 0.034, 0.05, 0.006, 0xf0d8ff);
+    g.set({ em: 0 });
+  });
+  torso(b, { col: c, collar: d, dark: d, w: 0.96 });
+  pelvis(b, d);
+  raggedSkirt(b, c, d, 0.94);
+  legs(b, { pants: d, wrap: d, boot: d });
+  arms(b, { sleeve: c, cuff: d, skin: d, flare: 0.05 });
+  for (const grip of ['gripL', 'gripR']) {
+    const nid = b.next();
+    b.on(grip, (g) => {
+      g.set({ id: nid, spec: 0.3 });
+      for (const [x, y] of [[0.05, 0.02], [0.018, 0.04], [-0.02, 0.03], [-0.055, -0.01]] as const) g.tube([v3(x, y, 0), v3(x * 1.2, y, 0.25), v3(x * 1.5, y - 0.02, 0.5)], [0.018, 0.012, 0.002], 0xe6d6ff, 4);
+      g.set({ spec: 0 });
+    });
+  }
+  return { body: b, anims: MONSTERS.shade.build().anims };
+}
+
 const cache = new Map<string, CharAsset>();
 
 export function humanAsset(id: string): CharAsset | null {
@@ -1239,6 +1332,11 @@ export function humanAsset(id: string): CharAsset | null {
     a = finish(id, b);
   } else if (id.startsWith('npc_')) {
     a = finish(id, buildNpc(id));
+  } else if (id === 'cultist') {
+    a = finish(id, buildCultist());
+  } else if (id === 'shade') {
+    a = finish(id, buildShade());
+    a.alpha = 0.72;
   } else {
     return null;
   }

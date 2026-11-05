@@ -5,7 +5,12 @@ import { signal } from '@preact/signals';
 import { CONSUMABLES, GEAR, RARITY_COLOR, RARITY_LABEL, SLOT_LABEL, STAT_LABEL, enhanceCost, formatStat, gearStats, sellPrice, type GearInstance, type ItemStack, type StatKey } from '@shared/items';
 import { CLASSES } from '@shared/classes';
 import { DIRS } from '@shared/core';
-import { iconSheets, sheets } from '../game/assets';
+import { DIR_VEC } from '@shared/core';
+import { stageOrNull } from '../game/boot';
+import { iconSheets } from '../game/assets';
+import { ActorView } from '../render3d/actor3d';
+import { PORTRAIT } from '../render3d/stage';
+import * as THREE from 'three';
 import { me } from '../store';
 
 export function Icon({ id, size = 32, kind = 'items' }: { id: string; size?: number; kind?: 'items' | 'skills' }) {
@@ -165,47 +170,51 @@ export { enhanceCost };
 export function CharPreview({ sheet, scale = 3, anim = 'idle', dir = 0, spin = false, size }: { sheet: string; scale?: number; anim?: string; dir?: number; spin?: boolean; size?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
-    const info = sheets[sheet];
     const cv = ref.current;
-    if (!cv || !info) return;
-    const [cw, ch] = info.cell;
-    cv.width = cw;
-    cv.height = ch;
+    if (!cv) return;
+    cv.width = PORTRAIT;
+    cv.height = PORTRAIT;
     const ctx = cv.getContext('2d')!;
-    ctx.imageSmoothingEnabled = false;
-    const img = new Image();
-    img.src = `/art/chars/${sheet}.png`;
     let raf = 0;
+    let view: ActorView | null = null;
+    const holder = new THREE.Group();
     const start = performance.now();
-    const a = info.anims[anim] ?? info.anims.idle;
+    let last = start;
+    let wait = 0;
     const draw = (now: number) => {
       raf = requestAnimationFrame(draw);
-      if (!img.complete || !a) return;
+      const stage = stageOrNull();
+      if (!stage) return;
+      // 미리보기는 초당 20번이면 충분하다
+      wait += now - last;
+      const dt = (now - last) / 1000;
+      last = now;
+      if (wait < 50) return;
+      const step = wait / 1000;
+      wait = 0;
+      void dt;
+      if (!view) {
+        try {
+          view = new ActorView(sheet, holder);
+        } catch {
+          return;
+        }
+      }
       const t = (now - start) / 1000;
-      const f = Math.floor(((t / a.dur) % 1) * a.frames);
-      let d = spin ? Math.floor(t / 1.4) % 8 : dir;
-      let flip = false;
-      if (info.mirror && d > 4) {
-        d = 8 - d;
-        flip = true;
-      }
-      const idx = a.start + d * a.frames + f;
-      const sx = (idx % info.cols) * cw;
-      const sy = Math.floor(idx / info.cols) * ch;
-      ctx.clearRect(0, 0, cw, ch);
-      ctx.save();
-      if (flip) {
-        ctx.translate(cw, 0);
-        ctx.scale(-1, 1);
-      }
-      ctx.drawImage(img, sx, sy, cw, ch, 0, 0, cw, ch);
-      ctx.restore();
+      const a = view.asset.anims[anim] ?? view.asset.anims.idle;
+      const v = DIR_VEC[dir] ?? DIR_VEC[0];
+      const heading = spin ? Math.sin(t * 0.6) * 0.9 : dir === 0 ? 0 : Math.atan2(v[0], v[1]);
+      view.update(step, anim, t / a.dur, 0, 0, 0, heading, 1);
+      stage.portrait(view, ctx);
     };
     raf = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      view?.dispose();
+    };
   }, [sheet, anim, dir, spin]);
-  const px = size ?? (sheets[sheet]?.cell[0] ?? 96) * scale;
-  return <canvas ref={ref} class="preview" style={{ width: `${px}px`, height: `${px}px` }} aria-label={`${sheet} ${DIRS[dir]}`} />;
+  const px = size ?? PORTRAIT * scale;
+  return <canvas ref={ref} class="preview" style={{ width: `${px}px`, height: `${px}px` }} aria-label={`${sheet} 미리보기`} />;
 }
 
 export function Panel({ title, onClose, children, class: cls = '' }: { title: string; onClose: () => void; children: ComponentChildren; class?: string }) {

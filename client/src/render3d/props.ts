@@ -601,8 +601,8 @@ function lanternPost() {
 function stoneLantern() {
   const g = new Geo();
   g.groundAO = [0, 0.4, 0.22];
-  const S = 0xa8a196;
-  const SD = 0x8b857c;
+  const S = 0x8c877d;
+  const SD = 0x716c65;
   g.set({ id: 100 });
   g.loft([[0, 0, 0, 0.62, 0.62], [0, 0.14, 0, 0.58, 0.58], [0, 0.18, 0, 0.5, 0.5], [0, 0.3, 0, 0.46, 0.46]], (i) => (i % 2 ? S : SD), 8, { rot: Math.PI / 8 });
   // 연꽃잎 받침
@@ -1327,7 +1327,7 @@ function mossTree(large: boolean, variant: number) {
   const g = new Geo();
   g.groundAO = [0, 0.5, 0.3];
   const r = rng(variant * 31 + (large ? 3 : 5));
-  const k = large ? 1.25 : 0.86;
+  const k = large ? 1.02 : 0.76;
   const bark = (_i: number, s: number) => (s % 2 ? 0x3c3a2c : 0x4a4632);
   g.set({ id: 440 });
   const t = v3((r() - 0.5) * 0.4, 2.2 * k, (r() - 0.5) * 0.2);
@@ -1399,8 +1399,8 @@ const BUILD: Record<string, (v: number) => Geo> = {
   ruin_arch: ruinArch,
   portal_arch: () => archFrame(0x8a8678, 0xffc660),
   door_arch: () => archFrame(0x6e6a66, 0xffb060),
-  wall_stone: (v) => wallBlock(0x68727a, 700 + v, 0x3a4a42),
-  wall_ash: (v) => wallBlock(0x5c4c48, 800 + v, 0x3a2c2a),
+  wall_stone: (v) => wallBlock(0x7a8690, 700 + v, 0x5a6a5e),
+  wall_ash: (v) => wallBlock(0x74605a, 800 + v, 0x5e4a44),
   pillar,
   torch,
   chest: () => chest(false),
@@ -1420,6 +1420,11 @@ export const propVariants = (id: string) => VARIANTS[id] ?? 1;
 export const propSpin = (id: string) => SPIN.has(id);
 
 const cache = new Map<string, THREE.BufferGeometry>();
+
+export function clearPropCache() {
+  for (const g of cache.values()) g.dispose();
+  cache.clear();
+}
 
 export function propGeometry(id: string, variant: number): THREE.BufferGeometry {
   const key = `${id}#${variant}`;

@@ -169,7 +169,7 @@ export class TerrainData {
   }
 
   /** 칸별 풀잎 */
-  grassChunks(chunk: number) {
+  grassChunks(chunk: number, tint: THREE.Color) {
     const m = this.map;
     const res: { cx: number; cz: number; n: number; pos: Float32Array; col: Float32Array; seed: Float32Array }[] = [];
     const DENS: Record<number, number> = { 0: 26, 1: 30, 2: 12, 5: 0, 6: 0, 7: 2 };
@@ -208,7 +208,7 @@ export class TerrainData {
               // 숲바닥의 풀은 어둡고 짧다
               const dim = k === 2 ? 0.62 : 1;
               P.push(u, this.heightAt(u, v), v);
-              C.push((a[0] + (b[0] - a[0]) * f) * j * dim, (a[1] + (b[1] - a[1]) * f) * j * dim, (a[2] + (b[2] - a[2]) * f) * j * dim);
+              C.push((a[0] + (b[0] - a[0]) * f) * j * dim * tint.r, (a[1] + (b[1] - a[1]) * f) * j * dim * tint.g, (a[2] + (b[2] - a[2]) * f) * j * dim * tint.b);
               S.push(hash2(u * 17, v * 23), (0.7 + hash2(u * 3, v * 5) * 0.7) * (k === 2 ? 0.7 : 1));
             }
           }

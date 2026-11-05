@@ -1,7 +1,9 @@
-// 화면에 움직이는 인물: 8방향 시트에서 프레임을 골라 그린다
+// 화면에 움직이는 인물: 3D 모델을 움직이고, 이름표와 말풍선은 위층에 그린다
 import * as Phaser from 'phaser';
-import { toX, toY } from '@shared/core';
-import { sheets, type AnimInfo, type SheetInfo } from './assets';
+import { DIR_VEC, PX_H, PX_U, PX_V, toX, toY } from '@shared/core';
+import { ActorView } from '../render3d/actor3d';
+import type { Stage3D } from '../render3d/stage';
+import { getStage } from './boot';
 
 export const DEPTH = {
   GROUND: -1_000_000,
@@ -15,21 +17,15 @@ export const DEPTH = {
   TEXT: 600_000,
 };
 
-const MIRROR_MAP: [number, boolean][] = [
-  [0, false],
-  [1, false],
-  [2, false],
-  [3, false],
-  [4, false],
-  [3, true],
-  [2, true],
-  [1, true],
-];
+export interface AnimInfo {
+  frames: number;
+  dur: number;
+  loop?: boolean;
+}
 
 export class Actor {
-  sprite: Phaser.GameObjects.Sprite;
-  shadow: Phaser.GameObjects.Image;
-  sheet: SheetInfo | undefined;
+  stage: Stage3D;
+  view: ActorView;
   label?: Phaser.GameObjects.Text;
   mark?: Phaser.GameObjects.Text;
   bubble?: { obj: Phaser.GameObjects.Text; until: number };
@@ -40,6 +36,8 @@ export class Actor {
   /** 공중으로 뜬 높이 (px) */
   lift = 0;
   dir = 0;
+  private lastDir = -1;
+  heading = 0;
   animName = 'idle';
   animInfo: AnimInfo | undefined;
   t = 0;
@@ -50,11 +48,13 @@ export class Actor {
   flashUntil = 0;
   scale = 1;
   fading = 1;
+  alpha = 1;
   seq = -1;
   actPending = false;
   labelColor = '';
   hold = false;
   ghostT = 0;
+  private dtLast = 0;
 
   constructor(
     public scene: Phaser.Scene,
@@ -63,32 +63,26 @@ export class Actor {
     v: number,
     scale = 1,
   ) {
-    this.sheet = sheets[sheetId];
+    this.stage = getStage();
+    this.view = new ActorView(sheetId, this.stage.actors);
     this.u = this.tu = u;
     this.v = this.tv = v;
     this.scale = scale;
-    const key = this.sheet ? sheetId : 'placeholder';
-    this.sprite = scene.add.sprite(0, 0, key, 0);
-    if (this.sheet) this.sprite.setOrigin(this.sheet.anchor[0] / this.sheet.cell[0], this.sheet.anchor[1] / this.sheet.cell[1]);
-    else this.sprite.setOrigin(0.5, 0.95);
-    this.sprite.setScale(scale);
-    const size = this.sheet && this.sheet.cell[0] > 100 ? 2.6 : 1;
-    this.shadow = scene.add.image(0, 0, 'shadow').setDepth(DEPTH.SHADOW).setScale(size * scale * 0.9);
     this.setAnim('idle', { restart: true });
-    this.place();
+    this.place(0);
   }
 
   has(name: string) {
-    return !!this.sheet?.anims[name];
+    return !!this.view.asset.anims[name];
   }
 
   setAnim(name: string, o: { restart?: boolean; dur?: number; next?: string; hold?: boolean } = {}) {
-    if (!this.sheet) return;
-    let info = this.sheet.anims[name];
+    const anims = this.view.asset.anims;
+    let info = anims[name];
     if (!info) {
-      // 시트에 없는 동작은 비슷한 것으로 대신한다
-      const alt = name.startsWith('attack') ? 'attack' : name === 'spin' || name === 'cast' ? (this.sheet.anims.attack ? 'attack' : 'idle') : name === 'guard' || name === 'dodge' ? 'idle' : 'idle';
-      info = this.sheet.anims[alt];
+      // 없는 동작은 비슷한 것으로 대신한다
+      const alt = name.startsWith('attack') ? 'attack' : name === 'spin' || name === 'cast' ? (anims.attack ? 'attack' : 'idle') : 'idle';
+      info = anims[alt];
       if (!info) return;
       name = alt;
     }
@@ -101,23 +95,14 @@ export class Actor {
     this.hold = !!o.hold;
   }
 
-  frameIndex(): number {
-    const info = this.animInfo;
-    const sh = this.sheet;
-    if (!info || !sh) return 0;
-    let p = this.t / this.dur;
-    if (info.loop) p = p % 1;
-    else p = Math.min(p, 0.999);
-    const f = Math.min(info.frames - 1, Math.floor(p * info.frames));
-    const d = sh.mirror ? MIRROR_MAP[this.dir][0] : this.dir;
-    return info.start + d * info.frames + f;
+  /** 정확한 방향을 본다 (내 조준처럼 8방향보다 고운 곳) */
+  faceTo(du: number, dv: number, dir: number) {
+    this.dir = dir;
+    this.lastDir = dir;
+    if (du || dv) this.heading = Math.atan2(du, dv);
   }
 
   update(dt: number) {
-    if (!this.sheet) {
-      this.place();
-      return;
-    }
     if (this.frozen > 0) this.frozen -= dt;
     else this.t += dt;
     const info = this.animInfo;
@@ -126,23 +111,29 @@ export class Actor {
       this.next = undefined;
       this.setAnim(n, { restart: true });
     }
-    this.sprite.setFrame(this.frameIndex());
-    if (this.sheet.mirror) this.sprite.setFlipX(MIRROR_MAP[this.dir][1]);
     if (this.flashUntil && performance.now() > this.flashUntil) {
       this.flashUntil = 0;
-      this.sprite.clearTint();
+      this.view.setFlash(0, 0, 0, 0);
     }
-    this.place();
+    this.place(dt);
   }
 
-  place() {
+  place(dt = this.dtLast) {
+    this.dtLast = dt;
+    if (this.dir !== this.lastDir) {
+      this.lastDir = this.dir;
+      const d = DIR_VEC[this.dir] ?? DIR_VEC[0];
+      this.heading = Math.atan2(d[0], d[1]);
+    }
     const x = toX(this.u, this.v);
     const y = toY(this.u, this.v);
-    this.sprite.setPosition(Math.round(x), Math.round(y - this.lift));
-    this.sprite.setDepth(y);
-    this.shadow.setPosition(Math.round(x), Math.round(y));
-    const shadowFade = 1 - Math.min(0.7, this.lift / 60);
-    this.shadow.setAlpha(shadowFade * Math.max(0, this.fading));
+    // 화면 픽셀에 맞춰 세워야 움직일 때 모델 표면이 떨리지 않는다
+    const wx = Math.round(x) / PX_U;
+    const wz = Math.round(y) / PX_V;
+    const ground = this.stage.terrain?.heightAt(wx, wz) ?? 0;
+    const wy = Math.round((ground + this.lift / PX_H) * PX_H) / PX_H;
+    this.view.setAlpha(Math.max(0, Math.min(1, this.alpha)));
+    this.view.update(dt, this.animName, this.t / this.dur, wx, wy, wz, this.heading, this.scale);
     const top = this.topY();
     if (this.label) this.label.setPosition(Math.round(x), Math.round(y - this.lift - top - 2));
     if (this.mark) this.mark.setPosition(Math.round(x), Math.round(y - this.lift - top - 16));
@@ -155,10 +146,9 @@ export class Actor {
     }
   }
 
-  /** 앵커에서 머리 꼭대기까지 대략의 높이 */
+  /** 발에서 머리 꼭대기까지 대략의 높이(px) */
   topY(): number {
-    if (!this.sheet) return 44;
-    return this.sheet.cell[0] > 100 ? 128 * this.scale : 56 * this.scale;
+    return this.view.asset.height * this.view.asset.baseScale * this.scale * PX_H;
   }
 
   screenX() {
@@ -170,7 +160,7 @@ export class Actor {
   }
 
   flash(ms = 70, color = 0xffffff) {
-    this.sprite.setTint(color).setTintMode(Phaser.TintModes.FILL);
+    this.view.setFlash(((color >> 16) & 255) / 255, ((color >> 8) & 255) / 255, (color & 255) / 255, 0.85);
     this.flashUntil = performance.now() + ms;
   }
 
@@ -225,8 +215,7 @@ export class Actor {
   }
 
   destroy() {
-    this.sprite.destroy();
-    this.shadow.destroy();
+    this.view.dispose();
     this.label?.destroy();
     this.mark?.destroy();
     this.bubble?.obj.destroy();

@@ -28,7 +28,7 @@ for (let i = 0; i < 80; i++) {
     await sleep(200);
   }
 }
-const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--use-angle=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist', '--mute-audio'] });
+const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--use-angle=metal', '--enable-gpu', '--enable-webgl', '--ignore-gpu-blocklist', '--mute-audio'] });
 const errors = new Set();
 
 for (const cls of CLASSES) {
@@ -78,7 +78,7 @@ for (const cls of CLASSES) {
       const k = innerWidth / window.__game.scale.width;
       const tu = b ? b.u : w.me.u + 2;
       const tv = b ? b.v : w.me.v;
-      return [((tu - tv) * 32 - cam.worldView.x) * k, ((tu + tv) * 16 - 10 - cam.worldView.y) * k];
+      return [(tu * 40 - cam.worldView.x) * k, (tv * 22 - 10 - cam.worldView.y) * k];
     });
     await page.mouse.move(p[0], p[1]);
   };

@@ -1,6 +1,6 @@
 # 등불길
 
-꺼져 가는 길에 다시 등불을 켜는 쿼터뷰 실시간 액션 RPG. 브라우저에서 돌아가고, 여럿이 함께할 수 있다.
+꺼져 가는 길에 다시 등불을 켜는 실시간 액션 RPG. 브라우저에서 돌아가고, 여럿이 함께할 수 있다.
 
 코드, 그림, 소리, 글은 이 저장소에서 새로 만들었다. 참고한 게임과의 관계는 [docs/ANALYSIS.md](docs/ANALYSIS.md)에 적었다.
 
@@ -48,8 +48,8 @@ http://localhost:2567 을 연다. 개발할 때는 `npm run dev`(서버 2567 + V
 ```
 shared/    서버와 화면이 함께 쓰는 데이터와 규칙 (직업, 스킬, 몬스터, 아이템, 퀘스트, 좌표)
 server/    Colyseus 방(전투·AI 판정), REST 로그인, SQLite 저장
-client/    Phaser 화면, Preact UI, 합성 소리
-tools/     지도 생성기(genmaps), 그림 굽기(bake)
+client/    3D 무대(render3d: three.js), 글자·효과 위층(game: Phaser), Preact UI, 합성 소리
+tools/     지도 생성기(genmaps), 아이콘 굽기·뼈대와 동작(bake), 그림 점검(lookdev)
 tests/     서버 통합 시험, 브라우저 플레이 시험
 docs/      명세와 분석 기록
 ```

@@ -35,9 +35,53 @@ const api = {
   shot(u: number, v: number, t: number) {
     stage.time = t;
     stage.setView(Math.round(u * PX_U), Math.round(v * PX_V));
+    stage.invalidateShadow();
     stage.render(0);
     stage.renderer.getContext().finish();
     return { ...stage.stats };
+  },
+  /** 카메라를 옮겨도 같은 땅 픽셀이 그대로인지 센다 */
+  stable(u: number, v: number, dx: number, dy: number) {
+    const gl = stage.renderer.getContext();
+    const w = stage.w;
+    const h = stage.h;
+    const read = (cx: number, cy: number) => {
+      stage.setView(cx, cy);
+      stage.invalidateShadow();
+      stage.render(0);
+      const px = new Uint8Array(w * h * 4);
+      gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      return px;
+    };
+    const x0 = Math.round(u * PX_U);
+    const y0 = Math.round(v * PX_V);
+    // 화면에 고정된 가장자리 어둡기는 빼고 잰다
+    const key = stage.postMat.uniforms.uKey;
+    key.value = 1;
+    const A = read(x0, y0);
+    const B = read(x0 + dx, y0 + dy);
+    key.value = 0;
+    let diff = 0;
+    let big = 0;
+    let total = 0;
+    for (let y = 0; y < h; y++) {
+      const y2 = y + dy; // readPixels는 아래가 0
+      if (y2 < 0 || y2 >= h) continue;
+      for (let x = 0; x < w; x++) {
+        const x2 = x - dx;
+        if (x2 < 0 || x2 >= w) continue;
+        const i = (y * w + x) * 4;
+        const j = (y2 * w + x2) * 4;
+        total++;
+        const d = Math.max(Math.abs(A[i] - B[j]), Math.abs(A[i + 1] - B[j + 1]), Math.abs(A[i + 2] - B[j + 2]));
+        if (d > 0) diff++;
+        if (d > 16) big++;
+      }
+    }
+    return { diff, big, total };
+  },
+  quality(q: number) {
+    stage.setQuality(q);
   },
   bench(u: number, v: number, n: number) {
     stage.setView(Math.round(u * PX_U), Math.round(v * PX_V));
