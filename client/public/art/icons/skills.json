@@ -1,0 +1,27 @@
+{
+ "cell": 32,
+ "cols": 8,
+ "ids": [
+  "w_whirl",
+  "w_charge",
+  "w_slam",
+  "w_cry",
+  "w_judge",
+  "m_fireball",
+  "m_nova",
+  "m_meteor",
+  "m_shield",
+  "m_starfall",
+  "a_fan",
+  "a_pierce",
+  "a_trap",
+  "a_hawk",
+  "a_rain",
+  "roll",
+  "blink",
+  "leap",
+  "guard_w",
+  "guard_m",
+  "guard_a"
+ ]
+}

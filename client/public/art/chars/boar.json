@@ -1,0 +1,54 @@
+{
+ "cell": [
+  96,
+  96
+ ],
+ "anchor": [
+  48,
+  76
+ ],
+ "cols": 16,
+ "dirs": [
+  "S",
+  "SW",
+  "W",
+  "NW",
+  "N",
+  "NE",
+  "E",
+  "SE"
+ ],
+ "mirror": false,
+ "anims": {
+  "idle": {
+   "start": 0,
+   "frames": 4,
+   "dur": 0.8,
+   "loop": true
+  },
+  "walk": {
+   "start": 32,
+   "frames": 6,
+   "dur": 0.6,
+   "loop": true
+  },
+  "attack": {
+   "start": 80,
+   "frames": 6,
+   "dur": 0.5,
+   "loop": false
+  },
+  "hit": {
+   "start": 128,
+   "frames": 3,
+   "dur": 0.24,
+   "loop": false
+  },
+  "death": {
+   "start": 152,
+   "frames": 7,
+   "dur": 0.7,
+   "loop": false
+  }
+ }
+}

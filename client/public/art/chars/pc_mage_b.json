@@ -1,0 +1,90 @@
+{
+ "cell": [
+  96,
+  96
+ ],
+ "anchor": [
+  48,
+  76
+ ],
+ "cols": 22,
+ "dirs": [
+  "S",
+  "SW",
+  "W",
+  "NW",
+  "N",
+  "NE",
+  "E",
+  "SE"
+ ],
+ "mirror": false,
+ "anims": {
+  "idle": {
+   "start": 0,
+   "frames": 6,
+   "dur": 1.2,
+   "loop": true
+  },
+  "walk": {
+   "start": 48,
+   "frames": 8,
+   "dur": 0.64,
+   "loop": true
+  },
+  "attack1": {
+   "start": 112,
+   "frames": 6,
+   "dur": 0.32,
+   "loop": false
+  },
+  "attack2": {
+   "start": 160,
+   "frames": 6,
+   "dur": 0.32,
+   "loop": false
+  },
+  "attack3": {
+   "start": 208,
+   "frames": 7,
+   "dur": 0.46,
+   "loop": false
+  },
+  "cast": {
+   "start": 264,
+   "frames": 7,
+   "dur": 0.5,
+   "loop": false
+  },
+  "spin": {
+   "start": 320,
+   "frames": 6,
+   "dur": 0.5,
+   "loop": false
+  },
+  "dodge": {
+   "start": 368,
+   "frames": 6,
+   "dur": 0.38,
+   "loop": false
+  },
+  "guard": {
+   "start": 416,
+   "frames": 3,
+   "dur": 0.12,
+   "loop": false
+  },
+  "hit": {
+   "start": 440,
+   "frames": 3,
+   "dur": 0.24,
+   "loop": false
+  },
+  "death": {
+   "start": 464,
+   "frames": 8,
+   "dur": 0.8,
+   "loop": false
+  }
+ }
+}

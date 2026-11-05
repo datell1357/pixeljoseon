@@ -1,0 +1,30 @@
+{
+ "cell": [
+  96,
+  96
+ ],
+ "anchor": [
+  48,
+  76
+ ],
+ "cols": 8,
+ "dirs": [
+  "S",
+  "SW",
+  "W",
+  "NW",
+  "N",
+  "NE",
+  "E",
+  "SE"
+ ],
+ "mirror": false,
+ "anims": {
+  "idle": {
+   "start": 0,
+   "frames": 6,
+   "dur": 1.2,
+   "loop": true
+  }
+ }
+}
