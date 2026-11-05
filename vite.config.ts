@@ -6,7 +6,10 @@ export default defineConfig({
   root: 'client',
   plugins: [preact()],
   resolve: {
-    alias: { '@shared': fileURLToPath(new URL('./shared', import.meta.url)) },
+    alias: {
+      '@shared': fileURLToPath(new URL('./shared', import.meta.url)),
+      '@bake': fileURLToPath(new URL('./tools/bake/page', import.meta.url)),
+    },
   },
   server: {
     port: 5173,

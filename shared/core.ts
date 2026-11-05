@@ -1,15 +1,13 @@
 // 좌표, 방향, 충돌 등 서버와 클라이언트가 함께 쓰는 기본 도구
 
-export const TILE_W = 64;
-export const TILE_H = 32;
+/** 화면 비율: 땅 1칸이 가로 40px, 세로 22px, 높이 1유닛이 33.4px. 카메라는 정면에서 약 33도 내려다본다. */
+export const PX_U = 40;
+export const PX_V = 22;
+export const PX_H = 33.4;
 
-export const toX = (u: number, v: number) => (u - v) * (TILE_W / 2);
-export const toY = (u: number, v: number) => (u + v) * (TILE_H / 2);
-export const toUV = (x: number, y: number): [number, number] => {
-  const a = x / (TILE_W / 2);
-  const b = y / (TILE_H / 2);
-  return [(a + b) / 2, (b - a) / 2];
-};
+export const toX = (u: number, _v: number) => u * PX_U;
+export const toY = (_u: number, v: number) => v * PX_V;
+export const toUV = (x: number, y: number): [number, number] => [x / PX_U, y / PX_V];
 
 export const DIRS = ['S', 'SW', 'W', 'NW', 'N', 'NE', 'E', 'SE'] as const;
 export type DirName = (typeof DIRS)[number];
