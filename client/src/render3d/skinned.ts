@@ -5,7 +5,7 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import type { BuiltRig, CharAsset } from './chars';
 
 /** 시트 이름 → 모델 파일. 여기 있는 짐승은 코드로 지은 모델 대신 이 모델을 쓴다 */
-const FILES: Record<string, string> = Object.fromEntries(['fox', 'wolf', 'dhole', 'raccoon', 'gumiho', 'tiger', 'bear', 'boar', 'squirrel', 'bat', 'bulgasari'].map((n) => [n, `/models/${n}.glb`]));
+export const FILES: Record<string, string> = Object.fromEntries(['fox', 'wolf', 'dhole', 'raccoon', 'gumiho', 'tiger', 'bear', 'boar', 'squirrel', 'bat', 'bulgasari'].map((n) => [n, `/models/${n}.glb`]));
 /** 도트 느낌: 동작을 초당 이만큼으로 끊어 재생한다 */
 const STEP_FPS = 12;
 
@@ -24,6 +24,12 @@ export async function preloadSkinned() {
       }
     }),
   );
+}
+
+/** 블렌더 모델 상태: 'ok' 불러옴, 'failed' 파일은 있는데 못 읽음, 'none' 블렌더 모델 없음 */
+export function skinnedStatus(id: string): 'ok' | 'failed' | 'none' {
+  if (!FILES[id]) return 'none';
+  return loaded.has(id) ? 'ok' : 'failed';
 }
 
 export function skinnedAsset(id: string): CharAsset | null {
