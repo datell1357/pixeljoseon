@@ -205,7 +205,8 @@ void main(){
   }
   vec3 alb = vCol;
 #ifdef USE_MAP
-  alb = texture(uMap, vUv).rgb;
+  // 정점 색은 곱하는 색(장비 희귀도 물들이기). 기본은 1
+  alb = texture(uMap, vUv).rgb * vCol;
 #endif
   vec3 c = lit(alb*furTone,n,vWorld,vAux.x,0.,sh,.55);
   // 앞에서 비추는 보조광과 가장자리 빛: 배경에서 떠오르게 한다

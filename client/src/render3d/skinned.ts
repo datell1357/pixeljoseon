@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { BuiltRig, CharAsset } from './chars';
 
 /** 시트 이름 → 모델 파일. 여기 있는 짐승은 코드로 지은 모델 대신 이 모델을 쓴다 */
@@ -41,10 +42,11 @@ export function skinnedAsset(id: string): CharAsset | null {
   return loaded.get(id) ?? null;
 }
 
+/** 몸 메시. 장비 조각(이름 g_…)은 따로 다룬다 */
 function findSkinned(root: THREE.Object3D) {
   let m: THREE.SkinnedMesh | null = null;
   root.traverse((o) => {
-    if (!m && (o as THREE.SkinnedMesh).isSkinnedMesh) m = o as THREE.SkinnedMesh;
+    if (!m && (o as THREE.SkinnedMesh).isSkinnedMesh && !o.name.startsWith('g_')) m = o as THREE.SkinnedMesh;
   });
   if (!m) throw new Error('스킨드 메시 없음');
   return m as THREE.SkinnedMesh;
@@ -53,7 +55,7 @@ function findSkinned(root: THREE.Object3D) {
 function build(id: string, scene: THREE.Object3D, clips: THREE.AnimationClip[]): CharAsset {
   scene.updateMatrixWorld(true);
   const src = findSkinned(scene);
-  const geo = src.geometry.clone();
+  const geo = plainGeo(src.geometry);
   const n = geo.getAttribute('position').count;
   // 셰이더가 쓰는 보조값: 반짝임 0, 빛남 0, 바람 0, 외곽선 부위 번호
   // 외곽선 부위 번호는 정점을 가장 많이 끄는 뼈의 부위로 정한다: 다리와 몸, 머리, 꼬리 사이에 선이 생긴다
@@ -116,6 +118,25 @@ function build(id: string, scene: THREE.Object3D, clips: THREE.AnimationClip[]):
     anims[name] = { frames: Math.round(c.duration * 24), dur: c.duration, loop, poses: [{}] };
   }
   const bindIndex = src.skeleton.bones.map((b) => b.name);
+  // 장비 조각: 몸과 같은 뼈 번호·좌표로 맞춰 둔다. 붙일 때 몸 형상과 합친다
+  const gear = new Map<string, THREE.BufferGeometry>();
+  const toBody = src.bindMatrixInverse.clone();
+  scene.traverse((o) => {
+    const m = o as THREE.SkinnedMesh;
+    if (!m.isSkinnedMesh || !m.name.startsWith('g_')) return;
+    const g = plainGeo(m.geometry);
+    const remap = m.skeleton.bones.map((b) => Math.max(0, bindIndex.indexOf(b.name)));
+    const idx = g.getAttribute('skinIndex');
+    for (let i = 0; i < idx.count; i++) for (let k = 0; k < 4; k++) idx.setComponent(i, k, remap[Math.round(idx.getComponent(i, k))] ?? 0);
+    g.applyMatrix4(toBody.clone().multiply(m.bindMatrix));
+    const cnt = g.getAttribute('position').count;
+    const ax = new Float32Array(cnt * 4);
+    // 외곽선 부위 번호: 몸과 다른 번호라 무기 둘레에 선이 생긴다
+    for (let i = 0; i < cnt; i++) ax[i * 4 + 3] = 18 / 255;
+    g.setAttribute('aux', new THREE.BufferAttribute(ax, 4));
+    g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(cnt * 3).fill(1), 3));
+    gear.set(m.name, g);
+  });
   const bindInv = src.skeleton.boneInverses.map((m) => m.clone().multiply(src.bindMatrix));
 
   const rigFactory = (): BuiltRig => {
@@ -157,5 +178,89 @@ function build(id: string, scene: THREE.Object3D, clips: THREE.AnimationClip[]):
   proto.rig.root.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(src);
   const height = Math.max(0.3, box.max.y);
-  return { geometry: geo, boneOrder: bindIndex, rigFactory, anims, retarget: false, height, baseScale: human ? HUMAN_SCALE : 2.05, fur: id === 'bulgasari' ? 0.2 : 0.45, map, skinned: true, emKey: id === 'bulgasari' } as CharAsset;
+  const asset = { geometry: geo, boneOrder: bindIndex, rigFactory, anims, retarget: false, height, baseScale: human ? HUMAN_SCALE : 2.05, fur: id === 'bulgasari' ? 0.2 : 0.45, map, skinned: true, emKey: id === 'bulgasari' } as CharAsset;
+  if (gear.size) gearParts.set(id, gear);
+  return asset;
+}
+
+/** 위치·법선·UV·뼈 번호·가중치만 남기고 형식을 하나로 맞춘다(조각끼리 합칠 수 있게) */
+function plainGeo(src: THREE.BufferGeometry) {
+  const g = new THREE.BufferGeometry();
+  const f32 = (name: string, size: number) => {
+    const a = src.getAttribute(name);
+    const out = new Float32Array(a.count * size);
+    for (let i = 0; i < a.count; i++) for (let k = 0; k < size; k++) out[i * size + k] = a.getComponent(i, k);
+    return new THREE.BufferAttribute(out, size);
+  };
+  g.setAttribute('position', f32('position', 3));
+  g.setAttribute('normal', f32('normal', 3));
+  if (src.getAttribute('uv')) g.setAttribute('uv', f32('uv', 2));
+  const si = src.getAttribute('skinIndex');
+  const idx = new Uint16Array(si.count * 4);
+  for (let i = 0; i < si.count; i++) for (let k = 0; k < 4; k++) idx[i * 4 + k] = si.getComponent(i, k);
+  g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(idx, 4));
+  g.setAttribute('skinWeight', f32('skinWeight', 4));
+  if (src.index) {
+    const ix = src.index;
+    const out = new Uint32Array(ix.count);
+    for (let i = 0; i < ix.count; i++) out[i] = ix.getX(i);
+    g.setIndex(new THREE.BufferAttribute(out, 1));
+  }
+  return g;
+}
+
+const gearParts = new Map<string, Map<string, THREE.BufferGeometry>>();
+const combos = new Map<string, CharAsset>();
+
+/** 붙일 장비 조각 하나: 조각 이름, 색 곱(희귀도), 빛 세기 */
+export interface GearPick {
+  name: string;
+  tint?: [number, number, number];
+  glow?: number;
+}
+
+/** 모델에 그 이름의 장비 조각이 있는가 */
+export function hasGearPart(id: string, name: string) {
+  return !!gearParts.get(id)?.has(name);
+}
+
+/** 몸에 장비 조각을 합친 모델. 같은 조합은 함께 쓴다 */
+export function skinnedWithGear(id: string, picks: GearPick[]): CharAsset | null {
+  const base = loaded.get(id);
+  if (!base) return null;
+  const parts = gearParts.get(id);
+  const use = picks.filter((p) => parts?.has(p.name));
+  if (!use.length) return base;
+  const key = id + '|' + use.map((p) => `${p.name}:${p.tint?.join('/') ?? ''}:${p.glow ?? 0}`).join(',');
+  const hit = combos.get(key);
+  if (hit) return hit;
+  const geos = [base.geometry];
+  for (const p of use) {
+    const g = parts!.get(p.name)!.clone();
+    const n = g.getAttribute('position').count;
+    if (p.tint) {
+      const c = g.getAttribute('color') as THREE.BufferAttribute;
+      for (let i = 0; i < n; i++) c.setXYZ(i, p.tint[0], p.tint[1], p.tint[2]);
+    }
+    if (p.glow) {
+      const a = g.getAttribute('aux') as THREE.BufferAttribute;
+      for (let i = 0; i < n; i++) a.setY(i, p.glow);
+    }
+    geos.push(g);
+  }
+  const merged = mergeGeometries(geos, false);
+  if (!merged) return base;
+  const a = { ...base, geometry: merged, refs: 0 } as CharAsset;
+  combos.set(key, a);
+  // 오래 안 쓴 조합은 버린다
+  if (combos.size > 48) {
+    for (const [k, v] of combos) {
+      if ((v.refs ?? 0) <= 0) {
+        v.geometry.dispose();
+        combos.delete(k);
+        if (combos.size <= 40) break;
+      }
+    }
+  }
+  return a;
 }
