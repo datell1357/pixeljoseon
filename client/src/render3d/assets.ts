@@ -236,7 +236,7 @@ function buildIcons() {
   for (const g of Object.values(GEAR)) names[g.icon] = g.name;
   for (const c of Object.values(CONSUMABLES)) names[c.icon] = c.name;
   for (const s of Object.values(SKILLS)) names[s.id] = s.name;
-  const sheets: [string, string, string][] = [['items', '아이템', 'ok'], ['skills', '스킬', 'warn']];
+  const sheets: [string, string, string][] = [['items', '아이템', 'ok'], ['skills', '스킬', 'ok']];
   for (const [file, label, cls] of sheets) {
     grid.append(Object.assign(el('h2', '', `${label} 아이콘`), { style: 'grid-column:1/-1;margin:8px 0 0;font-size:14px;color:var(--dim)' }));
     void (async () => {
