@@ -210,10 +210,11 @@ void main(){
   c += (uSunCol*.34+uSky*.26)*(nv<.3?1.:nv<.46?.42:0.)*(n.y*.5+.6);
 #else
   float paint = leaf ? .62 : .14;
+  vec3 alb = vCol;
   vec3 c = lit(vCol*leafTone,n,vWorld,vAux.x,paint,sh,leaf?.78:0.);
 #endif
   float em = vAux.y;
-  if(em>0.) c = mix(c, vCol*(1.+em*.12), min(1.,em*1.2));
+  if(em>0.) c = mix(c, alb*(1.+em*.12), min(1.,em*1.2));
   c = mix(c,uFlash.rgb,uFlash.a);
   oC = vec4(c, em);
   oN = vec4(n*.5+.5, vAux.w);

@@ -1213,5 +1213,5 @@ function bulgasari(): Beast {
 }
 
 export const BEASTS: Record<string, () => Beast> = {
-  squirrel, raccoon: raccoonDog, boar, fox, fox_old: fox, wolf, dhole, bear, tiger, bat, gumiho, bulgasari,
+  squirrel, raccoon: raccoonDog, boar, fox, wolf, dhole, bear, tiger, bat, gumiho, bulgasari,
 };

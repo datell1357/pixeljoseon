@@ -5,7 +5,7 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import type { BuiltRig, CharAsset } from './chars';
 
 /** 시트 이름 → 모델 파일. 여기 있는 짐승은 코드로 지은 모델 대신 이 모델을 쓴다 */
-const FILES: Record<string, string> = { fox: '/models/fox.glb' };
+const FILES: Record<string, string> = Object.fromEntries(['fox', 'wolf', 'dhole', 'raccoon', 'gumiho'].map((n) => [n, `/models/${n}.glb`]));
 /** 도트 느낌: 동작을 초당 이만큼으로 끊어 재생한다 */
 const STEP_FPS = 12;
 
@@ -49,6 +49,9 @@ function build(id: string, scene: THREE.Object3D, clips: THREE.AnimationClip[]):
   const boneNames = src.skeleton.bones.map((b) => b.name);
   const part = (nm: string) => {
     const side = nm.endsWith('L') ? 0 : 1;
+    if (/^fire/.test(nm)) return 20;
+    const tm = /^t(\d+)_/.exec(nm);
+    if (tm) return 30 + Number(tm[1]);
     if (/^(scap|uarm|farm|paw)/.test(nm)) return 10 + side;
     if (/^(thigh|shin|meta|hpaw)/.test(nm)) return 12 + side;
     if (/^tail/.test(nm)) return 14;
@@ -70,6 +73,8 @@ function build(id: string, scene: THREE.Object3D, clips: THREE.AnimationClip[]):
     let bw = -1;
     for (const [pt, w] of score) if (w > bw) { bw = w; best = pt; }
     aux[i * 4 + 3] = best / 255;
+    // 여우불은 스스로 빛난다
+    if (best === 20) aux[i * 4 + 1] = 0.8;
   }
   geo.setAttribute('aux', new THREE.BufferAttribute(aux, 4));
   geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(n * 3).fill(1), 3));
@@ -83,7 +88,7 @@ function build(id: string, scene: THREE.Object3D, clips: THREE.AnimationClip[]):
   }
   const byName = new Map(clips.map((c) => [c.name, c]));
   const anims: CharAsset['anims'] = {};
-  for (const [name, loop] of [['idle', true], ['walk', true], ['attack', false], ['hit', false], ['death', false]] as const) {
+  for (const [name, loop] of [['idle', true], ['walk', true], ['attack', false], ['hit', false], ['death', false], ['sweep', false], ['slam', false], ['cast', false]] as const) {
     const c = byName.get(name);
     if (c) anims[name] = { frames: Math.round(c.duration * 24), dur: c.duration, loop, poses: [{}] };
   }
