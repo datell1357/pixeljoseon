@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
 import type { CharData } from './char';
+import { migrateChar } from '../../shared/legacy';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const dbPath = process.env.LANTERN_DB ?? join(here, '../../data/lantern.sqlite');
@@ -93,12 +94,12 @@ export function deleteAccount(id: string) {
 
 export function listChars(account: string): CharData[] {
   const rows = db.prepare('SELECT data FROM chars WHERE account = ? ORDER BY seen DESC').all(account) as { data: string }[];
-  return rows.map((r) => JSON.parse(r.data));
+  return rows.map((r) => migrateChar(JSON.parse(r.data)));
 }
 
 export function loadChar(id: string): CharData | undefined {
   const row = db.prepare('SELECT data FROM chars WHERE id = ?').get(id) as { data: string } | undefined;
-  return row ? JSON.parse(row.data) : undefined;
+  return row ? migrateChar(JSON.parse(row.data)) : undefined;
 }
 
 export const nameTaken = (name: string) => !!db.prepare('SELECT 1 FROM chars WHERE name = ?').get(name);

@@ -12,7 +12,7 @@ export const ANIMS = {
   boss: { idle: A(6, 1.4, true), walk: A(8, 1.0, true), slam: A(8, 0.9), sweep: A(8, 0.8), cast: A(8, 1.0), hit: A(3, 0.3), death: A(12, 1.6) },
 };
 export const IDS = {
-  player: ['warrior', 'mage', 'archer'].flatMap((c) => ['a', 'b', 'c'].map((v) => `pc_${c}_${v}`)),
+  player: ['musa', 'dosa', 'gungsa'].flatMap((c) => ['a', 'b', 'c'].map((v) => `pc_${c}_${v}`)),
   npc: ['npc_elder', 'npc_merchant', 'npc_smith', 'npc_guard', 'npc_keeper'],
   monster: ['mushroom', 'boar', 'wisp', 'ashwolf', 'emberbug', 'golem', 'cultist', 'shade'],
   boss: ['elder', 'warden'],
@@ -25,7 +25,7 @@ export const PROP_IDS = ('house_a house_b house_c tavern smithy shop_stall well 
 export const TERRAIN_FULL = 'grass meadow forest dirt cobble ash scorch cave stone water lava'.split(' ');
 export const TERRAIN_EDGE = 'meadow forest dirt cobble ash scorch stone water lava'.split(' ');
 export const ITEM_IDS = 'sword_1 sword_2 sword_3 sword_4 staff_1 staff_2 staff_3 staff_4 bow_1 bow_2 bow_3 bow_4 helm_1 helm_2 helm_3 armor_1 armor_2 armor_3 boots_1 boots_2 boots_3 ring_1 ring_2 amulet_1 amulet_2 potion_hp_s potion_hp_l potion_mp_s potion_mp_l scroll_home ember_shard moss_core boar_tusk ash_core warden_seal gold rift_token key'.split(' ');
-export const SKILL_IDS = 'w_whirl w_charge w_slam w_cry w_judge m_fireball m_nova m_meteor m_shield m_starfall a_fan a_pierce a_trap a_hawk a_rain roll blink leap guard_w guard_m guard_a'.split(' ');
+export const SKILL_IDS = 'musa_hwimori musa_dolgyeok musa_ttanggareugi musa_horyeong musa_cheongeun dosa_hwabu dosa_bingyeolbu dosa_nakseong dosa_hosinbu dosa_yuseongu gungsa_osi gungsa_pyeonjeon gungsa_olmu gungsa_maenun gungsa_hwasalbi roll blink leap deungpae bujeok_makgi bitgyeo_naegi'.split(' ');
 
 export const insideTile = (x, y) => {
   if (y < 0 || y >= 32) return false;

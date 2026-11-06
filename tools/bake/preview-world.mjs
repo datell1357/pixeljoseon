@@ -38,7 +38,7 @@ function propSheet(root) {
   const out = new Img(CW * perRow, Math.ceil(ids.length / perRow) * CH);
   out.fill(DARK);
   const dirC = join(root, 'client/public/art/chars');
-  const hero = existsSync(join(dirC, 'pc_warrior_a.json')) ? { m: JSON.parse(readFileSync(join(dirC, 'pc_warrior_a.json'), 'utf8')), i: Img.load(join(dirC, 'pc_warrior_a.png')) } : null;
+  const hero = existsSync(join(dirC, 'pc_musa_a.json')) ? { m: JSON.parse(readFileSync(join(dirC, 'pc_musa_a.json'), 'utf8')), i: Img.load(join(dirC, 'pc_musa_a.png')) } : null;
   ids.forEach((id, k) => {
     const p = meta[id];
     const ox = (k % perRow) * CW;
@@ -210,7 +210,7 @@ export async function previewWorld(root) {
 function roster(root) {
   const dir = join(root, 'client/public/art/chars');
   const groups = [
-    ['pc_warrior_a', 'pc_warrior_b', 'pc_warrior_c', 'pc_mage_a', 'pc_mage_b', 'pc_mage_c', 'pc_archer_a', 'pc_archer_b', 'pc_archer_c'],
+    ['pc_musa_a', 'pc_musa_b', 'pc_musa_c', 'pc_dosa_a', 'pc_dosa_b', 'pc_dosa_c', 'pc_gungsa_a', 'pc_gungsa_b', 'pc_gungsa_c'],
     ['npc_elder', 'npc_merchant', 'npc_smith', 'npc_guard', 'npc_keeper', 'mushroom', 'boar', 'wisp', 'ashwolf'],
     ['emberbug', 'golem', 'cultist', 'shade', 'elder', 'warden'],
   ];
@@ -291,7 +291,7 @@ function scene(root) {
     ['p', 'rock_l', 20, 2], ['p', 'bush', 16, 2], ['p', 'waystone', 13, 7], ['p', 'portal_arch', 1.2, 14], ['p', 'stump', 3, 12], ['p', 'log', 6, 1.5],
     ...[0, 1, 2, 3, 4, 5].map((i) => ['p', 'fence_u', 14 + i + 0.5, 12]),
     ...[0, 1, 2, 3].map((i) => ['p', 'fence_v', 14, 12.5 + i]),
-    ['c', 'pc_warrior_a', 11.5, 13, 'idle', 'S'], ['c', 'pc_mage_a', 9.4, 12.2, 'idle', 'SE'], ['c', 'pc_archer_a', 12.8, 11.4, 'walk', 'E'],
+    ['c', 'pc_musa_a', 11.5, 13, 'idle', 'S'], ['c', 'pc_dosa_a', 9.4, 12.2, 'idle', 'SE'], ['c', 'pc_gungsa_a', 12.8, 11.4, 'walk', 'E'],
     ['c', 'npc_elder', 8.3, 9.7, 'idle', 'S'], ['c', 'npc_guard', 2.6, 13.2, 'idle', 'E'], ['c', 'mushroom', 16.5, 6.5, 'idle', 'SW'], ['c', 'boar', 18, 8.5, 'walk', 'W'], ['c', 'npc_merchant', 10.5, 6.4, 'idle', 'S'],
   ];
   items.sort((a, b) => a[2] + a[3] - (b[2] + b[3]));

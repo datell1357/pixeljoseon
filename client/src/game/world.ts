@@ -220,7 +220,7 @@ export class WorldScene extends Phaser.Scene {
 
     const s = this.room.state as any;
     const self = s.players.get(this.sid);
-    const clsId = (self?.cls ?? me.value?.cls ?? 'warrior') as keyof typeof CLASSES;
+    const clsId = (self?.cls ?? me.value?.cls ?? 'musa') as keyof typeof CLASSES;
     this.cls = CLASSES[clsId];
     this.me = new Actor(this, pcSheet(clsId, self?.look ?? 0, self?.gear), self?.u ?? map.w / 2, self?.v ?? map.h / 2);
     this.me.setLabel(self?.name ?? '', '#ffe7a8');
@@ -534,8 +534,8 @@ export class WorldScene extends Phaser.Scene {
     if (!d.backward) this.me.faceTo(dir[0], dir[1], dirFromVec(dir[0], dir[1]));
     this.room.send('dodge', { dir });
     setCooldown('dodge', d.cd * (1 - (me.value?.stats.cdr ?? 0)));
-    sfx(d.kind === 'blink' ? 'blink' : 'dodge');
-    if (d.kind === 'blink') this.fx.glowAt(this.me.u, this.me.v, 1.4, 0xb8d8ff, 0.3, 20);
+    sfx(d.kind === 'chukjibeop' ? 'chukjibeop' : 'dodge');
+    if (d.kind === 'chukjibeop') this.fx.glowAt(this.me.u, this.me.v, 1.4, 0xb8d8ff, 0.3, 20);
   }
 
   useSlot(i: number) {
@@ -738,7 +738,7 @@ export class WorldScene extends Phaser.Scene {
           r.struck = true;
           this.onLocalImpact(r);
         }
-        const mobile = this.cls.id === 'archer' ? 0.5 : this.cls.id === 'mage' ? 0.3 : 0;
+        const mobile = this.cls.id === 'gungsa' ? 0.5 : this.cls.id === 'dosa' ? 0.3 : 0;
         if (mobile && moving) {
           [a.u, a.v] = slideMove(this.map.solid, a.u, a.v, mv[0] * speedBase * mobile * slowed * dt, mv[1] * speedBase * mobile * slowed * dt, R);
         }
@@ -756,7 +756,7 @@ export class WorldScene extends Phaser.Scene {
         const r = this.dodgeRun!;
         r.t += dt;
         const k = Math.min(1, r.t / r.dur);
-        if (r.kind === 'blink') {
+        if (r.kind === 'chukjibeop') {
           if (k >= 0.45 && !r.blinked) {
             r.blinked = true;
             a.u = r.to[0];
@@ -769,7 +769,7 @@ export class WorldScene extends Phaser.Scene {
           const e = 1 - (1 - k) * (1 - k);
           a.u = r.from[0] + (r.to[0] - r.from[0]) * e;
           a.v = r.from[1] + (r.to[1] - r.from[1]) * e;
-          if (r.kind === 'leap') a.lift = Math.sin(k * Math.PI) * 16;
+          if (r.kind === 'dwittwigi') a.lift = Math.sin(k * Math.PI) * 16;
           a.ghostT -= dt;
           if (a.ghostT <= 0) {
             a.ghostT = 0.05;
@@ -868,7 +868,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private attackSpeed() {
-    return (me.value?.stats.aspd ?? 1) + (buffs.value.some((b) => b.id === 'a_hawk') ? 0.3 : 0);
+    return (me.value?.stats.aspd ?? 1) + (buffs.value.some((b) => b.id === 'gungsa_maenun') ? 0.3 : 0);
   }
 
   private tryAttack() {
@@ -892,7 +892,7 @@ export class WorldScene extends Phaser.Scene {
     this.me.faceTo(aim[0], aim[1], dirFromVec(aim[0], aim[1]));
     this.me.setAnim(step.anim, { restart: true, dur });
     this.room.send('attack', { aim, step: index });
-    if (this.cls.id === 'warrior') sfx(index === 2 ? 'slash2' : 'slash');
+    if (this.cls.id === 'musa') sfx(index === 2 ? 'slash2' : 'slash');
   }
 
   /** 타격 순간의 내 쪽 연출 (실제 판정은 서버) */
@@ -902,7 +902,7 @@ export class WorldScene extends Phaser.Scene {
       const big = r.index === 2;
       this.fx.slash(a.u, a.v, r.aim, r.step.reach ?? 1.4, big ? 0xffe9b0 : 0xffffff, r.index === 1, big);
     } else {
-      sfx(this.cls.id === 'archer' ? 'arrow' : 'orb');
+      sfx(this.cls.id === 'gungsa' ? 'arrow' : 'orb');
     }
   }
 
@@ -1418,7 +1418,7 @@ export class WorldScene extends Phaser.Scene {
         const a = this.actorOf(m.sid);
         if (!a) break;
         const sk = SKILLS[m.id];
-        const color = m.id === 'm_shield' ? 0x8fd0ff : m.id === 'a_hawk' ? 0xc8ff8a : 0xffb65c;
+        const color = m.id === 'dosa_hosinbu' ? 0x8fd0ff : m.id === 'gungsa_maenun' ? 0xc8ff8a : 0xffb65c;
         this.fx.glowAt(a.u, a.v, 2.2, color, 0.5, 20);
         this.fx.groundRing(a.u, a.v, 1.6, color, 0.5);
         if (m.sid === this.sid && sk) sfx('buff');
@@ -1502,11 +1502,11 @@ export class WorldScene extends Phaser.Scene {
       const au = m.aim[0];
       const av = m.aim[1];
       switch (sk.id) {
-        case 'w_whirl':
+        case 'musa_hwimori':
           this.fx.whirl(a.u, a.v, sk.r!, 0xffe9b0);
           sfx('whirl');
           break;
-        case 'w_slam': {
+        case 'musa_ttanggareugi': {
           const reach = sk.reach!;
           this.fx.slash(a.u, a.v, [au, av], reach, 0xffc27a, false, true);
           for (let i = 1; i <= 5; i++) {
@@ -1520,22 +1520,22 @@ export class WorldScene extends Phaser.Scene {
           sfx('boom');
           break;
         }
-        case 'w_charge':
+        case 'musa_dolgyeok':
           this.fx.burst(a.u, a.v, 18, [0xffe9b0, 0xffffff], 120, 12);
           sfx('slash2');
           break;
-        case 'w_cry':
-        case 'a_hawk':
-        case 'm_shield':
+        case 'musa_horyeong':
+        case 'gungsa_maenun':
+        case 'dosa_hosinbu':
           break;
-        case 'm_nova':
+        case 'dosa_bingyeolbu':
           this.fx.groundRing(a.u, a.v, sk.r!, 0xbff0ff, 0.5);
           break;
-        case 'a_fan':
-        case 'a_pierce':
+        case 'gungsa_osi':
+        case 'gungsa_pyeonjeon':
           sfx('arrow');
           break;
-        case 'm_fireball':
+        case 'dosa_hwabu':
           sfx('fire');
           break;
         default:

@@ -1,5 +1,5 @@
 // 시각 점검: 직업별 스킬과 보스전을 헤드리스로 돌려 스크린샷을 남긴다.
-// 실행: node tests/qa.mjs [출력 폴더] [warrior|mage|archer]
+// 실행: node tests/qa.mjs [출력 폴더] [musa|dosa|gungsa]
 import { spawn } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { chromium } from 'playwright';
 
 const OUT = process.argv[2] ?? join(tmpdir(), 'lantern-qa');
-const CLASSES = process.argv[3] ? [process.argv[3]] : ['warrior', 'mage', 'archer'];
+const CLASSES = process.argv[3] ? [process.argv[3]] : ['musa', 'dosa', 'gungsa'];
 mkdirSync(OUT, { recursive: true });
 const PORT = 2604;
 const BASE = `http://localhost:${PORT}`;
@@ -46,7 +46,7 @@ for (const cls of CLASSES) {
   await page.waitForFunction(() => !!document.querySelector('.btn.gold.big:not([disabled])'), null, { timeout: 90000 });
   await page.click('.btn.gold.big');
   await page.waitForSelector('.createbox');
-  await page.click(`.clscard:nth-child(${['warrior', 'mage', 'archer'].indexOf(cls) + 1})`);
+  await page.click(`.clscard:nth-child(${['musa', 'dosa', 'gungsa'].indexOf(cls) + 1})`);
   await page.fill('.namefield input', `시험${cls.slice(0, 3)}`);
   await page.click('.createopts .btn.gold');
   await ready('town');

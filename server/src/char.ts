@@ -48,7 +48,7 @@ export interface CharData {
 }
 
 export function newChar(id: string, account: string, name: string, cls: ClassId, look: number): CharData {
-  const weapon = cls === 'warrior' ? 'sword_1' : cls === 'mage' ? 'staff_1' : 'bow_1';
+  const weapon = cls === 'musa' ? 'sword_1' : cls === 'dosa' ? 'staff_1' : 'bow_1';
   const c: CharData = {
     id,
     account,

@@ -146,7 +146,7 @@ const SFX: Record<string, () => void> = {
   dodge: () => {
     noise({ t: 0.18, v: 0.2, f0: 1600, f1: 500, q: 0.8 });
   },
-  blink: () => {
+  chukjibeop: () => {
     tone({ type: 'sine', f0: 600, f1: 2200, t: 0.14, v: 0.12 });
     tone({ type: 'triangle', f0: 1400, f1: 300, t: 0.14, v: 0.06, at: 0.05 });
   },

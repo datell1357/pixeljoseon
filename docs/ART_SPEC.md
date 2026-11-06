@@ -52,7 +52,7 @@
 
 ### 플레이어 (4.5등신, 한복풍)
 
-`pc_warrior_a|b|c`, `pc_mage_a|b|c`, `pc_archer_a|b|c`. a·b·c는 얼굴·머리·옷 색 변형. 뒤에 `#<gearVisualKey>`를 붙이면 그 장비를 입은 모델이 된다 (`render3d/pc.ts`). 장비 조합마다 모델 하나를 지어 함께 쓰므로 인물 하나는 그리기 호출 하나다.
+`pc_musa_a|b|c`, `pc_dosa_a|b|c`, `pc_gungsa_a|b|c`. a·b·c는 얼굴·머리·옷 색 변형. 뒤에 `#<gearVisualKey>`를 붙이면 그 장비를 입은 모델이 된다 (`render3d/pc.ts`). 장비 조합마다 모델 하나를 지어 함께 쓰므로 인물 하나는 그리기 호출 하나다.
 
 입은 장비는 겉모습을 바꾼다. 비교 사진: `node tools/lookdev/gear.mjs <폴더>`.
 
@@ -77,10 +77,10 @@
 
 동작: `idle 6f 1.2s 반복`, `walk 8f 0.64s 반복`, `attack1 6f 0.32s`, `attack2 6f 0.32s`, `attack3 7f 0.46s`, `cast 7f 0.5s`, `spin 6f 0.5s`, `dodge 6f 0.38s`, `guard 3f 0.12s`(마지막 프레임 유지), `hit 3f 0.24s`, `death 8f 0.8s`.
 
-- warrior `attack1~3`: 베기→되베기→내려치기, `spin`: 팽이 회전베기.
-- mage `attack1~3`: 지팡이 찌르기→휘두르기→두 손 뻗기, `spin`: 지팡이 땅 찍기.
-- archer `attack1~3`: 빠른 활쏘기(3번은 크게 당기기), `spin`: 뒤로 몸을 돌리며 쏘기.
-- `dodge`: warrior·archer는 구르기·뛰어오르기, mage는 몸을 웅크렸다 펴기(순간이동 앞뒤).
+- musa `attack1~3`: 베기→되베기→내려치기, `spin`: 팽이 회전베기.
+- dosa `attack1~3`: 지팡이 찌르기→휘두르기→두 손 뻗기, `spin`: 지팡이 땅 찍기.
+- gungsa `attack1~3`: 빠른 활쏘기(3번은 크게 당기기), `spin`: 뒤로 몸을 돌리며 쏘기.
+- `dodge`: musa·gungsa는 구르기·뛰어오르기, dosa는 몸을 웅크렸다 펴기(순간이동 앞뒤).
 
 ### NPC (idle 6f 1.2s, 8방향)
 
@@ -145,7 +145,7 @@
 
 ### 스킬 아이콘
 
-`w_whirl w_charge w_slam w_cry w_judge m_fireball m_nova m_meteor m_shield m_starfall a_fan a_pierce a_trap a_hawk a_rain roll blink leap guard_w guard_m guard_a`
+`musa_hwimori musa_dolgyeok musa_ttanggareugi musa_horyeong musa_cheongeun dosa_hwabu dosa_bingyeolbu dosa_nakseong dosa_hosinbu dosa_yuseongu gungsa_osi gungsa_pyeonjeon gungsa_olmu gungsa_maenun gungsa_hwasalbi gureugi chukjibeop dwittwigi deungpae bujeok_makgi bitgyeo_naegi`
 
 먹빛 바탕에 구석 구름 무늬, 직업별 단청 테두리(무사 주홍, 도사 청록, 궁사 황, 공용 회색)와 모서리 꺾쇠를 두르고 조선식 상징을 올린다.
 
