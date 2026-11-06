@@ -72,6 +72,8 @@ export class ActorView {
     this.mat.uniforms.uEmKey.value = a.emKey ? 1 : 0;
     this.mesh = new THREE.Mesh(a.geometry, this.mat);
     this.mesh.frustumCulled = false;
+    // 범위 장판(renderOrder 1)보다 나중에 그려 인물이 장판 위에 서게 한다
+    this.mesh.renderOrder = 3;
     parent.add(this.mesh);
   }
 
