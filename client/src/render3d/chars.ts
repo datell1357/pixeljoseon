@@ -76,6 +76,8 @@ export interface CharAsset {
   skinned?: boolean;
   /** 색 텍스처 */
   map?: THREE.Texture | null;
+  /** 쇳물 색 텍셀을 발광으로 */
+  emKey?: boolean;
   /** 지금 이 모델을 쓰는 인물 수. 장비 조합 모델을 언제 버려도 되는지 판단한다 */
   refs?: number;
 }
