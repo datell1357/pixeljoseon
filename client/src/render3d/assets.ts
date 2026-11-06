@@ -5,7 +5,7 @@ import { DESIGN_LEVEL, MONSTERS } from '@shared/monsters';
 import { CONSUMABLES, GEAR, pcSheet } from '@shared/items';
 import { CLASSES, SKILLS } from '@shared/classes';
 import { ActorView, assetOf } from './actor3d';
-import { FILES, preloadSkinned, skinnedStatus } from './skinned';
+import { FILES, preloadSkinned, setSkinnedStepFps, skinnedStatus } from './skinned';
 import { Stage3D } from './stage';
 
 type Entry = { id: string; name: string; group: string; scale: number; mon?: (typeof MONSTERS)[string]; note?: string };
@@ -48,6 +48,10 @@ const el = (tag: string, cls = '', text = '') => {
 
 const stageBox = $('stage');
 const stage = new Stage3D(stageBox);
+// 게임 기본과 같은 사실적 모드. ?style=pixel이면 도트 모드
+const PIXEL = new URLSearchParams(location.search).get('style') === 'pixel';
+stage.setStyle(!PIXEL, 1);
+setSkinnedStepFps(PIXEL ? 12 : 0);
 let mapReady = false;
 const SPOT = { u: 23, v: 35.4 };
 
@@ -56,8 +60,9 @@ let views: { v: ActorView; id: string; u: number; scale: number }[] = [];
 const sizes = new Map<string, number>();
 
 function status(e: Entry): { cls: string; text: string } {
-  if (e.group === '플레이어' || e.group === 'NPC') return { cls: 'warn', text: '코드 모델' };
-  const s = skinnedStatus(e.id);
+  if (e.group === 'NPC') return { cls: 'warn', text: '코드 모델' };
+  const key = e.group === '플레이어' ? e.id.replace(/^(pc_[a-z]+)_.*$/, '$1') : e.id;
+  const s = skinnedStatus(key);
   if (s === 'ok') return { cls: 'ok', text: '블렌더' };
   if (s === 'failed') return { cls: 'bad', text: '불러오기 실패' };
   return { cls: 'warn', text: '코드 모델' };
@@ -128,7 +133,7 @@ function buildControls() {
   c.append(seg('동작', anims.map((k) => [k, animLabel(k)]), state.anim, (v) => { state.anim = v; state.p = 0; }));
   c.append(seg('확대', [['0', '화면에 맞춤'], ['2', '게임 배율'], ['4', '2배'], ['6', '3배']], String(state.zoom), (v) => { state.zoom = Number(v); resize(); }));
   c.append(seg('속도', [['1', '보통'], ['0.4', '느리게']], String(state.speed), (v) => { state.speed = Number(v); }));
-  if (state.tab === 'mon') c.append(seg('비교', [['0', '새 모델만'], ['1', '예전 모델과 나란히']], state.compare ? '1' : '0', (v) => { state.compare = v === '1'; }));
+  if (state.tab === 'mon' || state.entry.group === '플레이어') c.append(seg('비교', [['0', '새 모델만'], ['1', '예전 모델과 나란히']], state.compare ? '1' : '0', (v) => { state.compare = v === '1'; }));
 }
 
 async function fileSize(id: string) {
@@ -182,7 +187,7 @@ function buildInfo() {
     const sz = sizes.get(e.id);
     box.append(table([
       ['출처', a.skinned ? `블렌더 glb (tools/blender/${SCRIPT[e.id] ?? ''})` : '코드로 지은 모델'],
-      ['파일', a.skinned ? `${FILES[e.id]}${sz ? ` · ${(sz / 1024).toFixed(0)}KB` : ''}` : '-'],
+      ['파일', a.skinned ? `${FILES[e.id] ?? FILES[e.id.replace(/^(pc_[a-z]+)_.*$/, '$1')]}${sz ? ` · ${(sz / 1024).toFixed(0)}KB` : ''}` : '-'],
       ['삼각형', tris(e.id).toLocaleString()], ['뼈', String(a.boneOrder.length)], ['높이', `${(a.height * a.baseScale * e.scale).toFixed(2)}`],
       ['텍스처', a.map ? `${(a.map.image as { width: number }).width}px` : '정점 색'],
     ]));
@@ -198,7 +203,7 @@ function placeActors() {
   for (const a of views) a.v.dispose();
   views = [];
   const e = state.entry;
-  const ids = state.compare && state.tab === 'mon' ? [`${e.id}@old`, e.id] : [e.id];
+  const ids = state.compare && (state.tab === 'mon' || e.group === '플레이어') ? [`${e.id}@old`, e.id] : [e.id];
   const a = assetOf(e.id);
   const span = a ? Math.max(1.2, a.height * a.baseScale * e.scale * 1.6) : 1.5;
   ids.forEach((id, i) => {
@@ -211,15 +216,17 @@ function placeActors() {
   });
 }
 
-/** 화면에 맞춤: 모델(비교면 둘)이 들어가는 가장 큰 정수 배율 */
+/** 화면에 맞춤: 모델(비교면 둘)이 들어가는 가장 큰 배율 */
 function fitZoom() {
   const e = state.entry;
   const a = assetOf(e.id);
   if (!a) return 2;
   const h = a.height * a.baseScale * e.scale;
   const needH = h * PX_H * 1.5;
-  const needW = h * PX_U * (state.compare && state.tab === 'mon' ? 4.6 : 3.0);
-  return Math.max(1, Math.min(8, Math.floor(Math.min(stageBox.clientHeight / needH, stageBox.clientWidth / needW))));
+  const needW = h * PX_U * (state.compare && (state.tab === 'mon' || state.entry.group === '플레이어') ? 4.6 : 3.0);
+  const k = Math.min(stageBox.clientHeight / needH, stageBox.clientWidth / needW);
+  // 도트 모드는 픽셀이 고르게 정수 배율, 사실적 모드는 소수 배율로 꽉 채운다
+  return Math.max(1, Math.min(8, PIXEL ? Math.floor(k) : k));
 }
 
 function resize() {

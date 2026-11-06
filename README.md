@@ -50,7 +50,7 @@ http://localhost:2567 을 연다. 개발할 때는 `npm run dev`(서버 2567 + V
 shared/    서버와 화면이 함께 쓰는 데이터와 규칙 (직업, 스킬, 몬스터, 아이템, 퀘스트, 좌표)
 server/    Colyseus 방(전투·AI 판정), REST 로그인, SQLite 저장
 client/    3D 무대(render3d: three.js), 글자·효과 위층(game: Phaser), Preact UI, 합성 소리
-tools/     지도 생성기(genmaps), 아이콘 굽기·뼈대와 동작(bake), 블렌더 짐승(blender), 그림 점검(lookdev)
+tools/     지도 생성기(genmaps), 아이콘 굽기·뼈대와 동작(bake), 블렌더 짐승·사람(blender), 그림 점검(lookdev)
 tests/     서버 통합 시험, 브라우저 플레이 시험
 docs/      명세와 분석 기록
 ```
