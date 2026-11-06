@@ -5,7 +5,7 @@ import { DESIGN_LEVEL, MONSTERS } from '@shared/monsters';
 import { CONSUMABLES, GEAR, pcSheet } from '@shared/items';
 import { CLASSES, SKILLS } from '@shared/classes';
 import { ActorView, assetOf } from './actor3d';
-import { FILES, preloadSkinned, skinnedStatus } from './skinned';
+import { FILES, preloadSkinned, setSkinnedStepFps, skinnedStatus } from './skinned';
 import { Stage3D } from './stage';
 
 type Entry = { id: string; name: string; group: string; scale: number; mon?: (typeof MONSTERS)[string]; note?: string };
@@ -48,6 +48,10 @@ const el = (tag: string, cls = '', text = '') => {
 
 const stageBox = $('stage');
 const stage = new Stage3D(stageBox);
+// 게임 기본과 같은 사실적 모드. ?style=pixel이면 도트 모드
+const PIXEL = new URLSearchParams(location.search).get('style') === 'pixel';
+stage.setStyle(!PIXEL, 1);
+setSkinnedStepFps(PIXEL ? 12 : 0);
 let mapReady = false;
 const SPOT = { u: 23, v: 35.4 };
 
@@ -212,7 +216,7 @@ function placeActors() {
   });
 }
 
-/** 화면에 맞춤: 모델(비교면 둘)이 들어가는 가장 큰 정수 배율 */
+/** 화면에 맞춤: 모델(비교면 둘)이 들어가는 가장 큰 배율 */
 function fitZoom() {
   const e = state.entry;
   const a = assetOf(e.id);
@@ -220,7 +224,9 @@ function fitZoom() {
   const h = a.height * a.baseScale * e.scale;
   const needH = h * PX_H * 1.5;
   const needW = h * PX_U * (state.compare && (state.tab === 'mon' || state.entry.group === '플레이어') ? 4.6 : 3.0);
-  return Math.max(1, Math.min(8, Math.floor(Math.min(stageBox.clientHeight / needH, stageBox.clientWidth / needW))));
+  const k = Math.min(stageBox.clientHeight / needH, stageBox.clientWidth / needW);
+  // 도트 모드는 픽셀이 고르게 정수 배율, 사실적 모드는 소수 배율로 꽉 채운다
+  return Math.max(1, Math.min(8, PIXEL ? Math.floor(k) : k));
 }
 
 function resize() {
