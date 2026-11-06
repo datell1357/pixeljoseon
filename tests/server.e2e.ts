@@ -222,11 +222,11 @@ async function main() {
   const goldBefore = a.me.gold;
   await a.walkTo(44.5, 29, 0.3);
   await a.walkTo(39, 28.6, 0.3);
-  check('입은 장비가 방 상태에 실림', String(a.player().gear ?? '').includes('armor_1'), String(a.player().gear));
+  check('입은 장비가 방 상태에 실림', String(a.player().gear ?? '').includes('gabot_1'), String(a.player().gear));
   a.room.send('unequip', { slot: 'armor' });
-  await a.until(() => !String(a.player().gear ?? '').includes('armor_1'), '겉모습 갱신');
+  await a.until(() => !String(a.player().gear ?? '').includes('gabot_1'), '겉모습 갱신');
   check('벗으면 방 상태의 겉모습도 바뀜', true);
-  a.room.send('buy', { id: 'potion_hp_s', n: 2, npc: 'npc_merchant' });
+  a.room.send('buy', { id: 'bohyeolhwan', n: 2, npc: 'npc_merchant' });
   await a.until(() => a.me.gold === goldBefore - 24, '구매');
   check('상점 구매', true);
 
@@ -360,7 +360,7 @@ async function main() {
   check('5층에 보스 등장', true);
   await sleep(700);
   c.room.send('dev', { killAll: true });
-  await c.until(() => c.me.bag.some((x: any) => x?.id === 'rift_token'), '균열 토큰');
+  await c.until(() => c.me.bag.some((x: any) => x?.id === 'jeoseung_yeopjeon'), '균열 토큰');
   check('보스 층 보상으로 균열 토큰', true);
 
   // 균열에서 쓰러지면 마을로
@@ -373,7 +373,7 @@ async function main() {
   check('부활 후 체력 회복', !c.player().dead && c.player().hp > 0, `hp ${c.player().hp}`);
 
   // 강화와 분해: 대장장이 앞에서
-  c.room.send('dev', { gold: 100000, item: ['ember_shard', 50] });
+  c.room.send('dev', { gold: 100000, item: ['jeongcheol', 50] });
   await c.until(() => c.me.gold >= 100000, '시험용 골드');
   await c.walkTo(44, 29.4, 0.4, 12000);
   await c.walkTo(31, 28.4, 0.4, 12000);
@@ -386,9 +386,9 @@ async function main() {
   c.room.send('unequip', { slot: 'armor' });
   await c.until(() => !c.me.equip.armor, '갑옷 벗기');
   const gearAt = c.me.bag.findIndex((x: any) => x?.kind === 'gear');
-  const shardBefore = c.me.bag.reduce((n: number, x: any) => n + (x?.id === 'ember_shard' ? x.n : 0), 0);
+  const shardBefore = c.me.bag.reduce((n: number, x: any) => n + (x?.id === 'jeongcheol' ? x.n : 0), 0);
   c.room.send('salvage', { i: gearAt, npc: 'npc_smith' });
-  await c.until(() => c.me.bag.reduce((n: number, x: any) => n + (x?.id === 'ember_shard' ? x.n : 0), 0) > shardBefore, '분해');
+  await c.until(() => c.me.bag.reduce((n: number, x: any) => n + (x?.id === 'jeongcheol' ? x.n : 0), 0) > shardBefore, '분해');
   check('분해로 등불 조각', true);
   c.room.send('enhance', { where: 'weapon', i: 0, npc: 'npc_elder' });
   await sleep(150);

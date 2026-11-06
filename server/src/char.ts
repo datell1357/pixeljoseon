@@ -48,7 +48,7 @@ export interface CharData {
 }
 
 export function newChar(id: string, account: string, name: string, cls: ClassId, look: number): CharData {
-  const weapon = cls === 'musa' ? 'sword_1' : cls === 'dosa' ? 'staff_1' : 'bow_1';
+  const weapon = cls === 'musa' ? 'hwando_1' : cls === 'dosa' ? 'chorongdae_1' : 'gakgung_1';
   const c: CharData = {
     id,
     account,
@@ -65,17 +65,17 @@ export function newChar(id: string, account: string, name: string, cls: ClassId,
     v: -1,
     bag: Array(BAG_SIZE).fill(null),
     vault: Array(24).fill(null),
-    equip: { weapon: rollGear(weapon, 0), armor: rollGear('armor_1', 0) },
+    equip: { weapon: rollGear(weapon, 0), armor: rollGear('gabot_1', 0) },
     skills: {},
-    quick: ['potion_hp_s', 'potion_mp_s', null, null],
+    quick: ['bohyeolhwan', 'cheongsimhwan', null, null],
     quests: { active: {}, done: [] },
     riftBest: 0,
     kills: 0,
     tut: 0,
   };
-  addStack(c, 'potion_hp_s', 5);
-  addStack(c, 'potion_mp_s', 3);
-  addStack(c, 'scroll_home', 1);
+  addStack(c, 'bohyeolhwan', 5);
+  addStack(c, 'cheongsimhwan', 3);
+  addStack(c, 'gwihyang_bujeok', 1);
   const s = computeStats(c);
   c.hp = s.maxHp;
   c.mp = s.maxMp;
@@ -221,9 +221,9 @@ export function enhance(c: CharData, where: 'bag' | Slot, i: number, rand: () =>
   if (g.plus >= MAX_PLUS) return { ok: false, msg: '더 강화할 수 없어요' };
   const cost = enhanceCost(g);
   if (c.gold < cost.gold) return { ok: false, msg: '돈이 모자라요' };
-  if (countItem(c, 'ember_shard') < cost.shards) return { ok: false, msg: '등불 조각이 모자라요' };
+  if (countItem(c, 'jeongcheol') < cost.shards) return { ok: false, msg: '등불 조각이 모자라요' };
   c.gold -= cost.gold;
-  removeItem(c, 'ember_shard', cost.shards);
+  removeItem(c, 'jeongcheol', cost.shards);
   if (rand() < cost.rate) {
     g.plus += 1;
     return { ok: true, success: true, plus: g.plus };
@@ -237,7 +237,7 @@ export function salvage(c: CharData, i: number): Result & { shards?: number } {
   if (!it || it.kind !== 'gear') return { ok: false, msg: '장비만 분해할 수 있어요' };
   const shards = salvageYield(it.gear);
   c.bag[i] = null;
-  const left = addStack(c, 'ember_shard', shards);
+  const left = addStack(c, 'jeongcheol', shards);
   if (left > 0) return { ok: true, shards: shards - left, msg: '가방이 가득 차 일부를 잃었어요' };
   return { ok: true, shards };
 }

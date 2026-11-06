@@ -99,7 +99,7 @@ function BagPanel() {
       <BagGrid m={m} select={(i) => (forgeSelect.value = i)} selected={npcTab.value === 'forge' && npcOpen.value ? forgeSelect.value : undefined} />
       <footer class="bagfoot">
         <span class="gold">
-          <Icon id="gold" size={24} />
+          <Icon id="nyang" size={24} />
           {m.gold.toLocaleString()}
         </span>
         <button type="button" class="btn small" onClick={() => send('bagSort')}>
@@ -659,7 +659,7 @@ function ShopTab({ npc, m }: { npc: string; m: Me }) {
 }
 
 function RiftTab({ npc, m }: { npc: string; m: Me }) {
-  const tokens = countInBag(m, 'rift_token');
+  const tokens = countInBag(m, 'jeoseung_yeopjeon');
   return (
     <div class="shop">
       <p class="muted">저승 엽전 {tokens}개 · 최고 기록 {m.riftBest}층</p>
@@ -705,7 +705,7 @@ function ForgeTab({ npc, m }: { npc: string; m: Me }) {
     if (it?.kind === 'gear') g = it.gear;
   }
   const cost = g ? enhanceCost(g) : null;
-  const shards = countInBag(m, 'ember_shard');
+  const shards = countInBag(m, 'jeongcheol');
   return (
     <div class="forge">
       <p class="muted">착용 중인 장비나 가방의 장비를 고르세요.</p>

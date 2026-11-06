@@ -1150,9 +1150,9 @@ function buildPc(cls: Cls, look: string, worn: Worn): Build {
 }
 
 const STARTER: Record<Cls, string> = {
-  musa: 'sword_1.0.0,,armor_1.0.0,,,',
-  dosa: 'staff_1.0.0,,armor_1.0.0,,,',
-  gungsa: 'bow_1.0.0,,armor_1.0.0,,,',
+  musa: 'hwando_1.0.0,,gabot_1.0.0,,,',
+  dosa: 'chorongdae_1.0.0,,gabot_1.0.0,,,',
+  gungsa: 'gakgung_1.0.0,,gabot_1.0.0,,,',
 };
 
 const cache = new Map<string, CharAsset>();

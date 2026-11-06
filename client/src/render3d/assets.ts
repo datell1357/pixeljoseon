@@ -26,9 +26,9 @@ const monsters: Entry[] = Object.values(MONSTERS)
   .sort((a, b) => (DESIGN_LEVEL[a.id] ?? 0) + (a.boss ? 100 : 0) - ((DESIGN_LEVEL[b.id] ?? 0) + (b.boss ? 100 : 0)))
   .map((m) => ({ id: m.sheet, name: m.name, group: m.boss ? '보스' : '일반 짐승', scale: m.scale ?? 1, mon: m }));
 const TOP: Record<string, string> = {
-  musa: 'sword_4.3.10,helm_3.3.10,armor_3.3.10,boots_3.3.10,ring_2.3.10,amulet_2.3.10',
-  dosa: 'staff_4.3.10,helm_3.3.10,armor_3.3.10,boots_3.3.10,ring_2.3.10,amulet_2.3.10',
-  gungsa: 'bow_4.3.10,helm_3.3.10,armor_3.3.10,boots_3.3.10,ring_2.3.10,amulet_2.3.10',
+  musa: 'hwando_4.3.10,tugu_3.3.10,gabot_3.3.10,sin_3.3.10,garakji_2.3.10,norigae_2.3.10',
+  dosa: 'chorongdae_4.3.10,tugu_3.3.10,gabot_3.3.10,sin_3.3.10,garakji_2.3.10,norigae_2.3.10',
+  gungsa: 'gakgung_4.3.10,tugu_3.3.10,gabot_3.3.10,sin_3.3.10,garakji_2.3.10,norigae_2.3.10',
 };
 const people: Entry[] = [
   ...Object.values(CLASSES).flatMap((c) => [

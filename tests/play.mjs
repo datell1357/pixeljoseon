@@ -185,14 +185,14 @@ try {
 
   // 장비를 벗으면 내 모습과 장비창 미리보기가 함께 바뀐다
   const sheetBefore = await world(`__world.me.sheetId`);
-  check('입은 장비가 모델에 들어감', sheetBefore.includes('armor_1'), sheetBefore);
+  check('입은 장비가 모델에 들어감', sheetBefore.includes('gabot_1'), sheetBefore);
   await page.keyboard.press('KeyC');
   await sleep(300);
   await shot('08a_equip_before');
   await page.click('.equipcell:nth-child(3) .slot');
   await sleep(500);
   const sheetAfter = await world(`__world.me.sheetId`);
-  check('갑옷을 벗으면 겉모습이 바뀜', !sheetAfter.includes('armor_1') && sheetAfter !== sheetBefore, sheetAfter);
+  check('갑옷을 벗으면 겉모습이 바뀜', !sheetAfter.includes('gabot_1') && sheetAfter !== sheetBefore, sheetAfter);
   await shot('08b_equip_after');
   // 가방에서 다시 입는다
   await page.keyboard.press('KeyC');
