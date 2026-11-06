@@ -48,7 +48,7 @@ const W_STANCE = {
   La: 62, Lr: 0.3, Ly: 0.5, Vy: 42, Vp: 0,
   cry: 4, c1: 10, c2: 8,
 };
-function warriorAnims() {
+export function warriorAnims() {
   const b = W_STANCE;
   const K = (n, keys, loop = false) => bakeKeys(n, keys, b, loop);
   return {
@@ -309,7 +309,7 @@ const M_STANCE = {
   La: 40, Lr: 0.22, Ly: 0.46, Vy: 0, Vp: 0,
   c1: 6, c2: 5,
 };
-function mageAnims() {
+export function mageAnims() {
   const b = M_STANCE;
   const K = (n, keys, loop = false) => bakeKeys(n, keys, b, loop);
   return {
@@ -524,7 +524,7 @@ function aim(draw, { lean = 0, crouch = 0, up = 0 } = {}) {
     Ra: -2, Rr: pullR, Ry: y + (draw > 0 ? -0.08 : -0.16), Fz: 0.1, Gz: -0.1, draw, arrow: draw > 0 ? 1 : 0,
   };
 }
-function archerAnims() {
+export function archerAnims() {
   const b = A_STANCE;
   const K = (n, keys) => bakeKeys(n, keys, b);
   const release = (o = {}) => ({ ...aim(0, o), arrow: 0, draw: 0, La: 26, Lr: 0.52, Ra: -34, Rr: 0.12, Ry: 0.72, crx: -4 });

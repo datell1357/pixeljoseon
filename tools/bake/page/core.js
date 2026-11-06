@@ -145,6 +145,7 @@ export function M(hexStr, opts = {}) {
       uPat: { value: new THREE.Vector4(opts.pat?.f ?? 0, opts.pat?.thr ?? 0.5, opts.pat?.y0 ?? 0, opts.pat?.y1 ?? 0) },
     },
   });
+  mat.userData.src = { hex: hexStr, metal: !!opts.metal, em: opts.glow ? 1 : opts.e ? 0.5 : 0, alpha: opts.alpha ?? 1 };
   return mat;
 }
 

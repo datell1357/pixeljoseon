@@ -18,7 +18,7 @@ import {
 } from '@shared/items';
 import { NPCS, QUESTS, QUEST_BY_ID, countInBag, questAvailable, questComplete, questProgress, type QuestDef } from '@shared/quests';
 import { sfx } from '../audio';
-import { applyScale, worldScene } from '../game/boot';
+import { applyGfx, applyScale, worldScene } from '../game/boot';
 import { backToChars, send, register } from '../net';
 import { isGuest, loginName, mapData, me, npcOpen, npcTab, panels, party, riftBoard, saveSettings, settings, toast, togglePanel, type Me, type PanelId } from '../store';
 import { CharPreview, Icon, ItemSlot, Panel, hideTip } from './common';
@@ -478,6 +478,31 @@ function SettingsPanel() {
               onClick={() => {
                 saveSettings({ ...s, zoom: v as number });
                 applyScale();
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div class="setrow">
+        그래픽
+        <div class="seg" role="group" aria-label="그래픽">
+          {(
+            [
+              ['auto', '자동'],
+              ['high', '높음'],
+              ['low', '낮음'],
+            ] as const
+          ).map(([v, label]) => (
+            <button
+              type="button"
+              key={v}
+              class={s.gfx === v ? 'on' : ''}
+              aria-pressed={s.gfx === v}
+              onClick={() => {
+                saveSettings({ ...s, gfx: v });
+                applyGfx();
               }}
             >
               {label}

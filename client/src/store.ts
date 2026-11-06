@@ -114,10 +114,12 @@ export interface Settings {
   names: boolean;
   /** 화면 확대: 0은 자동 */
   zoom: number;
+  /** 그래픽: auto는 느리면 스스로 낮춘다 */
+  gfx: 'auto' | 'high' | 'low';
 }
 
 function loadSettings(): Settings {
-  const def: Settings = { sfx: 0.8, music: 0.5, shake: true, names: true, zoom: 0 };
+  const def: Settings = { sfx: 0.8, music: 0.5, shake: true, names: true, zoom: 0, gfx: 'auto' };
   try {
     return { ...def, ...JSON.parse(localStorage.getItem('lantern-settings') ?? '{}') };
   } catch {

@@ -1,61 +1,12 @@
 // 구워 둔 그림의 설명 파일과, 코드로 그리는 효과용 텍스처
 import type * as Phaser from 'phaser';
 
-export interface AnimInfo {
-  start: number;
-  frames: number;
-  dur: number;
-  loop?: boolean;
-}
-
-export interface SheetInfo {
-  cell: [number, number];
-  anchor: [number, number];
-  cols: number;
-  dirs: string[];
-  mirror: boolean;
-  anims: Record<string, AnimInfo>;
-}
-
-export interface PropFrame {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  ax: number;
-  ay: number;
-  fp?: [number, number, number, number];
-  solid?: boolean;
-  /** 유닛 단위 높이 */
-  hu?: number;
-}
-
-export interface TerrainInfo {
-  tw: number;
-  th: number;
-  cols: number;
-  full: Record<string, number[]>;
-  edge: Record<string, number>;
-}
-
 export interface IconSheet {
   cell: number;
   cols: number;
   ids: string[];
 }
 
-export const SHEET_IDS = [
-  'pc_warrior_a', 'pc_warrior_b', 'pc_warrior_c',
-  'pc_mage_a', 'pc_mage_b', 'pc_mage_c',
-  'pc_archer_a', 'pc_archer_b', 'pc_archer_c',
-  'npc_elder', 'npc_merchant', 'npc_smith', 'npc_guard', 'npc_keeper',
-  'mushroom', 'boar', 'wisp', 'ashwolf', 'emberbug', 'golem', 'cultist', 'shade',
-  'elder', 'warden',
-];
-
-export const sheets: Record<string, SheetInfo> = {};
-export const propFrames: Record<string, PropFrame> = {};
-export let terrain: TerrainInfo | null = null;
 export const iconSheets: { items: IconSheet | null; skills: IconSheet | null } = { items: null, skills: null };
 
 async function getJson<T>(path: string): Promise<T | null> {
@@ -70,36 +21,16 @@ async function getJson<T>(path: string): Promise<T | null> {
 
 /** 게임을 띄우기 전에 설명 파일을 모두 읽는다 */
 export async function loadDescriptors() {
-  await Promise.all(
-    SHEET_IDS.map(async (id) => {
-      const s = await getJson<SheetInfo>(`/art/chars/${id}.json`);
-      if (s) sheets[id] = s;
-    }),
-  );
-  const props = await getJson<Record<string, PropFrame>>('/art/props/props.json');
-  if (props) Object.assign(propFrames, props);
-  terrain = await getJson<TerrainInfo>('/art/terrain/terrain.json');
   iconSheets.items = await getJson<IconSheet>('/art/icons/items.json');
   iconSheets.skills = await getJson<IconSheet>('/art/icons/skills.json');
 }
 
 export function preloadArt(scene: Phaser.Scene) {
-  for (const id of Object.keys(sheets)) {
-    const s = sheets[id];
-    scene.load.spritesheet(id, `/art/chars/${id}.png`, { frameWidth: s.cell[0], frameHeight: s.cell[1] });
-  }
-  if (Object.keys(propFrames).length) scene.load.image('props', '/art/props/props.png');
-  if (terrain) scene.load.image('terrain', '/art/terrain/terrain.png');
   if (iconSheets.items) scene.load.image('icons_items', '/art/icons/items.png');
 }
 
-/** 소품 그림을 잘라 쓸 수 있게 프레임을 등록한다 */
+/** 아이콘 그림을 잘라 쓸 수 있게 프레임을 등록한다 */
 export function registerPropFrames(scene: Phaser.Scene) {
-  if (!scene.textures.exists('props')) return;
-  const tex = scene.textures.get('props');
-  for (const [id, f] of Object.entries(propFrames)) {
-    if (!tex.has(id)) tex.add(id, 0, f.x, f.y, f.w, f.h);
-  }
   if (scene.textures.exists('icons_items') && iconSheets.items) {
     const it = scene.textures.get('icons_items');
     const { cell, cols, ids } = iconSheets.items;

@@ -75,7 +75,7 @@ function Title() {
       <div class="titleglow" />
       <div class="titlebox">
         <h1 class="logo">등불길</h1>
-        <p class="tagline">꺼져 가는 길에 다시 등불을 켜는 쿼터뷰 액션 RPG</p>
+        <p class="tagline">꺼져 가는 길에 다시 등불을 켜는 실시간 액션 RPG</p>
         {form ? (
           <form class="panel loginform" onSubmit={submit}>
             <label>

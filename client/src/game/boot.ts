@@ -2,16 +2,24 @@
 import * as Phaser from 'phaser';
 import type { Room } from '@colyseus/sdk';
 import type { MapData } from '@shared/mapdata';
-import { assetsReady, loadProgress, settings } from '../store';
-import { toX, toY } from '@shared/core';
-import { DEPTH } from './actor';
-import { loadDescriptors, makeFxTextures, preloadArt, propFrames, registerPropFrames } from './assets';
-import { bakeGround } from './ground';
+import { assetsReady, loadProgress, settings, toast } from '../store';
+import { PX_U, PX_V } from '@shared/core';
+import { Stage3D } from '../render3d/stage';
+import { loadDescriptors, makeFxTextures, preloadArt, registerPropFrames } from './assets';
 import { WorldScene } from './world';
 
 let game: Phaser.Game | null = null;
 let world: WorldScene | null = null;
 let queue: { type: string; msg: unknown }[] = [];
+let stage: Stage3D | null = null;
+
+/** 3D 무대. 글자·효과는 Phaser가 투명한 위층에 그린다. */
+export function getStage(): Stage3D {
+  if (!stage) throw new Error('무대가 아직 없습니다');
+  return stage;
+}
+
+export const stageOrNull = () => stage;
 
 class BootScene extends Phaser.Scene {
   constructor() {
@@ -38,10 +46,8 @@ class BootScene extends Phaser.Scene {
   }
 }
 
-/** 시작 화면 뒤로 보이는 밤의 마을. 입력 없이 천천히 움직인다. */
+/** 시작 화면 뒤로 보이는 마을. 입력 없이 천천히 움직인다. */
 class TitleScene extends Phaser.Scene {
-  private keys: string[] = [];
-  private lamps: { img: Phaser.GameObjects.Image; ph: number }[] = [];
   private dark?: Phaser.GameObjects.Rectangle;
   private built = false;
 
@@ -50,12 +56,8 @@ class TitleScene extends Phaser.Scene {
   }
 
   async create() {
-    this.cameras.main.setBackgroundColor('#0b0a12');
     this.events.once('shutdown', () => {
       this.scale.off('resize', this.fit, this);
-      for (const k of this.keys) this.textures.remove(k);
-      this.keys = [];
-      this.lamps = [];
       this.dark = undefined;
       this.built = false;
     });
@@ -67,28 +69,9 @@ class TitleScene extends Phaser.Scene {
       return;
     }
     if (!this.scene.isActive()) return;
-    const { grounds } = bakeGround(this, map);
-    this.keys = grounds.map((g) => g.key);
-    if (this.textures.exists('props')) {
-      for (const [id, u, v] of map.props) {
-        const f = propFrames[id];
-        if (!f) continue;
-        const y = toY(u, v);
-        this.add.image(Math.round(toX(u, v)), Math.round(y), 'props', id).setOrigin(f.ax / f.w, f.ay / f.h).setDepth(y);
-      }
-    }
-    this.dark = this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x4a4468).setOrigin(0, 0).setScrollFactor(0).setDepth(DEPTH.DARK).setBlendMode(Phaser.BlendModes.MULTIPLY);
-    for (const o of map.objects) {
-      if (o.type !== 'lantern') continue;
-      const r = o.r ?? 5;
-      const img = this.add
-        .image(toX(o.u, o.v), toY(o.u, o.v) - 18, 'glow')
-        .setBlendMode(Phaser.BlendModes.ADD)
-        .setTint(0xffb86a)
-        .setDepth(DEPTH.LIGHT)
-        .setScale((r * 90) / 128, (r * 62) / 128);
-      this.lamps.push({ img, ph: Math.random() * 10 });
-    }
+    getStage().loadMap(map);
+    getStage().setFocus(0, 0, 0, false);
+    this.dark = this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x0b0a12, 0.28).setOrigin(0, 0).setScrollFactor(0);
     this.built = true;
     this.cameras.main.fadeIn(900, 11, 10, 18);
   }
@@ -97,12 +80,13 @@ class TitleScene extends Phaser.Scene {
     this.dark?.setSize(this.scale.width, this.scale.height);
   }
 
-  update(time: number) {
+  update(time: number, deltaMs: number) {
     if (!this.built) return;
     const t = time * 0.001;
     // 광장 둘레를 천천히 맴돈다
-    this.cameras.main.centerOn(Math.round(toX(30, 30) + Math.sin(t * 0.07) * 150), Math.round(toY(30, 30) - 30 + Math.cos(t * 0.05) * 70));
-    for (const l of this.lamps) l.img.setAlpha(0.55 + Math.sin(t * 3 + l.ph) * 0.05 + Math.sin(t * 7.3 + l.ph * 2) * 0.03);
+    const s = getStage();
+    s.setView(Math.round((30 + Math.sin(t * 0.07) * 5) * PX_U), Math.round((30 - 1 + Math.cos(t * 0.05) * 4) * PX_V));
+    s.render(Math.min(0.05, deltaMs / 1000));
   }
 }
 
@@ -118,6 +102,7 @@ export function applyScale() {
   const s = logicalSize();
   game.scale.setZoom(s.k);
   game.scale.resize(s.w, s.h);
+  stage?.setSize(s.w, s.h, s.k);
 }
 
 function logicalSize() {
@@ -125,13 +110,30 @@ function logicalSize() {
   return { w: Math.ceil(window.innerWidth / k), h: Math.ceil(window.innerHeight / k), k };
 }
 
+/** 설정에 맞춰 그래픽 수준을 정한다 */
+export function applyGfx() {
+  if (!stage) return;
+  stage.setQuality(settings.value.gfx === 'low' ? 0 : 1);
+}
+
 export async function createGame() {
   await loadDescriptors();
   const { w, h, k } = logicalSize();
+  const parent = document.getElementById('game')!;
+  stage = new Stage3D(parent);
+  stage.setSize(w, h, k);
+  applyGfx();
+  // 자동일 때만: 프레임이 계속 느리면 한 단계 낮춘다
+  stage.onSlow = () => {
+    if (settings.value.gfx !== 'auto') return;
+    stage?.setQuality(0);
+    toast('화면이 느려서 그래픽을 낮췄어요. 설정에서 바꿀 수 있어요.', 'info', 3200);
+  };
+  (window as unknown as { __stage?: Stage3D }).__stage = stage;
   game = new Phaser.Game({
-    type: Phaser.AUTO,
+    type: Phaser.WEBGL,
     parent: 'game',
-    backgroundColor: '#0b0a12',
+    transparent: true,
     pixelArt: true,
     roundPixels: true,
     width: w,
@@ -142,6 +144,10 @@ export async function createGame() {
     banner: false,
     scene: [BootScene, TitleScene, WorldScene],
   });
+  game.canvas.style.position = 'absolute';
+  game.canvas.style.left = '0';
+  game.canvas.style.top = '0';
+  game.canvas.style.zIndex = '1';
   window.addEventListener('resize', applyScale);
   (window as unknown as { __game?: Phaser.Game }).__game = game;
 }

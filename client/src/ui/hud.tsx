@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { CLASSES, SKILLS, SKILL_KEYS } from '@shared/classes';
 import { CONSUMABLES } from '@shared/items';
 import { QUEST_BY_ID, questComplete, questProgress } from '@shared/quests';
-import { toX, toY } from '@shared/core';
 import type { MapData } from '@shared/mapdata';
 import { sfx } from '../audio';
 import { worldScene } from '../game/boot';
@@ -316,8 +315,8 @@ const MINI = 2;
 
 export function bakeMini(map: MapData): HTMLCanvasElement {
   const c = document.createElement('canvas');
-  c.width = (map.w + map.h) * MINI + 4;
-  c.height = (map.w + map.h) * (MINI / 2) + 4;
+  c.width = map.w * MINI + 4;
+  c.height = map.h * MINI + 4;
   const g = c.getContext('2d')!;
   const colors: Record<string, string> = {
     meadow: '#567a48',
@@ -330,7 +329,6 @@ export function bakeMini(map: MapData): HTMLCanvasElement {
     stone: '#6a6668',
     lava: '#c0562a',
   };
-  const ox = map.h * MINI + 2;
   const solid = map.solid.rows;
   for (let v = 0; v < map.h; v++) {
     for (let u = 0; u < map.w; u++) {
@@ -341,7 +339,7 @@ export function bakeMini(map: MapData): HTMLCanvasElement {
       const blockedCell = solid[v * 2]?.[u * 2] === '1' && solid[v * 2 + 1]?.[u * 2 + 1] === '1';
       if (blockedCell) col = shade(col);
       g.fillStyle = col;
-      g.fillRect((u - v) * MINI + ox, (u + v) * (MINI / 2) + 2, MINI + 1, MINI);
+      g.fillRect(u * MINI + 2, v * MINI + 2, MINI, MINI);
     }
   }
   return c;
@@ -356,8 +354,8 @@ function shade(hex: string) {
 }
 
 export function miniProject(map: MapData, u: number, v: number): [number, number] {
-  const ox = map.h * MINI + 2;
-  return [(toX(u, v) / 32) * MINI + ox, ((toY(u, v) / 16) * MINI) / 2 + 2];
+  void map;
+  return [u * MINI + 2, v * MINI + 2];
 }
 
 function Minimap() {

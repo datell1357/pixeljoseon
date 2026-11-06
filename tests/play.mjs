@@ -35,7 +35,7 @@ for (let i = 0; i < 80; i++) {
   }
 }
 
-const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--use-angle=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist', '--mute-audio'] });
+const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--use-angle=metal', '--enable-gpu', '--enable-webgl', '--ignore-gpu-blocklist', '--mute-audio'] });
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 const errors = [];
 page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}\n${e.stack ?? ''}`));
@@ -65,7 +65,7 @@ try {
   await page.waitForFunction(() => window.__world?.ready === true, null, { timeout: 20000 });
   await sleep(1500);
   await shot('04_town');
-  const self = await world(`({u: __world.me.u, v: __world.me.v, map: __world.map.name, npcs: __world.npcs.size, props: __world.props.length, grounds: __world.grounds.length})`);
+  const self = await world(`({u: __world.me.u, v: __world.me.v, map: __world.map.name, npcs: __world.npcs.size, props: __stage.chunks.length, grounds: __stage.terrainMesh ? 1 : 0})`);
   check('마을 진입', self.map === 'town', JSON.stringify(self));
 
   // 걷기: 키보드 입력으로 실제로 움직이는지
@@ -75,7 +75,7 @@ try {
   await page.keyboard.up('KeyD');
   await sleep(150);
   const after = await world(`[__world.me.u, __world.me.v]`);
-  check('D 키로 화면 오른쪽 이동(+u,-v)', after[0] > before[0] && after[1] < before[1], `${before} → ${after}`);
+  check('D 키로 화면 오른쪽 이동(+u)', after[0] > before[0] && Math.abs(after[1] - before[1]) < 0.01, `${before} → ${after}`);
   await shot('05_walk');
 
   // NPC 대화와 퀘스트: 어른에게 걸어간다 (시험용으로 위치를 옮기지 않고 입력으로)
@@ -151,8 +151,8 @@ try {
         const du = wu - mu;
         const dv = wv - mv;
         if (Math.hypot(du, dv) < 0.45) break;
-        const sx = du - dv;
-        const sy = du + dv;
+        const sx = du;
+        const sy = dv;
         await setKey('KeyD', sx > 0.18);
         await setKey('KeyA', sx < -0.18);
         await setKey('KeyS', sy > 0.18);
@@ -224,7 +224,7 @@ try {
         await walkTo(t.u, t.v, 1.1, 2500);
       } else {
         // 마우스를 대상 위로 옮겨 클릭
-        const p = await world(`(() => { const cam=__world.cameras.main; const x=(${t.u}-${t.v})*32, y=(${t.u}+${t.v})*16-14; const pt=cam.getScreenPoint? null:null; const sx=(x-cam.worldView.x)*cam.zoom, sy=(y-cam.worldView.y)*cam.zoom; const k=window.innerWidth/__game.scale.width; return [sx*k, sy*k] })()`);
+        const p = await world(`(() => { const cam=__world.cameras.main; const x=${t.u}*40, y=${t.v}*22-14; const pt=cam.getScreenPoint? null:null; const sx=(x-cam.worldView.x)*cam.zoom, sy=(y-cam.worldView.y)*cam.zoom; const k=window.innerWidth/__game.scale.width; return [sx*k, sy*k] })()`);
         await page.mouse.move(p[0], p[1]);
         await page.mouse.down();
         await sleep(450);
@@ -235,6 +235,17 @@ try {
   };
   await fight(6000);
   await shot('15_combat');
+  const perf = await page.evaluate(() => new Promise((res) => {
+    const t0 = performance.now();
+    let n = 0;
+    const tick = () => {
+      n++;
+      if (performance.now() - t0 > 2500) res({ fps: Math.round((n * 1000) / (performance.now() - t0)), calls: __stage.stats.calls, tris: __stage.stats.tris });
+      else requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }));
+  console.log('참고  프레임', JSON.stringify(perf));
   const alive = await fight(30000);
   await shot('16_combat2');
   check('물약을 쓰며 살아남음', alive);
