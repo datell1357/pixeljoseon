@@ -146,7 +146,7 @@ export function Tooltip() {
         </div>
         <GearStats g={g} />
         <div class={`tipreq ${lvOk && clsOk ? '' : 'bad'}`}>{b.req}레벨 이상</div>
-        <div class="tipsell">판매 {sellPrice(g)} 골드</div>
+        <div class="tipsell">판매 {sellPrice(g)}냥</div>
         {t.hint ? <div class="tiphint">{t.hint}</div> : null}
       </div>
     );
@@ -157,7 +157,7 @@ export function Tooltip() {
     <div class="tooltip" style={style}>
       <div class="tipname">{d.name}</div>
       <div class="tipdesc">{d.desc}</div>
-      {d.sell ? <div class="tipsell">판매 {d.sell} 골드</div> : null}
+      {d.sell ? <div class="tipsell">판매 {d.sell}냥</div> : null}
       {t.hint ? <div class="tiphint">{t.hint}</div> : null}
     </div>
   );

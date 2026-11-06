@@ -76,6 +76,15 @@ export class Actor {
     return !!this.view.asset.anims[name];
   }
 
+  /** 입은 장비가 바뀌면 모델을 갈아 끼운다 */
+  setSheet(id: string) {
+    if (id === this.sheetId) return;
+    this.sheetId = id;
+    this.view.setSheet(id);
+    const info = this.view.asset.anims[this.animName];
+    if (info) this.animInfo = info;
+  }
+
   setAnim(name: string, o: { restart?: boolean; dur?: number; next?: string; hold?: boolean } = {}) {
     const anims = this.view.asset.anims;
     let info = anims[name];
@@ -130,7 +139,7 @@ export class Actor {
     // 화면 픽셀에 맞춰 세워야 움직일 때 모델 표면이 떨리지 않는다
     const wx = Math.round(x) / PX_U;
     const wz = Math.round(y) / PX_V;
-    const ground = this.stage.terrain?.heightAt(wx, wz) ?? 0;
+    const ground = this.stage.terrain?.groundAt(wx, wz) ?? 0;
     const wy = Math.round((ground + this.lift / PX_H) * PX_H) / PX_H;
     this.view.setAlpha(Math.max(0, Math.min(1, this.alpha)));
     this.view.update(dt, this.animName, this.t / this.dur, wx, wy, wz, this.heading, this.scale);

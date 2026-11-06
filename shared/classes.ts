@@ -75,8 +75,8 @@ export interface GuardDef {
 export const CLASSES: Record<ClassId, ClassDef> = {
   warrior: {
     id: 'warrior',
-    label: '수호자',
-    blurb: '검과 방패 · 근접 · 튼튼함',
+    label: '무사',
+    blurb: '환도와 방패 · 근접 · 튼튼함',
     hp: 130,
     mp: 50,
     atk: 12,
@@ -97,8 +97,8 @@ export const CLASSES: Record<ClassId, ClassDef> = {
   },
   mage: {
     id: 'mage',
-    label: '등불술사',
-    blurb: '불과 얼음 · 원거리 · 광역',
+    label: '도사',
+    blurb: '부적과 도술 · 원거리 · 광역',
     hp: 90,
     mp: 110,
     atk: 15,
@@ -113,14 +113,14 @@ export const CLASSES: Record<ClassId, ClassDef> = {
       { anim: 'attack2', kind: 'shot', mult: 1.0, dur: 0.36, impact: 0.15, proj: { kind: 'orb', speed: 9, range: 7.5, r: 0.3 } },
       { anim: 'attack3', kind: 'shot', mult: 1.5, dur: 0.5, impact: 0.24, proj: { kind: 'orb_big', speed: 8, range: 8, r: 0.42, blast: 1.2 } },
     ],
-    dodge: { kind: 'blink', label: '순간이동', icon: 'blink', dist: 3.6, dur: 0.22, iframes: 0.24, cd: 5 },
-    guard: { label: '등불 막기', icon: 'guard_m', reduce: 0.5, parry: 0.3, maxHold: 0.5, cd: 5 },
+    dodge: { kind: 'blink', label: '축지법', icon: 'blink', dist: 3.6, dur: 0.22, iframes: 0.24, cd: 5 },
+    guard: { label: '부적 막기', icon: 'guard_m', reduce: 0.5, parry: 0.3, maxHold: 0.5, cd: 5 },
     skills: ['m_fireball', 'm_nova', 'm_meteor', 'm_shield', 'm_starfall'],
   },
   archer: {
     id: 'archer',
-    label: '순찰자',
-    blurb: '활과 덫 · 원거리 · 기동',
+    label: '궁사',
+    blurb: '각궁과 올무 · 원거리 · 기동',
     hp: 105,
     mp: 70,
     atk: 13,
@@ -191,69 +191,69 @@ export interface SkillDef {
 export const SKILLS: Record<string, SkillDef> = {
   // 수호자
   w_whirl: {
-    id: 'w_whirl', cls: 'warrior', name: '회전베기', desc: '몸을 돌려 주변 적을 모두 벱니다.',
+    id: 'w_whirl', cls: 'warrior', name: '휘몰이 베기', desc: '몸을 돌려 주변 적을 모두 벱니다.',
     kind: 'whirl', req: 2, maxRank: 5, mp: 12, cd: 5, dur: 0.5, impact: 0.22, anim: 'spin',
     mult: 1.8, multPerRank: 0.3, r: 2.1, knock: 0.5,
   },
   w_charge: {
-    id: 'w_charge', cls: 'warrior', name: '돌진', desc: '앞으로 내달려 부딪힌 적을 기절시킵니다.',
+    id: 'w_charge', cls: 'warrior', name: '돌격', desc: '앞으로 내달려 부딪힌 적을 기절시킵니다.',
     kind: 'charge', req: 4, maxRank: 5, mp: 14, cd: 8, dur: 0.4, impact: 0.05, anim: 'attack3',
     mult: 1.5, multPerRank: 0.25, reach: 5, r: 1.0, stun: 0.9, knock: 0.4,
   },
   w_slam: {
-    id: 'w_slam', cls: 'warrior', name: '대지 강타', desc: '땅을 내리쳐 앞쪽 넓은 범위에 충격파를 보냅니다.',
+    id: 'w_slam', cls: 'warrior', name: '땅 가르기', desc: '땅을 내리쳐 앞쪽 넓은 범위에 충격파를 보냅니다.',
     kind: 'cone', req: 7, maxRank: 5, mp: 20, cd: 10, dur: 0.6, impact: 0.3, anim: 'attack3',
     mult: 2.6, multPerRank: 0.4, reach: 4, arc: 80, knock: 0.9, stun: 0.5,
   },
   w_cry: {
-    id: 'w_cry', cls: 'warrior', name: '전투 함성', desc: '자신과 파티원의 공격력을 높이고 받는 피해를 줄입니다.',
+    id: 'w_cry', cls: 'warrior', name: '호령', desc: '자신과 파티원의 공격력을 높이고 받는 피해를 줄입니다.',
     kind: 'buff', req: 11, maxRank: 5, mp: 18, cd: 24, dur: 0.5, impact: 0.2, anim: 'cast',
     mult: 0, multPerRank: 0, buff: { atk: 0.2, dr: 0.2, dur: 10, party: true },
   },
   w_judge: {
-    id: 'w_judge', cls: 'warrior', name: '심판의 일격', desc: '지정한 곳으로 뛰어올라 내려칩니다. 궁극기.',
+    id: 'w_judge', cls: 'warrior', name: '천근 내려치기', desc: '지정한 곳으로 뛰어올라 내려칩니다. 궁극기.',
     kind: 'leapSmash', req: 18, maxRank: 3, mp: 40, cd: 45, dur: 0.75, impact: 0.55, anim: 'attack3',
     mult: 6, multPerRank: 1.5, range: 6.5, r: 3, knock: 1.2, stun: 1.2, ult: true,
   },
   // 등불술사
   m_fireball: {
-    id: 'm_fireball', cls: 'mage', name: '화염구', desc: '날아가 터지는 불덩이를 던집니다.',
+    id: 'm_fireball', cls: 'mage', name: '화부(火符)', desc: '불 부적을 던져 터뜨립니다.',
     kind: 'proj', req: 2, maxRank: 5, mp: 12, cd: 3.5, dur: 0.42, impact: 0.2, anim: 'cast',
     mult: 2.1, multPerRank: 0.32, proj: { kind: 'fireball', speed: 8.5, range: 8.5, r: 0.45, blast: 1.7 },
   },
   m_nova: {
-    id: 'm_nova', cls: 'mage', name: '서리 고리', desc: '주변을 얼려 적의 발을 묶습니다.',
+    id: 'm_nova', cls: 'mage', name: '빙결부', desc: '주변을 얼려 적의 발을 묶습니다.',
     kind: 'nova', req: 4, maxRank: 5, mp: 18, cd: 9, dur: 0.42, impact: 0.2, anim: 'spin',
     mult: 1.4, multPerRank: 0.25, r: 3, slow: 0.55, stun: 0.3,
   },
   m_meteor: {
-    id: 'm_meteor', cls: 'mage', name: '운석', desc: '지정한 곳에 운석을 떨어뜨립니다. 떨어지기까지 잠시 걸립니다.',
+    id: 'm_meteor', cls: 'mage', name: '낙성(落星)', desc: '지정한 곳에 별똥을 떨어뜨립니다. 떨어지기까지 잠시 걸립니다.',
     kind: 'ground', req: 7, maxRank: 5, mp: 26, cd: 11, dur: 0.5, impact: 0.3, anim: 'cast',
     mult: 3.6, multPerRank: 0.55, range: 8, r: 2.3, delay: 0.8, knock: 0.6,
   },
   m_shield: {
-    id: 'm_shield', cls: 'mage', name: '마나 보호막', desc: '피해를 대신 받아 주는 보호막을 두릅니다.',
+    id: 'm_shield', cls: 'mage', name: '호신부', desc: '피해를 대신 받아 주는 부적의 막을 두릅니다.',
     kind: 'shield', req: 11, maxRank: 5, mp: 24, cd: 20, dur: 0.4, impact: 0.15, anim: 'cast',
     mult: 0, multPerRank: 0, shield: 3.2,
   },
   m_starfall: {
-    id: 'm_starfall', cls: 'mage', name: '별똥비', desc: '넓은 곳에 별똥별을 쏟아붓습니다. 궁극기.',
+    id: 'm_starfall', cls: 'mage', name: '유성우', desc: '넓은 곳에 별똥을 쏟아붓습니다. 궁극기.',
     kind: 'groundMulti', req: 18, maxRank: 3, mp: 55, cd: 50, dur: 0.8, impact: 0.3, anim: 'cast',
     mult: 1.9, multPerRank: 0.5, range: 8, r: 3.4, count: 9, delay: 0.5,
   },
   // 순찰자
   a_fan: {
-    id: 'a_fan', cls: 'archer', name: '부채꼴 사격', desc: '화살 다섯 대를 부채꼴로 쏩니다.',
+    id: 'a_fan', cls: 'archer', name: '오시(五矢)', desc: '화살 다섯 대를 부채꼴로 쏩니다.',
     kind: 'fan', req: 2, maxRank: 5, mp: 11, cd: 4.5, dur: 0.42, impact: 0.2, anim: 'attack3',
     mult: 0.9, multPerRank: 0.14, count: 5, arc: 55, proj: { kind: 'arrow', speed: 13, range: 7, r: 0.22 },
   },
   a_pierce: {
-    id: 'a_pierce', cls: 'archer', name: '관통 화살', desc: '일직선의 모든 적을 꿰뚫는 화살을 쏩니다.',
+    id: 'a_pierce', cls: 'archer', name: '편전', desc: '짧고 빠른 애기살로 일직선의 모든 적을 꿰뚫습니다.',
     kind: 'proj', req: 4, maxRank: 5, mp: 15, cd: 7, dur: 0.6, impact: 0.36, anim: 'attack3',
     mult: 2.8, multPerRank: 0.42, proj: { kind: 'arrow_big', speed: 18, range: 12, r: 0.32, pierce: 99 },
   },
   a_trap: {
-    id: 'a_trap', cls: 'archer', name: '올가미 덫', desc: '덫을 놓습니다. 밟은 적은 묶이고 피해를 입습니다.',
+    id: 'a_trap', cls: 'archer', name: '올무', desc: '올무를 놓습니다. 밟은 적은 묶이고 피해를 입습니다.',
     kind: 'trap', req: 7, maxRank: 5, mp: 16, cd: 12, dur: 0.36, impact: 0.2, anim: 'cast',
     mult: 2.4, multPerRank: 0.4, range: 6, r: 1.6, stun: 2.2,
   },

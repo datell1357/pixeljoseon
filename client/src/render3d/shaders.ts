@@ -101,8 +101,15 @@ in vec3 color;
 out vec3 vWorld; out vec3 vN; out vec3 vCol; out vec4 vAux; out vec2 vUv; out vec3 vRoot;
 uniform float uTime; uniform float uPass;
 #ifdef USE_BONES
+#ifdef USE_SKIN
+in vec4 skinIndex;
+in vec4 skinWeight;
+#else
 in float bone;
+#endif
 uniform sampler2D uBoneTex;
+out vec3 vObj;
+mat4 boneMat(int bi){ return mat4(texelFetch(uBoneTex,ivec2(0,bi),0),texelFetch(uBoneTex,ivec2(1,bi),0),texelFetch(uBoneTex,ivec2(2,bi),0),texelFetch(uBoneTex,ivec2(3,bi),0)); }
 #endif
 void main(){
   vec4 lp = vec4(position,1.);
@@ -114,8 +121,14 @@ void main(){
   root = vec3(mdl[3]);
 #endif
 #ifdef USE_BONES
-  int bi = int(bone+.5);
-  mdl = mat4(texelFetch(uBoneTex,ivec2(0,bi),0),texelFetch(uBoneTex,ivec2(1,bi),0),texelFetch(uBoneTex,ivec2(2,bi),0),texelFetch(uBoneTex,ivec2(3,bi),0));
+  vObj = position;
+#ifdef USE_SKIN
+  // 뼈 넷을 가중치로 섞는다: 관절이 살처럼 구부러진다
+  mdl = boneMat(int(skinIndex.x+.5))*skinWeight.x + boneMat(int(skinIndex.y+.5))*skinWeight.y
+      + boneMat(int(skinIndex.z+.5))*skinWeight.z + boneMat(int(skinIndex.w+.5))*skinWeight.w;
+#else
+  mdl = boneMat(int(bone+.5));
+#endif
 #endif
   vec4 wp = mdl*lp;
   if(aux.z>0.){
@@ -145,12 +158,23 @@ ${NOISE}
 ${LIT}
 ${UNIFORMS_FOCUS}
 in vec3 vWorld; in vec3 vN; in vec3 vCol; in vec4 vAux; in vec2 vUv; in vec3 vRoot;
+#ifdef USE_BONES
+in vec3 vObj;
+uniform float uFur;
+#endif
+#ifdef USE_MAP
+uniform sampler2D uMap;
+#endif
 layout(location=0) out vec4 oC;
 layout(location=1) out vec4 oN;
 uniform float uAlpha; uniform vec4 uFlash; uniform float uCut;
 void main(){
   // 잎 카드: 카드 하나가 작은 잎 여러 장처럼 보이게 구멍을 뚫는다
+#ifdef USE_MAP
+  bool leaf = false;
+#else
   bool leaf = vUv.x!=0.||vUv.y!=0.;
+#endif
   float leafTone = 1.;
   if(leaf){
     vec2 q = vUv; float w = 1.-q.y*q.y; if(abs(q.x)>w) discard;
@@ -164,8 +188,30 @@ void main(){
   if(uCut>.5){ ${CUTOUT} }
   vec3 n = normalize(vN);
   float sh = sunShadow(vWorld,n)*clouds(vWorld);
+#ifdef USE_BONES
+  // 인물: 제 몸에 드리운 그림자로 얼룩지지 않게 하고, 그늘도 푸르게 죽지 않게 한다
+  sh = max(sh,.5);
+  // 짐승 털결: 모델 좌표에 붙은 길쭉한 잡음으로 법선과 밝기를 흔들어 명암 경계를 털끝처럼 부순다
+  float furTone = 1.;
+  if(uFur>0. && vAux.x<.2){
+    vec3 q = vObj*vec3(60.,60.,15.);
+    vec3 f = vec3(vnoise3(q), vnoise3(q+17.3), vnoise3(q+41.1)) - .5;
+    n = normalize(n + f*uFur*1.1);
+    furTone = 1. + f.x*uFur*.38;
+  }
+  vec3 alb = vCol;
+#ifdef USE_MAP
+  alb = texture(uMap, vUv).rgb;
+#endif
+  vec3 c = lit(alb*furTone,n,vWorld,vAux.x,0.,sh,.55);
+  // 앞에서 비추는 보조광과 가장자리 빛: 배경에서 떠오르게 한다
+  float nv = max(dot(n,uViewDir),0.);
+  c += alb*(nv>.78?.26:nv>.42?.17:.08);
+  c += (uSunCol*.34+uSky*.26)*(nv<.3?1.:nv<.46?.42:0.)*(n.y*.5+.6);
+#else
   float paint = leaf ? .62 : .14;
   vec3 c = lit(vCol*leafTone,n,vWorld,vAux.x,paint,sh,leaf?.78:0.);
+#endif
   float em = vAux.y;
   if(em>0.) c = mix(c, vCol*(1.+em*.12), min(1.,em*1.2));
   c = mix(c,uFlash.rgb,uFlash.a);
@@ -270,6 +316,20 @@ vec3 groundColor(int k, vec2 p, inout vec3 n, inout float spec, inout float em){
     c = mix(vec3(.12,.12,.14),c,smoothstep(.015,.05,e));
     return c;
   }
+  if(k==11){ // 논: 물기 밴 흙 위로 벼 줄
+    float row = abs(fract(p.y*2.2)-.5);
+    vec3 c = mix(vec3(.26,.22,.14),vec3(.52,.42,.17),smoothstep(.1,.3,row));
+    return c*(.88+fine*.2+mid*.12);
+  }
+  if(k==12){ // 마당: 곱게 다진 밝은 흙, 비질 자국
+    vec3 c = ramp3(vec3(.60,.52,.40),vec3(.70,.62,.48),vec3(.78,.70,.56),mid*.7+big*.4-.05);
+    float sweep = sin(p.x*3.1+sin(p.y*1.3)*2.2)*.5+.5;
+    c *= .95+sweep*.05;
+    c *= .95+fine*.09;
+    vec3 cb = cobbles(p+9.,11.); float h = hash12(cb.xy);
+    if(h>.93 && cb.z>.08) c = mix(c,vec3(.52,.47,.42),.7);
+    return c;
+  }
   if(k==10){ // 용암
     vec2 w = p*.5+vec2(uTime*.05,-uTime*.03);
     float f = fbm(w+fbm(w*2.)*1.4);
@@ -297,6 +357,7 @@ void main(){
   // 길 가장자리는 진한 경계로 땅에 묻힌 느낌을 준다
   if(kind==4 && edge<.05) alb *= .55;
   if(kind==3 && edge<.04) alb *= .78;
+  if(kind==12 && edge<.04) alb *= .84;
   float sh = sunShadow(vWorld,vec3(0.,1.,0.))*clouds(vWorld);
   vec3 c = lit(alb,n,vWorld,spec,.0,sh,0.);
   if(em>0.) c = mix(c,alb*(1.+em*.3),min(1.,em*1.1));

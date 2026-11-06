@@ -211,23 +211,30 @@ async function main() {
     await sleep(200);
     return a.me.quests.active.q_first_light === undefined;
   })());
-  // 광장 한가운데 큰 등불을 돌아서 간다
-  await a.walkTo(26, 31, 0.3);
-  await a.walkTo(30 - 2.2, 30 - 2.4, 0.3);
+  // 어른은 당산나무 아래에 있다. 큰 석등을 돌아서 간다
+  await a.walkTo(46, 30, 0.3);
+  await a.walkTo(47.2, 26.4, 0.3);
   a.room.send('qAccept', { id: 'q_first_light', npc: 'npc_elder' });
   await a.until(() => a.me.quests.active.q_first_light === 0, '퀘스트 수락');
   check('퀘스트 수락', true);
 
   // 상점
   const goldBefore = a.me.gold;
-  await a.walkTo(30, 26.5, 0.3);
-  await a.walkTo(35.2, 28.2, 0.3);
+  await a.walkTo(44.5, 29, 0.3);
+  await a.walkTo(39, 28.6, 0.3);
+  check('입은 장비가 방 상태에 실림', String(a.player().gear ?? '').includes('armor_1'), String(a.player().gear));
+  a.room.send('unequip', { slot: 'armor' });
+  await a.until(() => !String(a.player().gear ?? '').includes('armor_1'), '겉모습 갱신');
+  check('벗으면 방 상태의 겉모습도 바뀜', true);
   a.room.send('buy', { id: 'potion_hp_s', n: 2, npc: 'npc_merchant' });
   await a.until(() => a.me.gold === goldBefore - 24, '구매');
   check('상점 구매', true);
 
   // 안전 지대에서는 공격 불가: 숲으로 이동
-  await a.walkTo(57.6, 30, 0.3);
+  await a.walkTo(47, 31.4, 0.3);
+  await a.walkTo(54, 32.5, 0.3);
+  await a.walkTo(58, 37, 0.3);
+  await a.walkTo(75.4, 38, 0.3);
   a.room.send('door', { name: 'to_woods' });
   const g = await a.followGoto();
   check('숲으로 이동', g.map === 'woods' && (a.room.state as any).mapName === 'woods', `(${a.u.toFixed(1)},${a.v.toFixed(1)})`);
@@ -331,7 +338,7 @@ async function main() {
   await c.create();
   await setLevel(c.charId, 10);
   await c.join('town', { arrive: 'from_rift' });
-  await c.walkTo(3.6, 30, 0.3);
+  await c.walkTo(8.2, 57, 0.3);
   c.room.send('door', { name: 'to_rift' });
   const gr = await c.followGoto();
   check('균열 입장', gr.map === 'rift');
@@ -368,8 +375,8 @@ async function main() {
   // 강화와 분해: 대장장이 앞에서
   c.room.send('dev', { gold: 100000, item: ['ember_shard', 50] });
   await c.until(() => c.me.gold >= 100000, '시험용 골드');
-  await c.walkTo(30, 34.5, 0.4, 8000);
-  await c.walkTo(25.5, 34.5, 0.4, 8000);
+  await c.walkTo(44, 29.4, 0.4, 12000);
+  await c.walkTo(31, 28.4, 0.4, 12000);
   const plusBefore = c.me.equip.weapon.plus;
   c.events.enhanced = [];
   c.room.send('enhance', { where: 'weapon', i: 0, npc: 'npc_smith' });

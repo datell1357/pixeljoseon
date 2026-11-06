@@ -113,7 +113,8 @@ async function main() {
     console.log('  icons 완료');
   }
   const checkOnly = want.size === 1 && want.has('check');
-  if (!checkOnly) {
+  // 옛 시트 미리보기는 지운 시트 그림을 읽으므로 따로 요청할 때만 만든다
+  if (!checkOnly && want.has('preview')) {
     const { makePreviews } = await import('./preview.mjs');
     await makePreviews(ROOT, args);
   }

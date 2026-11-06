@@ -1,22 +1,21 @@
 // 사람 모델. 5등신 비율에 한복풍 옷. 옷자락과 머리카락은 뼈마다 따로 움직인다.
 import * as THREE from 'three';
 import { Human, STAND } from '@bake/rig.js';
-import { archerAnims, idleFrames, mageAnims, warriorAnims } from '@bake/humans.js';
-import { MONSTERS } from '@bake/monsters.js';
+import { idleFrames } from '@bake/humans.js';
 import { Geo, mix, tone, v3, type Hex } from './geo';
 
 export const DIMS = {
   hipH: 0.9,
-  hipW: 0.085,
+  hipW: 0.095,
   thigh: 0.43,
   shin: 0.43,
   ankle: 0.07,
-  stance: 0.1,
+  stance: 0.125,
   toe: 0.16,
   heel: 0.06,
   spine: 0.05,
   shoulderY: 0.46,
-  shoulderW: 0.215,
+  shoulderW: 0.228,
   upper: 0.27,
   fore: 0.26,
   headY: 0.52,
@@ -71,6 +70,14 @@ export interface CharAsset {
   /** 모델 자체 배율. 예전 비율 모델을 키울 때 쓴다 */
   baseScale: number;
   alpha?: number;
+  /** 털결 세기 (짐승만) */
+  fur?: number;
+  /** 스킨드 모델 (정점마다 뼈 넷) */
+  skinned?: boolean;
+  /** 색 텍스처 */
+  map?: THREE.Texture | null;
+  /** 지금 이 모델을 쓰는 인물 수. 장비 조합 모델을 언제 버려도 되는지 판단한다 */
+  refs?: number;
 }
 
 export interface BuiltRig {
@@ -79,10 +86,12 @@ export interface BuiltRig {
   panels: Panel[];
   chains: Chain[];
   strings?: { update: (P: Record<string, number>) => void };
+  /** 스킨드 모델: 뼈마다 곱할 묶임 역행렬 */
+  bindInv?: THREE.Matrix4[];
 }
 
 /** 몸체 만들기: 뼈 이름별로 Geo에 그린다 */
-class Body {
+export class Body {
   g = new Geo();
   order: string[] = [];
   extra: { name: string; parent: string; x: number; y: number; z: number; ry?: number }[] = [];
@@ -136,7 +145,7 @@ function headR(y: number) {
   return P[P.length - 1];
 }
 
-function head(b: Body, skin: Hex, o: { eyeY?: number; eye?: Hex; brow?: Hex; beard?: Hex; blush?: boolean } = {}) {
+export function head(b: Body, skin: Hex, o: { eyeY?: number; eye?: Hex; brow?: Hex; beard?: Hex; blush?: boolean; lash?: boolean } = {}) {
   const id = b.next();
   b.on('head', (g) => {
     g.set({ id, spec: 0 });
@@ -145,21 +154,33 @@ function head(b: Body, skin: Hex, o: { eyeY?: number; eye?: Hex; brow?: Hex; bea
         [0, -0.05, 0, 0.042, 0.042],
         [0, 0.05, 0, 0.042, 0.042],
       ],
-      tone(skin, 0.86),
+      tone(skin, 0.8),
       6,
+      { flat: false },
     );
-    g.loft(HEAD_PROFILE.map(([y, rx, rz, cz]) => [0, y, cz, rx, rz]), skin, 10, { flat: false, faceFront: 0.8 });
+    g.loft(HEAD_PROFILE.map(([y, rx, rz, cz]) => [0, y, cz, rx, rz]), skin, 12, { flat: false, faceFront: 0.8 });
     // 눈, 눈썹: 얼굴과 같은 부위로 묶어 둘레에 외곽선이 생기지 않게 한다
-    const eyeY = o.eyeY ?? 0.172;
+    const eyeY = o.eyeY ?? 0.17;
+    const eye = o.eye ?? 0x241820;
+    const z = 0.108;
     for (const s of [-1, 1]) {
-      g.box(s * 0.052, eyeY, 0.118, 0.026, 0.05, 0.006, o.eye ?? 0x2a1c20);
-      g.box(s * 0.052, eyeY + 0.052, 0.114, 0.05, 0.01, 0.006, o.brow ?? 0x2a1c18);
+      const x = s * 0.054;
+      // 흰자, 눈동자, 윗눈꺼풀
+      g.box(x + s * 0.012, eyeY - 0.002, z, 0.024, 0.044, 0.008, 0xf6f0e4);
+      g.box(x - s * 0.004, eyeY - 0.002, z + 0.002, 0.03, 0.058, 0.01, eye);
+      g.box(x + s * 0.002, eyeY + 0.012, z + 0.005, 0.012, 0.014, 0.006, 0xfff8ec);
+      g.box(x + s * 0.004, eyeY + 0.03, z + 0.002, 0.056, o.lash ? 0.016 : 0.011, 0.01, o.lash ? 0x1a1014 : tone(skin, 0.42));
+      // 눈썹
+      g.box(x + s * 0.004, eyeY + 0.056, z - 0.002, 0.052, 0.012, 0.01, o.brow ?? 0x2a1c18);
+      // 귀
+      g.rock(s * 0.113, 0.15, -0.008, 0.016, 0.03, 0.02, tone(skin, 0.9), 3, 0, 0);
     }
     if (o.blush) {
-      g.box(-0.078, eyeY - 0.04, 0.1, 0.03, 0.014, 0.006, mix(skin, 0xd8604a, 0.42));
-      g.box(0.078, eyeY - 0.04, 0.1, 0.03, 0.014, 0.006, mix(skin, 0xd8604a, 0.42));
+      for (const s of [-1, 1]) g.box(s * 0.076, eyeY - 0.046, 0.094, 0.034, 0.016, 0.01, mix(skin, 0xe05a48, 0.5));
     }
-    g.box(0, eyeY - 0.066, 0.112, 0.032, 0.01, 0.006, tone(skin, 0.74));
+    // 코와 입
+    g.box(0, eyeY - 0.044, 0.114, 0.018, 0.012, 0.01, tone(skin, 0.78));
+    g.box(0, eyeY - 0.082, 0.104, 0.036, 0.01, 0.01, mix(skin, 0x8a2f35, o.blush ? 0.75 : 0.5));
     if (o.beard !== undefined) {
       g.set({ id: b.next() });
       const n = 8;
@@ -179,20 +200,21 @@ function head(b: Body, skin: Hex, o: { eyeY?: number; eye?: Hex; brow?: Hex; bea
 }
 
 /** 머리카락: 두피를 따라 내려오는 띠. bottom(방위각)이 머리카락 끝 높이 */
-function hairCap(b: Body, col: Hex, bottom: (a: number, i: number) => number, opt: { lift?: number } = {}) {
-  const lift = opt.lift ?? 0.012;
+export function hairCap(b: Body, col: Hex, bottom: (a: number, i: number) => number, opt: { lift?: number } = {}) {
+  const lift = opt.lift ?? 0.022;
   const id = b.next();
   b.on('head', (g) => {
-    g.set({ id, spec: 0.12 });
-    const seg = 22;
+    g.set({ id, spec: 0.22 });
+    const seg = 24;
     const rows = 6;
-    const shine = tone(col, 1.5);
+    const shine = tone(col, 1.75);
+    const center = v3(0, 0.2, -0.006);
     for (let i = 0; i < seg; i++) {
       const a0 = (i / seg) * Math.PI * 2;
       const a1 = ((i + 1) / seg) * Math.PI * 2;
       const am = (a0 + a1) / 2;
       const y0 = bottom(am > Math.PI ? am - Math.PI * 2 : am, i);
-      const yTop = 0.352;
+      const yTop = 0.356;
       const P = (a: number, y: number, tip: boolean) => {
         const yy = Math.min(y, 0.34);
         const [, rx, rz, cz] = headR(Math.max(0.05, yy));
@@ -205,24 +227,55 @@ function hairCap(b: Body, col: Hex, bottom: (a: number, i: number) => number, op
         const t1 = (r + 1) / rows;
         const ya = y0 + (yTop - y0) * t0;
         const yb = y0 + (yTop - y0) * t1;
-        // 윤기 띠
-        const c = ya < 0.28 && yb > 0.215 ? (i % 3 === 0 ? shine : tone(col, 1.22)) : i % 2 ? col : tone(col, 0.86);
+        // 윤기 띠: 머리를 두르는 한 줄
+        const c = ya < 0.3 && yb > 0.25 ? (i % 3 === 0 ? shine : tone(col, 1.34)) : i % 2 ? col : tone(col, 0.86);
         if (r === 0) {
           // 끝은 뾰족하게
-          const tip = P(am, ya - 0.012, true);
+          const tip = P(am, ya - 0.016, true);
           g.tri(P(a0, yb, false), tip, P(a1, yb, false), c);
         } else {
-          g.quad(P(a0, ya, false), P(a1, ya, false), P(a1, yb, false), P(a0, yb, false), c);
+          g.quadS(P(a0, ya, false), P(a1, ya, false), P(a1, yb, false), P(a0, yb, false), c, center);
         }
       }
       // 꼭대기 닫기
-      g.tri(P(a0, yTop, false), P(a1, yTop, false), v3(0, 0.365, -0.006), tone(col, 1.08));
+      g.tri(P(a0, yTop, false), P(a1, yTop, false), v3(0, 0.372, -0.006), tone(col, 1.2));
+    }
+  });
+}
+
+/** 앞머리와 귀밑머리: 뾰족한 다발이 이마와 볼 옆으로 내려온다. 얼굴 둘레를 잡아 준다 */
+export function bangs(b: Body, col: Hex, o: { front?: number; side?: number; part?: number } = {}) {
+  const { front = 0.235, side = 0.09, part = 0 } = o;
+  const id = b.next();
+  b.on('head', (g) => {
+    g.set({ id, spec: 0.2 });
+    const tuft = (a: number, w: number, top: number, end: number, c: Hex) => {
+      const out = (ang: number, y: number, k: number) => {
+        const [, rx, rz, cz] = headR(Math.max(0.05, Math.min(y, 0.34)));
+        return v3(Math.sin(ang) * (rx + k), y, Math.cos(ang) * (rz + k) + cz);
+      };
+      const l = out(a - w, top, 0.03);
+      const r = out(a + w, top, 0.03);
+      const tip = out(a + part * 0.12, end, 0.016);
+      const mid = out(a, (top + end) / 2, 0.042);
+      const center = v3(0, 0.2, -0.006);
+      g.quadS(l, mid, r, r, c, center);
+      g.tri(l, tip, mid, tone(c, 1.12));
+      g.tri(mid, tip, r, c);
+    };
+    for (let i = -3; i <= 3; i++) {
+      const a = i * 0.25 + part * 0.2;
+      tuft(a, 0.17, 0.33, front - Math.abs(i) * 0.006 + (i % 2) * 0.012, i % 2 ? col : tone(col, 1.22));
+    }
+    for (const s of [-1, 1]) {
+      tuft(s * 1.08, 0.2, 0.3, side + 0.03, tone(col, 1.1));
+      tuft(s * 1.38, 0.2, 0.3, side, col);
     }
   });
 }
 
 /** 상투 또는 틀어 올린 머리 */
-function topknot(b: Body, col: Hex, pin?: Hex, y = 0.37, z = -0.02, s = 1) {
+export function topknot(b: Body, col: Hex, pin?: Hex, y = 0.37, z = -0.02, s = 1) {
   const id = b.next();
   b.on('head', (g) => {
     g.set({ id, spec: 0.1 });
@@ -235,16 +288,17 @@ function topknot(b: Body, col: Hex, pin?: Hex, y = 0.37, z = -0.02, s = 1) {
 }
 
 /** 머리띠 */
-function headband(b: Body, col: Hex, tail: boolean) {
+export function headband(b: Body, col: Hex, tail: boolean) {
   const id = b.next();
   b.on('head', (g) => {
     g.set({ id });
-    const rx = 0.128;
-    const rz = 0.135;
+    // 눈을 가리지 않게 머리카락이 시작하는 곳에 맨다
+    const rx = 0.124;
+    const rz = 0.131;
     g.loft(
       [
-        [0, 0.232, -0.002, rx, rz],
-        [0, 0.268, -0.004, rx - 0.008, rz - 0.008],
+        [0, 0.258, -0.002, rx, rz],
+        [0, 0.294, -0.004, rx - 0.018, rz - 0.018],
       ],
       col,
       12,
@@ -252,7 +306,7 @@ function headband(b: Body, col: Hex, tail: boolean) {
     );
   });
   if (tail) {
-    addChain(b, 'head', 'bandTail', 0, 0.25, -0.13, 3, 0.09, (g, i, L) => {
+    addChain(b, 'head', 'bandTail', 0, 0.275, -0.12, 3, 0.09, (g, i, L) => {
       g.set({ id, wind: 0.6 });
       for (const s of [-1, 1]) g.box(s * 0.018, -L / 2, 0, 0.022 - i * 0.002, L + 0.01, 0.008, tone(col, s > 0 ? 1 : 0.84));
       g.set({ wind: 0 });
@@ -261,7 +315,7 @@ function headband(b: Body, col: Hex, tail: boolean) {
 }
 
 /** 갓: 넓은 챙과 높은 원통 */
-function gat(b: Body, col: Hex, tie: Hex) {
+export function gat(b: Body, col: Hex, tie: Hex) {
   const id = b.next();
   b.on('head', (g) => {
     g.set({ id, spec: 0.3 });
@@ -292,7 +346,7 @@ function gat(b: Body, col: Hex, tie: Hex) {
 }
 
 /** 벙거지: 순찰자의 챙 넓은 모자 */
-function bonnet(b: Body, col: Hex, plume?: Hex) {
+export function bonnet(b: Body, col: Hex, plume?: Hex) {
   const id = b.next();
   b.on('head', (g) => {
     g.set({ id, spec: 0.05 });
@@ -315,7 +369,7 @@ function bonnet(b: Body, col: Hex, plume?: Hex) {
   });
 }
 
-function addChain(b: Body, parent: string, name: string, x: number, y: number, z: number, n: number, len: number, draw: (g: Geo, i: number, L: number) => void, rest: number, stiff: number) {
+export function addChain(b: Body, parent: string, name: string, x: number, y: number, z: number, n: number, len: number, draw: (g: Geo, i: number, L: number) => void, rest: number, stiff: number) {
   const nodes: string[] = [];
   let par = parent;
   for (let i = 0; i < n; i++) {
@@ -329,7 +383,7 @@ function addChain(b: Body, parent: string, name: string, x: number, y: number, z
   b.chainDefs.push({ nodes, rest, stiff });
 }
 
-function ponytail(b: Body, col: Hex, y: number, z: number, n = 4, w = 0.05) {
+export function ponytail(b: Body, col: Hex, y: number, z: number, n = 4, w = 0.05) {
   const id = b.next();
   addChain(b, 'head', 'pony', 0, y, z, n, 0.14, (g, i, L) => {
     g.set({ id, spec: 0.1 });
@@ -347,40 +401,59 @@ function ponytail(b: Body, col: Hex, y: number, z: number, n = 4, w = 0.05) {
 }
 
 /** 윗몸. 옷깃은 한복처럼 왼쪽을 위로 여민다 */
-function torso(b: Body, o: { col: Hex; dark?: Hex; collar?: Hex; undercol?: Hex; w?: number; plated?: Hex; studs?: Hex }) {
+export const torsoRings = (w = 1): number[][] => [
+  [0, -0.02, 0, 0.145 * w, 0.1],
+  [0, 0.1, 0.002, 0.152 * w, 0.106],
+  [0, 0.24, 0.006, 0.178 * w, 0.118],
+  [0, 0.36, 0.004, 0.195 * w, 0.12],
+  [0, 0.44, -0.002, 0.185 * w, 0.104],
+  [0, 0.5, -0.008, 0.095, 0.074],
+];
+
+/** 몸 앞면의 z. 옷깃과 장식을 몸에 붙일 때 쓴다 */
+export function torsoFront(R: number[][], y: number, x: number) {
+  let z = 0.1;
+  for (let i = 0; i < R.length - 1; i++) {
+    if (y >= R[i][1] && y <= R[i + 1][1]) {
+      const t = (y - R[i][1]) / (R[i + 1][1] - R[i][1]);
+      const rx = R[i][3] + (R[i + 1][3] - R[i][3]) * t;
+      const rz = R[i][4] + (R[i + 1][4] - R[i][4]) * t;
+      const cz = R[i][2] + (R[i + 1][2] - R[i][2]) * t;
+      const q = Math.max(0, 1 - (x * x) / (rx * rx));
+      z = cz + rz * Math.sqrt(q);
+    }
+  }
+  return z + 0.012;
+}
+
+/** 고리 사이를 잘게 나눈다. 무늬를 놓을 칸을 늘릴 때 쓴다 */
+export function fineRings(R: number[][], k: number) {
+  const out: number[][] = [];
+  for (let i = 0; i < R.length - 1; i++) {
+    for (let j = 0; j < k; j++) {
+      const t = j / k;
+      out.push(R[i].map((v, q) => v + (R[i + 1][q] - v) * t));
+    }
+  }
+  out.push(R[R.length - 1]);
+  return out;
+}
+
+export function torso(b: Body, o: { col: Hex; dark?: Hex; collar?: Hex; collarEm?: number; undercol?: Hex; w?: number; plated?: Hex; studs?: Hex; shell?: (g: Geo, R: number[][]) => void }) {
   const { col, collar = 0xece6d6, w = 1 } = o;
   const under = o.undercol ?? tone(col, 0.82);
-  const R: number[][] = [
-    [0, -0.02, 0, 0.145 * w, 0.1],
-    [0, 0.1, 0.002, 0.152 * w, 0.106],
-    [0, 0.24, 0.006, 0.178 * w, 0.118],
-    [0, 0.36, 0.004, 0.195 * w, 0.12],
-    [0, 0.44, -0.002, 0.185 * w, 0.104],
-    [0, 0.5, -0.008, 0.095, 0.074],
-  ];
+  const R = torsoRings(w);
   const id = b.next();
   b.on('chest', (g) => {
     g.set({ id });
-    g.loft(R, (i, s) => (s % 2 ? col : tone(col, 0.94)), 10);
+    if (o.shell) o.shell(g, R);
+    else g.loft(fineRings(R, 2), col, 16, { flat: false });
   });
   // 깃: 몸 앞면을 따라 비스듬히
-  const front = (y: number, x: number) => {
-    let z = 0.1;
-    for (let i = 0; i < R.length - 1; i++) {
-      if (y >= R[i][1] && y <= R[i + 1][1]) {
-        const t = (y - R[i][1]) / (R[i + 1][1] - R[i][1]);
-        const rx = R[i][3] + (R[i + 1][3] - R[i][3]) * t;
-        const rz = R[i][4] + (R[i + 1][4] - R[i][4]) * t;
-        const cz = R[i][2] + (R[i + 1][2] - R[i][2]) * t;
-        const q = Math.max(0, 1 - (x * x) / (rx * rx));
-        z = cz + rz * Math.sqrt(q);
-      }
-    }
-    return z + 0.012;
-  };
+  const front = (y: number, x: number) => torsoFront(R, y, x);
   const cid = b.next();
   b.on('chest', (g) => {
-    g.set({ id: cid });
+    g.set({ id: cid, em: o.collarEm ?? 0 });
     const line = (x0: number, y0: number, x1: number, y1: number, r: number, c: Hex) => {
       const pts = [];
       for (let k = 0; k <= 6; k++) {
@@ -404,6 +477,7 @@ function torso(b: Body, o: { col: Hex; dark?: Hex; collar?: Hex; undercol?: Hex;
       8,
       { capTop: false },
     );
+    g.set({ em: 0 });
   });
   if (o.studs !== undefined) {
     // 두정갑: 금빛 징을 줄지어 박는다
@@ -423,7 +497,7 @@ function torso(b: Body, o: { col: Hex; dark?: Hex; collar?: Hex; undercol?: Hex;
   void under;
 }
 
-function belt(b: Body, col: Hex, buckle?: Hex, sash?: Hex) {
+export function belt(b: Body, col: Hex, buckle?: Hex, sash?: Hex) {
   const id = b.next();
   b.on('hips', (g) => {
     g.set({ id });
@@ -449,7 +523,7 @@ function belt(b: Body, col: Hex, buckle?: Hex, sash?: Hex) {
   });
 }
 
-function pelvis(b: Body, col: Hex) {
+export function pelvis(b: Body, col: Hex) {
   const id = b.next();
   b.on('hips', (g) => {
     g.set({ id });
@@ -460,13 +534,14 @@ function pelvis(b: Body, col: Hex) {
         [0, 0.03, 0, 0.145, 0.102],
       ],
       col,
-      8,
+      12,
+      { flat: false },
     );
   });
 }
 
 /** 다리: 넓은 바지와 묶은 정강이 */
-function legs(b: Body, o: { pants: Hex; wrap: Hex; boot: Hex; sole?: Hex; wide?: number; strap?: Hex }) {
+export function legs(b: Body, o: { pants: Hex; wrap: Hex; boot: Hex; sole?: Hex; wide?: number; strap?: Hex }) {
   const wide = o.wide ?? 1;
   for (const side of ['L', 'R']) {
     const idT = b.next();
@@ -479,8 +554,9 @@ function legs(b: Body, o: { pants: Hex; wrap: Hex; boot: Hex; sole?: Hex; wide?:
           [0, -n * 0.45, 0.004, 0.09 * wide, 0.092 * wide],
           [0, -n, 0, 0.072, 0.075],
         ],
-        (i, s) => (s % 3 === 0 ? tone(o.pants, 0.88) : o.pants),
-        7,
+        o.pants,
+        10,
+        { flat: false },
       );
     });
     const idS = b.next();
@@ -495,7 +571,8 @@ function legs(b: Body, o: { pants: Hex; wrap: Hex; boot: Hex; sole?: Hex; wide?:
           [0, -n, 0, 0.048, 0.052],
         ],
         (i) => (i === 0 ? o.pants : o.wrap),
-        7,
+        10,
+        { flat: false },
       );
       if (o.strap !== undefined) {
         g.set({ id: b.next() });
@@ -532,7 +609,7 @@ function legs(b: Body, o: { pants: Hex; wrap: Hex; boot: Hex; sole?: Hex; wide?:
   }
 }
 
-function arms(b: Body, o: { sleeve: Hex; cuff: Hex; skin: Hex; flare?: number; bracer?: Hex }) {
+export function arms(b: Body, o: { sleeve: Hex; cuff: Hex; skin: Hex; flare?: number; bracer?: Hex; bracerEm?: Hex; cuffEm?: number; pat?: (i: number, s: number) => Hex }) {
   const flare = o.flare ?? 0;
   for (const side of ['L', 'R']) {
     const idU = b.next();
@@ -544,8 +621,9 @@ function arms(b: Body, o: { sleeve: Hex; cuff: Hex; skin: Hex; flare?: number; b
           [0, -DIMS.upper * 0.5, 0, 0.068 + flare * 0.25, 0.072 + flare * 0.25],
           [0, -DIMS.upper, 0, 0.06 + flare * 0.5, 0.064 + flare * 0.5],
         ],
-        o.sleeve,
-        7,
+        o.pat ?? o.sleeve,
+        o.pat ? 12 : 10,
+        { flat: false },
       );
     });
     const idF = b.next();
@@ -556,22 +634,28 @@ function arms(b: Body, o: { sleeve: Hex; cuff: Hex; skin: Hex; flare?: number; b
         // 도포 소매: 손목 쪽으로 넓어지며 아래로 처진다
         g.loft(
           [
-            [0, 0.02, 0, 0.056 + flare * 0.3, 0.06 + flare * 0.3],
-            [0, -L * 0.55, -flare * 0.18, 0.066 + flare * 0.6, 0.075 + flare * 0.9],
-            [0, -L * 0.98, -flare * 0.3, 0.07 + flare * 0.7, 0.08 + flare * 1.15],
+            [0, 0.02, 0, 0.056 + flare * 0.2, 0.06 + flare * 0.2],
+            [0, -L * 0.45, -flare * 0.12, 0.064 + flare * 0.38, 0.072 + flare * 0.64],
+            [0, -L * 0.88, -flare * 0.26, 0.066 + flare * 0.5, 0.08 + flare * 1.0],
+            [0, -L * 1.12, -flare * 0.42, 0.054 + flare * 0.42, 0.066 + flare * 0.9],
+            [0, -L * 1.32, -flare * 0.5, 0.02 + flare * 0.12, 0.024 + flare * 0.3],
           ],
           o.sleeve,
-          8,
+          12,
+          { flat: false },
         );
-        g.set({ id: b.next() });
+        // 손이 나오는 소맷부리
+        g.set({ id: b.next(), em: o.cuffEm ?? 0 });
         g.loft(
           [
-            [0, -L * 0.96, -flare * 0.3, 0.07 + flare * 0.7, 0.08 + flare * 1.15],
-            [0, -L * 1.02, -flare * 0.3, 0.07 + flare * 0.7, 0.08 + flare * 1.15],
+            [0, -L * 0.84, 0.012, 0.062, 0.062],
+            [0, -L * 0.98, 0.012, 0.058, 0.058],
           ],
           o.cuff,
           8,
+          { flat: false },
         );
+        g.set({ em: 0 });
       } else {
         g.loft(
           [
@@ -579,8 +663,9 @@ function arms(b: Body, o: { sleeve: Hex; cuff: Hex; skin: Hex; flare?: number; b
             [0, -L * 0.6, 0, 0.052, 0.056],
             [0, -L, 0, 0.04, 0.044],
           ],
-          (i) => (i === 0 ? o.sleeve : o.cuff),
-          7,
+          o.pat ?? ((i) => (i === 0 ? o.sleeve : o.cuff)),
+          o.pat ? 12 : 10,
+          { flat: false },
         );
         if (o.bracer !== undefined) {
           g.set({ id: b.next(), spec: 0.5 });
@@ -592,6 +677,19 @@ function arms(b: Body, o: { sleeve: Hex; cuff: Hex; skin: Hex; flare?: number; b
             o.bracer,
             7,
           );
+          if (o.bracerEm !== undefined) {
+            g.set({ id: b.next(), em: 0.85, spec: 0 });
+            g.loft(
+              [
+                [0, -L * 0.95, 0, 0.052, 0.056],
+                [0, -L * 0.88, 0, 0.054, 0.058],
+              ],
+              o.bracerEm,
+              7,
+              { capBot: false, capTop: false },
+            );
+            g.set({ em: 0 });
+          }
           g.set({ spec: 0 });
         }
       }
@@ -606,14 +704,15 @@ function arms(b: Body, o: { sleeve: Hex; cuff: Hex; skin: Hex; flare?: number; b
           [0, -0.09, 0, 0.038, 0.032],
         ],
         o.skin,
-        6,
+        8,
+        { flat: false },
       );
     });
   }
 }
 
 /** 어깨 판 */
-function pauldrons(b: Body, col: Hex, edge: Hex) {
+export function pauldrons(b: Body, col: Hex, edge: Hex) {
   for (const s of [-1, 1]) {
     const id = b.next();
     b.on('chest', (g) => {
@@ -639,14 +738,32 @@ function pauldrons(b: Body, col: Hex, edge: Hex) {
 }
 
 /** 허리에 달린 옷자락. 다리를 밀어내며 펄럭인다 */
-function skirtPanels(b: Body, o: { n: number; len: number; col: Hex; trim: Hex; rx?: number; rz?: number; y?: number; flare?: number; widthK?: number; alt?: Hex; gapFront?: boolean; back?: boolean }) {
+export function skirtPanels(b: Body, o: { n: number; len: number; col: Hex; trim: Hex; trimEm?: number; ribs?: Hex; ribN?: number; rx?: number; rz?: number; y?: number; flare?: number; widthK?: number; alt?: Hex; gapFront?: boolean; back?: boolean }) {
   const { n, len, col, trim } = o;
   const rx = o.rx ?? 0.145;
   const rz = o.rz ?? 0.106;
   const y = o.y ?? 0.03;
-  const flare = o.flare ?? 0.14;
-  const wk = o.widthK ?? 1.25;
+  // 긴 옷은 넓게 퍼져야 벌린 다리를 덮는다
+  const flare = len > 0.7 ? Math.max(o.flare ?? 0.14, 0.16) : (o.flare ?? 0.14);
+  const wk = len > 0.7 ? Math.max(o.widthK ?? 1.25, 1.5) : (o.widthK ?? 1.25);
   const id = b.next();
+  if (len > 0.7) {
+    // 긴 옷: 자락이 들려도 다리가 비치지 않게 안쪽에 받침 치마를 둔다
+    const lid = b.next();
+    b.on('hips', (g) => {
+      g.set({ id: lid });
+      g.loft(
+        [
+          [0, y - len * 0.97, 0, rx + 0.13, rz + 0.13],
+          [0, y - len * 0.5, 0, rx + 0.07, rz + 0.07],
+          [0, y, 0, rx - 0.004, rz - 0.004],
+        ],
+        tone(col, 0.72),
+        12,
+        { flat: false, capBot: false, capTop: false },
+      );
+    });
+  }
   for (let i = 0; i < n; i++) {
     const a = (i / n) * Math.PI * 2 + (o.gapFront ? Math.PI / n : 0);
     const top = `pT${i}`;
@@ -659,23 +776,32 @@ function skirtPanels(b: Body, o: { n: number; len: number; col: Hex; trim: Hex; 
     const L2 = len * 0.48;
     b.node(low, top, 0, -L1, 0);
     const c = i % 2 ? col : (o.alt ?? tone(col, 0.92));
+    // 판을 가로지르는 줄: 쇠미늘처럼 보이게 한다
+    const ribs = (g: Geo, y0: number, y1: number, wid: number) => {
+      if (o.ribs === undefined) return;
+      const n = o.ribN ?? 2;
+      for (let k = 0; k < n; k++) g.box(0, y0 + ((y1 - y0) * (k + 0.5)) / n, 0.012, wid, 0.016, 0.012, o.ribs);
+    };
     b.on(top, (g) => {
       g.set({ id: id, wind: 0 });
       plank(g, w / 2, w / 2 + 0.008, 0, -L1, c, 0.012);
+      ribs(g, 0, -L1, w);
     });
     b.on(low, (g) => {
       g.set({ id: id });
       const trimH = Math.min(0.06, L2 * 0.25);
       plank(g, w / 2 + 0.008, w / 2 + 0.016, 0.008, -(L2 - trimH), c, 0.012);
-      g.set({ id: id });
+      ribs(g, 0.008, -(L2 - trimH), w + 0.02);
+      g.set({ id: id, em: o.trimEm ?? 0 });
       plank(g, w / 2 + 0.016, w / 2 + 0.018, -(L2 - trimH), -L2, trim, 0.012);
+      g.set({ em: 0 });
     });
     b.panelDefs.push({ a, top, low, flare });
   }
 }
 
 /** 살짝 휜 판자 하나 (옷자락 조각) */
-function plank(g: Geo, w0: number, w1: number, y0: number, y1: number, col: Hex, t: number) {
+export function plank(g: Geo, w0: number, w1: number, y0: number, y1: number, col: Hex, t: number) {
   const a = v3(-w0, y0, 0);
   const b = v3(w0, y0, 0);
   const c = v3(w1, y1, 0);
@@ -687,173 +813,26 @@ function plank(g: Geo, w0: number, w1: number, y0: number, y1: number, col: Hex,
   g.quad(a, b, c, d, tone(col, 0.72));
 }
 
-// ─── 무기 ─────────────────────────────────────
-
-/** 환도: 살짝 휜 외날 칼 */
-function hwando(b: Body, bone: string, o: { blade?: Hex; guard?: Hex; grip?: Hex } = {}) {
-  const { blade = 0xdce4ee, guard = 0xc99a44, grip = 0x3b2420 } = o;
-  const id = b.next();
-  b.on(bone, (g) => {
-    g.set({ id, spec: 1 });
-    const n = 8;
-    const L = 0.86;
-    const seg = (t: number) => {
-      const z = 0.1 + t * L;
-      const curve = -0.09 * t * t; // 등 쪽으로 휨
-      const w = 0.03 * (1 - t ** 5 * 0.85);
-      return { z, y: curve, w };
-    };
-    for (let i = 0; i < n; i++) {
-      const a = seg(i / n);
-      const c = seg((i + 1) / n);
-      const edgeA = v3(0, a.y + a.w, a.z);
-      const edgeB = v3(0, c.y + c.w, c.z);
-      const backA = v3(0, a.y - a.w, a.z);
-      const backB = v3(0, c.y - c.w, c.z);
-      const midA = v3(0.009, a.y - a.w * 0.2, a.z);
-      const midB = v3(0.009, c.y - c.w * 0.2, c.z);
-      const midC = v3(-0.009, a.y - a.w * 0.2, a.z);
-      const midD = v3(-0.009, c.y - c.w * 0.2, c.z);
-      g.quad(edgeA, edgeB, midB, midA, tone(blade, 1.12));
-      g.quad(midA, midB, backB, backA, blade);
-      g.quad(edgeB, edgeA, midC, midD, tone(blade, 1.12));
-      g.quad(midD, midC, backA, backB, blade);
-    }
-    g.set({ id: b.next(), spec: 0.8 });
-    g.rotX(Math.PI / 2, () => g.loft([[0, -0.1, 0, 0.056, 0.042], [0, -0.085, 0, 0.056, 0.042]], guard, 8));
-    g.set({ id: b.next(), spec: 0 });
-    g.tube([v3(0, 0, -0.1), v3(0, 0, 0.09)], 0.022, (i, s) => (s % 2 ? grip : tone(grip, 1.4)), 5);
-    g.set({ id: b.next(), spec: 0.8 });
-    g.rock(0, 0, -0.115, 0.024, 0.024, 0.024, guard, 3, 0, 0);
-    g.set({ spec: 0 });
-  });
-}
-
-function roundShieldNew(b: Body, bone: string, o: { face: Hex; ring: Hex; rim?: Hex; boss?: Hex }) {
-  const { face, ring, rim = 0x8a8e96, boss = 0xc99a44 } = o;
-  const id = b.next();
-  const R = 0.26;
-  b.on(bone, (g) => {
-    g.move(0, 0, 0.055, () => {
-      g.rotX(Math.PI / 2, () => {
-        // loft 축이 y → 방패 앞면이 +z
-        g.set({ id, spec: 0.15 });
-        g.loft(
-          [
-            [0, -0.03, 0, R * 0.98, R * 0.98],
-            [0, 0.005, 0, R * 0.92, R * 0.92],
-            [0, 0.03, 0, R * 0.64, R * 0.64],
-            [0, 0.05, 0, R * 0.26, R * 0.26],
-          ],
-          (i, s) => (i === 0 ? tone(face, 0.9) : i === 1 ? (s % 4 === 0 ? tone(ring, 1.1) : ring) : s % 4 === 0 ? tone(face, 1.12) : face),
-          16,
-          { capBot: true },
-        );
-        g.set({ id: b.next(), spec: 0.8 });
-        g.loft(
-          [
-            [0, -0.04, 0, R, R],
-            [0, 0.012, 0, R, R],
-            [0, 0.018, 0, R * 0.95, R * 0.95],
-          ],
-          rim,
-          16,
-          { capBot: false, capTop: false },
-        );
-        g.set({ id: b.next(), spec: 0.9 });
-        g.loft(
-          [
-            [0, 0.05, 0, 0.09, 0.09],
-            [0, 0.085, 0, 0.066, 0.066],
-            [0, 0.095, 0, 0.02, 0.02],
-          ],
-          boss,
-          8,
-        );
-        g.set({ spec: 0 });
-      });
-    });
-  });
-}
-
-/** 등불 지팡이: 끝에 초롱을 매단다 */
-function lanternStaff(b: Body, bone: string, o: { wood?: Hex; band?: Hex } = {}) {
-  const { wood = 0x5e3d28, band = 0xc99a44 } = o;
-  const id = b.next();
-  const top = 1.0;
-  const back = 0.62;
-  b.on(bone, (g) => {
-    g.set({ id });
-    g.tube([v3(0, 0, -back), v3(0, 0, 0), v3(0.004, 0, top * 0.5), v3(-0.004, 0, top)], [0.018, 0.024, 0.026, 0.03], (_i, s) => (s % 2 ? wood : tone(wood, 1.18)), 5);
-    // 구부러진 끝
-    g.tube([v3(-0.004, 0, top), v3(0.0, 0.04, top + 0.1), v3(0, 0.14, top + 0.14), v3(0, 0.22, top + 0.07)], [0.028, 0.022, 0.018, 0.014], wood, 5);
-    g.set({ id: b.next(), spec: 0.7 });
-    g.tube([v3(0, 0, top * 0.72), v3(0, 0, top * 0.8)], 0.032, band, 5);
-    g.set({ spec: 0 });
-  });
-  // 초롱은 줄에 매달려 흔들린다
-  addChain(b, bone, 'lamp', 0, 0.22, top + 0.06, 1, 0.1, (g) => {
-    g.set({ id: b.next() });
-    g.box(0, -0.03, 0, 0.008, 0.07, 0.008, 0x201610);
-    g.set({ id: b.next() });
-    g.loft([[0, -0.075, 0, 0.055, 0.055], [0, -0.055, 0, 0.03, 0.03]], 0x2c2018, 6);
-    g.set({ id: b.next(), em: 1 });
-    g.loft(
-      [
-        [0, -0.235, 0, 0.055, 0.055],
-        [0, -0.18, 0, 0.09, 0.09],
-        [0, -0.12, 0, 0.09, 0.09],
-        [0, -0.075, 0, 0.055, 0.055],
-      ],
-      (i) => (i === 1 ? 0xffe6a8 : 0xffb65a),
-      8,
-      { flat: false },
-    );
-    g.set({ id: b.next(), em: 0.7 });
-    g.loft([[0, -0.245, 0, 0.058, 0.058], [0, -0.215, 0, 0.066, 0.066]], 0xc9402a, 8);
-    g.set({ em: 0 });
-  }, 0, 18);
-}
-
-/** 각궁: 끝이 뒤로 젖혀진 짧은 활 */
-function gakgung(b: Body, bone: string, o: { wood?: Hex; wrap?: Hex } = {}) {
-  const { wood = 0x45302a, wrap = 0x9c4a30 } = o;
-  const id = b.next();
-  const pts: THREE.Vector3[] = [];
-  const N = 14;
-  const H = 0.62;
-  for (let i = 0; i <= N; i++) {
-    const t = -1 + (2 * i) / N;
-    // 가운데는 앞으로, 양끝은 뒤로 갔다가 다시 앞으로 젖혀진다
-    const z = -0.17 * t * t + 0.07 * t ** 4 * Math.sign(1) + 0.02;
-    pts.push(v3(0, t * H, z));
-  }
-  b.on(bone, (g) => {
-    g.set({ id, spec: 0.18 });
-    g.tube(pts, pts.map((_, i) => 0.024 - Math.abs(i - N / 2) * 0.0016), (i) => (Math.abs(i - N / 2) < 1.5 ? wrap : i % 2 ? wood : tone(wood, 1.3)), 5);
-    g.set({ spec: 0 });
-  });
-}
-
 // ─── 조립 ─────────────────────────────────────
 
-interface Build {
+export interface Build {
   body: Body;
   anims: CharAsset['anims'];
-  bow?: boolean;
+  /** 활: H는 활 끝까지의 높이 */
+  bow?: { H: number; string?: Hex; em?: number };
 }
 
-const SKINS = [0xf2cba6, 0xecbc92, 0xd8a57e];
+export const SKINS = [0xf2cba6, 0xecbc92, 0xd8a57e];
 
-function finish(id: string, { body, anims, bow }: Build): CharAsset {
+export function finish(id: string, { body, anims, bow }: Build): CharAsset {
   // 활 시위와 화살: 굽기 때와 같이 두 끝과 손 사이에 늘려 놓는다
   if (bow) {
     const sid = body.next();
     for (const n of ['strA', 'strB']) {
       body.node(n, 'pivot', 0, 0, 0);
       body.on(n, (g) => {
-        g.set({ id: sid, em: 0.2 });
-        g.box(0, -0.5, 0, 0.012, 1, 0.012, 0xe6dcc0);
+        g.set({ id: sid, em: bow.em ?? 0.2 });
+        g.box(0, -0.5, 0, 0.012, 1, 0.012, bow.string ?? 0xe6dcc0);
         g.set({ em: 0 });
       });
     }
@@ -873,7 +852,7 @@ function finish(id: string, { body, anims, bow }: Build): CharAsset {
   const rigFactory = (): BuiltRig => {
     const rig = new Human({ ...DIMS });
     // 머리를 조금 키워 얼굴이 읽히게 한다
-    rig.head.scale.setScalar(1.16);
+    rig.head.scale.setScalar(1.3);
     rig.remember();
     const extra = new Map<string, THREE.Group>();
     const look = (n: string): THREE.Object3D => extra.get(n) ?? rig.nodes[n];
@@ -892,8 +871,8 @@ function finish(id: string, { body, anims, bow }: Build): CharAsset {
       const A = extra.get('strA')!;
       const B = extra.get('strB')!;
       const arrow = extra.get('arrow')!;
-      const tipA = v3(0, 0.62, -0.1);
-      const tipB = v3(0, -0.62, -0.1);
+      const tipA = v3(0, bow.H, -0.1);
+      const tipB = v3(0, -bow.H, -0.1);
       const a = v3();
       const c = v3();
       const n = v3();
@@ -930,166 +909,7 @@ function finish(id: string, { body, anims, bow }: Build): CharAsset {
     }
     return built;
   };
-  return { geometry, boneOrder: order, rigFactory, anims, retarget: true, height: 1.86, baseScale: 1 };
-}
-
-const WARRIOR_LOOK: Record<string, { coat: Hex; trim: Hex; under: Hex; hair: Hex; band: Hex; pants: Hex; shield: Hex; ring: Hex; female?: boolean; style: number; skin: number }> = {
-  a: { coat: 0x2c3f66, trim: 0xc9913e, under: 0x7a2c2c, hair: 0x241c1c, band: 0xa8302c, pants: 0x38333e, shield: 0x8a2c28, ring: 0x2c3f66, style: 0, skin: 0 },
-  b: { coat: 0x7a2c30, trim: 0xd2a24a, under: 0x263a5e, hair: 0x2c1e1a, band: 0xe6dcc4, pants: 0x3a2e30, shield: 0x2c3f66, ring: 0x7a2c30, female: true, style: 1, skin: 1 },
-  c: { coat: 0x2f4f46, trim: 0xb88a3c, under: 0x5a3a24, hair: 0x4a3024, band: 0x24302c, pants: 0x38362e, shield: 0x5c4630, ring: 0x2f4f46, style: 2, skin: 2 },
-};
-
-function buildWarrior(look: string): Build {
-  const L = WARRIOR_LOOK[look];
-  const skin = SKINS[L.skin];
-  const b = new Body();
-  head(b, skin, { brow: L.hair, blush: !!L.female });
-  if (L.style === 0) {
-    hairCap(b, L.hair, (a, i) => (Math.abs(a) < 1.15 ? 0.262 + (i % 2) * 0.012 : Math.abs(a) < 1.75 ? 0.15 : 0.1));
-    topknot(b, L.hair);
-    headband(b, L.band, true);
-  } else if (L.style === 1) {
-    hairCap(b, L.hair, (a, i) => (Math.abs(a) < 0.95 ? 0.244 + (i % 2) * 0.022 : Math.abs(a) < 1.6 ? 0.095 + (i % 2) * 0.03 : 0.095));
-    ponytail(b, L.hair, 0.3, -0.12, 5, 0.056);
-    headband(b, L.band, false);
-  } else {
-    hairCap(b, L.hair, (a, i) => (Math.abs(a) < 1.1 ? 0.246 + (i % 2) * 0.03 : 0.15 + (i % 2) * 0.03));
-    headband(b, L.band, true);
-  }
-  torso(b, { col: L.coat, collar: 0xe9e2d0, studs: L.trim, dark: L.under });
-  pauldrons(b, 0x6a6f7a, L.trim);
-  pelvis(b, L.pants);
-  belt(b, 0x2c221c, L.trim);
-  skirtPanels(b, { n: 8, len: 0.5, col: L.coat, trim: L.trim, flare: 0.1, alt: tone(L.coat, 0.88) });
-  legs(b, { pants: L.pants, wrap: 0x4a3a2c, boot: 0x2a2020, strap: 0x705c44 });
-  arms(b, { sleeve: L.under, cuff: L.under, skin, bracer: 0x585c66 });
-  hwando(b, 'gripR');
-  roundShieldNew(b, 'gripL', { face: L.shield, ring: L.ring, boss: L.trim });
-  return { body: b, anims: warriorAnims() };
-}
-
-const MAGE_LOOK: Record<string, { robe: Hex; trim: Hex; sash: Hex; hair: Hex; female?: boolean; style: number; skin: number; hat: Hex }> = {
-  a: { robe: 0xe6e0d0, trim: 0x2c4a6e, sash: 0x8a2f35, hair: 0x201a1e, style: 0, skin: 0, hat: 0x1e1c22 },
-  b: { robe: 0x6e8fa8, trim: 0xece4d0, sash: 0xd2a24a, hair: 0x2a2028, female: true, style: 1, skin: 1, hat: 0x1e1c22 },
-  c: { robe: 0x5c4670, trim: 0xd2a24a, sash: 0xe6dcc4, hair: 0xd8d4cc, style: 2, skin: 2, hat: 0x26222c },
-};
-
-function buildMage(look: string): Build {
-  const L = MAGE_LOOK[look];
-  const skin = SKINS[L.skin];
-  const b = new Body();
-  head(b, skin, { brow: L.hair, blush: !!L.female });
-  if (L.style === 0) {
-    hairCap(b, L.hair, (a, i) => (Math.abs(a) < 1.2 ? 0.27 : Math.abs(a) < 1.8 ? 0.16 : 0.1 + (i % 2) * 0.02));
-    gat(b, L.hat, 0x7a2c30);
-  } else if (L.style === 1) {
-    hairCap(b, L.hair, (a, i) => (Math.abs(a) < 0.9 ? 0.25 + (i % 2) * 0.016 : Math.abs(a) < 1.7 ? 0.09 + (i % 2) * 0.03 : 0.1));
-    // 쪽 찐 머리와 비녀
-    topknot(b, L.hair, 0xd2a24a, 0.24, -0.15, 1.2);
-    ponytail(b, L.hair, 0.08, -0.08, 3, 0.05);
-  } else {
-    hairCap(b, L.hair, (a, i) => (Math.abs(a) < 1.0 ? 0.25 + (i % 2) * 0.03 : Math.abs(a) < 1.8 ? 0.07 + (i % 2) * 0.04 : 0.02 + (i % 2) * 0.04));
-    gat(b, L.hat, L.trim);
-  }
-  torso(b, { col: L.robe, collar: L.trim, dark: L.sash, w: 0.97 });
-  pelvis(b, 0x3a3640);
-  belt(b, L.sash, undefined, L.sash);
-  skirtPanels(b, { n: 10, len: 0.84, col: L.robe, trim: L.trim, flare: 0.05, widthK: 1.3, alt: tone(L.robe, 0.9) });
-  legs(b, { pants: 0x3a3640, wrap: 0x3a3640, boot: 0x2a2428 });
-  arms(b, { sleeve: L.robe, cuff: L.trim, skin, flare: 0.085 });
-  lanternStaff(b, 'gripR');
-  return { body: b, anims: mageAnims() };
-}
-
-const ARCHER_LOOK: Record<string, { coat: Hex; vest: Hex; trim: Hex; scarf: Hex; hair: Hex; pants: Hex; hat: Hex; female?: boolean; style: number; skin: number }> = {
-  a: { coat: 0x56683e, vest: 0x6e4c30, trim: 0xc9a65a, scarf: 0xa8382e, hair: 0x241c18, pants: 0x4a4436, hat: 0x3c3028, style: 0, skin: 0 },
-  b: { coat: 0x7d5a38, vest: 0x455840, trim: 0xd2a24a, scarf: 0xe4dcc4, hair: 0x332019, pants: 0x423a30, hat: 0x2c2c2c, female: true, style: 1, skin: 1 },
-  c: { coat: 0x4a4f6a, vest: 0x5c3c2c, trim: 0xb88a3c, scarf: 0x3e5e6a, hair: 0x4a3226, pants: 0x38343e, hat: 0x4a3a2c, style: 2, skin: 2 },
-};
-
-function buildArcher(look: string): Build {
-  const L = ARCHER_LOOK[look];
-  const skin = SKINS[L.skin];
-  const b = new Body();
-  head(b, skin, { brow: L.hair, blush: !!L.female });
-  if (L.style === 1) {
-    hairCap(b, L.hair, (a, i) => (Math.abs(a) < 1.0 ? 0.244 + (i % 2) * 0.02 : Math.abs(a) < 1.7 ? 0.1 + (i % 2) * 0.03 : 0.1));
-    ponytail(b, L.hair, 0.14, -0.11, 5, 0.046);
-    bonnet(b, L.hat);
-  } else {
-    hairCap(b, L.hair, (a, i) => (Math.abs(a) < 1.15 ? 0.25 + (i % 2) * 0.02 : 0.13 + (i % 2) * 0.02));
-    bonnet(b, L.hat, L.style === 0 ? 0xc9a65a : 0xb5482e);
-  }
-  torso(b, { col: L.coat, collar: 0xe4dcc8, dark: L.vest, w: 0.97 });
-  // 가죽 조끼와 어깨끈
-  const vid = b.next();
-  b.on('chest', (g) => {
-    g.set({ id: vid });
-    g.loft(
-      [
-        [0, 0.02, 0, 0.14, 0.098],
-        [0, 0.24, 0.006, 0.164, 0.112],
-        [0, 0.38, 0.002, 0.178, 0.112],
-      ],
-      (_i, s) => (s === 2 || s === 3 ? L.coat : L.vest),
-      10,
-      { capTop: false, capBot: false, rot: Math.PI / 2 - (Math.PI * 2) / 10 - 0.3 },
-    );
-  });
-  const sid = b.next();
-  b.on('chest', (g) => {
-    g.set({ id: sid });
-    g.tube([v3(-0.15, 0.38, 0.09), v3(0.02, 0.24, 0.128), v3(0.14, 0.05, 0.1)], 0.015, 0x3a2a20, 4);
-    g.tube([v3(0.14, 0.05, -0.1), v3(0, 0.2, -0.128), v3(-0.15, 0.38, -0.09)], 0.015, 0x3a2a20, 4);
-  });
-  // 화살통
-  const qid = b.next();
-  b.on('chest', (g) => {
-    g.set({ id: qid });
-    g.at(new THREE.Matrix4().makeRotationZ(-0.42).premultiply(new THREE.Matrix4().makeTranslation(0.03, 0.22, -0.15)), () => {
-      g.loft(
-        [
-          [0, -0.2, 0, 0.05, 0.05],
-          [0, 0.2, 0, 0.06, 0.06],
-        ],
-        (i, s) => (s % 2 ? 0x5a3a26 : 0x6b4730),
-        7,
-      );
-      g.set({ id: b.next(), spec: 0.6 });
-      g.loft([[0, 0.16, 0, 0.062, 0.062], [0, 0.2, 0, 0.062, 0.062]], L.trim, 7);
-      g.set({ id: b.next(), spec: 0 });
-      for (const [x, z, c] of [[-0.022, 0.012, 0xe8e2d0], [0.022, -0.014, L.scarf], [0, 0.024, 0xe8e2d0], [0.026, 0.022, L.scarf]] as const) {
-        g.box(x, 0.28, z, 0.01, 0.18, 0.01, 0xc8ad78);
-        g.box(x, 0.36, z, 0.038, 0.08, 0.008, c);
-      }
-    });
-  });
-  // 목도리: 뒤로 날린다
-  const nid = b.next();
-  b.on('chest', (g) => {
-    g.set({ id: nid });
-    g.loft(
-      [
-        [0, 0.445, -0.01, 0.1, 0.085],
-        [0, 0.51, -0.012, 0.085, 0.076],
-      ],
-      L.scarf,
-      9,
-      { capTop: false },
-    );
-  });
-  addChain(b, 'chest', 'scarf', 0.05, 0.47, -0.08, 3, 0.13, (g, i, len) => {
-    g.set({ id: nid, wind: 0.5 });
-    g.box(0, -len / 2, 0, 0.06 - i * 0.008, len + 0.01, 0.012, tone(L.scarf, i % 2 ? 0.88 : 1));
-    g.set({ wind: 0 });
-  }, 0.3, 18);
-  pelvis(b, L.pants);
-  belt(b, 0x3a2a20, L.trim);
-  skirtPanels(b, { n: 8, len: 0.42, col: L.coat, trim: L.trim, flare: 0.09, alt: tone(L.coat, 0.88) });
-  legs(b, { pants: L.pants, wrap: 0x54442f, boot: 0x33261e, strap: 0x705c44 });
-  arms(b, { sleeve: L.coat, cuff: L.vest, skin, bracer: 0x54392a });
-  gakgung(b, 'gripL');
-  return { body: b, anims: archerAnims(), bow: true };
+  return { geometry, boneOrder: order, rigFactory, anims, retarget: true, height: 1.98, baseScale: 1 };
 }
 
 // ─── 마을 사람 ─────────────────────────────────
@@ -1232,111 +1052,13 @@ function buildNpc(id: string): Build {
   }
 }
 
-/** 찢어진 자락 */
-function raggedSkirt(b: Body, col: Hex, alt: Hex, len: number) {
-  skirtPanels(b, { n: 10, len, col, trim: tone(col, 0.7), flare: 0.1, widthK: 1.05, alt });
-}
-
-function buildCultist(): Build {
-  const b = new Body();
-  const robe = 0x26222c;
-  const robeL = 0x38323f;
-  // 어둠 속 얼굴과 희미한 눈
-  const id = b.next();
-  b.on('head', (g) => {
-    g.set({ id });
-    g.loft(HEAD_PROFILE.map(([y, rx, rz, cz]) => [0, y, cz, rx, rz]), 0x14101a, 10, { flat: false });
-    g.set({ id, em: 0.8 });
-    for (const s of [-1, 1]) g.box(s * 0.05, 0.17, 0.118, 0.034, 0.018, 0.006, 0xb8aee0);
-    g.set({ em: 0 });
-  });
-  // 두건
-  const hid = b.next();
-  b.on('head', (g) => {
-    g.set({ id: hid });
-    const seg = 16;
-    for (let i = 0; i < seg; i++) {
-      const a0 = 0.62 + (i / seg) * (Math.PI * 2 - 1.24);
-      const a1 = 0.62 + ((i + 1) / seg) * (Math.PI * 2 - 1.24);
-      const prof = [
-        [-0.02, 0.17],
-        [0.14, 0.158],
-        [0.26, 0.15],
-        [0.36, 0.1],
-        [0.43, 0.02],
-      ];
-      for (let k = 0; k < prof.length - 1; k++) {
-        const P = (a: number, q: number[]) => v3(Math.sin(a) * q[1], q[0], Math.cos(a) * q[1] - 0.012);
-        g.quad(P(a0, prof[k]), P(a1, prof[k]), P(a1, prof[k + 1]), P(a0, prof[k + 1]), i % 2 ? robe : robeL);
-      }
-    }
-  });
-  torso(b, { col: robe, collar: robeL, dark: 0x5a4a3a, w: 0.96 });
-  pelvis(b, robe);
-  belt(b, 0x4a3a2c);
-  raggedSkirt(b, robe, robeL, 0.84);
-  legs(b, { pants: 0x18151c, wrap: 0x18151c, boot: 0x201c22 });
-  arms(b, { sleeve: robe, cuff: robeL, skin: 0x9a8e88, flare: 0.08 });
-  // 꺼진 등불
-  const lid = b.next();
-  addChain(b, 'gripR', 'deadLamp', 0, 0, 0, 1, 0.1, (g) => {
-    g.set({ id: lid, spec: 0.3 });
-    g.box(0, -0.08, 0, 0.012, 0.16, 0.012, 0x3c3c44);
-    g.loft([[0, -0.2, 0, 0.11, 0.11], [0, -0.16, 0, 0.13, 0.13], [0, -0.12, 0, 0.03, 0.03]], 0x34343c, 8);
-    g.set({ id: b.next(), spec: 0 });
-    g.loft([[0, -0.4, 0, 0.1, 0.1], [0, -0.2, 0, 0.1, 0.1]], (_i, s) => (s % 2 ? 0x4c4e5c : 0x34343c), 8);
-    g.set({ id: b.next(), spec: 0.3 });
-    g.loft([[0, -0.42, 0, 0.11, 0.11], [0, -0.4, 0, 0.11, 0.11]], 0x34343c, 8);
-    g.set({ spec: 0 });
-  }, 0, 18);
-  return { body: b, anims: MONSTERS.cultist.build().anims };
-}
-
-function buildShade(): Build {
-  const b = new Body();
-  const c = 0x4a3478;
-  const d = 0x332458;
-  const id = b.next();
-  b.on('head', (g) => {
-    g.set({ id });
-    g.loft(HEAD_PROFILE.map(([y, rx, rz, cz]) => [0, y, cz, rx, rz]), c, 8);
-    for (const [x, z, l] of [[0, -0.08, 0.26], [0.09, -0.07, 0.2], [-0.09, -0.07, 0.2]] as const) g.tube([v3(x, 0.3, z), v3(x * 1.3, 0.3 + l * 0.6, z - 0.1), v3(x * 1.5, 0.3 + l, z - 0.22)], [0.06, 0.04, 0.004], d, 4);
-    g.set({ id, em: 1 });
-    for (const s of [-1, 1]) g.box(s * 0.052, 0.17, 0.118, 0.034, 0.05, 0.006, 0xf0d8ff);
-    g.set({ em: 0 });
-  });
-  torso(b, { col: c, collar: d, dark: d, w: 0.96 });
-  pelvis(b, d);
-  raggedSkirt(b, c, d, 0.94);
-  legs(b, { pants: d, wrap: d, boot: d });
-  arms(b, { sleeve: c, cuff: d, skin: d, flare: 0.05 });
-  for (const grip of ['gripL', 'gripR']) {
-    const nid = b.next();
-    b.on(grip, (g) => {
-      g.set({ id: nid, spec: 0.3 });
-      for (const [x, y] of [[0.05, 0.02], [0.018, 0.04], [-0.02, 0.03], [-0.055, -0.01]] as const) g.tube([v3(x, y, 0), v3(x * 1.2, y, 0.25), v3(x * 1.5, y - 0.02, 0.5)], [0.018, 0.012, 0.002], 0xe6d6ff, 4);
-      g.set({ spec: 0 });
-    });
-  }
-  return { body: b, anims: MONSTERS.shade.build().anims };
-}
-
 const cache = new Map<string, CharAsset>();
 
 export function humanAsset(id: string): CharAsset | null {
   let a = cache.get(id);
   if (a) return a;
-  const m = /^pc_(warrior|mage|archer)_([abc])$/.exec(id);
-  if (m) {
-    const b = m[1] === 'warrior' ? buildWarrior(m[2]) : m[1] === 'mage' ? buildMage(m[2]) : buildArcher(m[2]);
-    a = finish(id, b);
-  } else if (id.startsWith('npc_')) {
+  if (id.startsWith('npc_')) {
     a = finish(id, buildNpc(id));
-  } else if (id === 'cultist') {
-    a = finish(id, buildCultist());
-  } else if (id === 'shade') {
-    a = finish(id, buildShade());
-    a.alpha = 0.72;
   } else {
     return null;
   }

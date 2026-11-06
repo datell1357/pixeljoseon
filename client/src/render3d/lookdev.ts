@@ -3,6 +3,7 @@ import type { MapData } from '@shared/mapdata';
 import { PX_U, PX_V } from '@shared/core';
 import { ActorView } from './actor3d';
 import { Stage3D } from './stage';
+import { preloadSkinned } from './skinned';
 
 const parent = document.getElementById('game')!;
 const stage = new Stage3D(parent);
@@ -26,7 +27,7 @@ const api = {
     for (const a of api.actors) {
       const an = a.v.asset.anims[a.anim] ?? a.v.asset.anims.idle;
       a.p += dt / an.dur;
-      a.v.update(dt, a.anim, a.p, a.u, stage.terrain?.heightAt(a.u, a.w) ?? 0, a.w, a.dir, a.s);
+      a.v.update(dt, a.anim, a.p, a.u, stage.terrain?.groundAt(a.u, a.w) ?? 0, a.w, a.dir, a.s);
     }
   },
   size(w: number, h: number, k: number) {
@@ -97,5 +98,7 @@ const api = {
     return { ms: (performance.now() - t0) / n, ...stage.stats };
   },
 };
-(window as unknown as { LD: typeof api }).LD = api;
+void preloadSkinned().then(() => {
+  (window as unknown as { LD: typeof api }).LD = api;
+});
 window.addEventListener('error', (e) => api.errors.push(String(e.message)));

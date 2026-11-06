@@ -36,6 +36,15 @@ set('wall_stone wall_ash', [-0.5, -0.5, 0.5, 0.5]);
 set('bush fern mush_cluster bone_pile rubble ember_vent', [-0.2, -0.2, 0.2, 0.2], false);
 set('portal_arch door_arch ruin_arch', [-0.1, -0.1, 0.1, 0.1], false);
 set('chest chest_open', [-0.4, -0.3, 0.4, 0.3]);
+set('hall', [-3, -1.65, 3, 1.65]);
+set('pavilion', [-1.45, -1.45, 1.45, 1.45]);
+set('dangsan', [-1.45, -1.25, 1.45, 1.25]);
+set('jars', [-0.8, -0.57, 0.8, 0.57]);
+set('stone_pagoda', [-0.55, -0.55, 0.55, 0.55]);
+set('seonang', [-0.9, -0.8, 0.9, 0.8]);
+set('jangseung sotdae scarecrow tree_persimmon', [-0.25, -0.25, 0.25, 0.25]);
+// 지나다니는 것들. 문의 양옆과 기둥은 지도에서 따로 막는다
+set('gate_tall hongsal bridge_u bridge_v plank_u plank_v', [-0.1, -0.1, 0.1, 0.1], false);
 
 function loadPropInfo(): Record<string, PropInfo> {
   const out = { ...FALLBACK };
@@ -81,6 +90,7 @@ class Builder {
   solid: Uint8Array;
   /** 소품을 놓지 않을 칸 */
   keep: Uint8Array;
+  bridges: [number, number, number, number][] = [];
 
   constructor(
     public name: string,
@@ -147,6 +157,30 @@ class Builder {
     }
   }
 
+  keepRect(u0: number, v0: number, u1: number, v1: number) {
+    for (let y = Math.max(0, Math.floor(v0)); y < Math.min(this.h, Math.ceil(v1)); y++) {
+      for (let x = Math.max(0, Math.floor(u0)); x < Math.min(this.w, Math.ceil(u1)); x++) this.keep[y * this.w + x] = 1;
+    }
+  }
+
+  /** 돌담. 가로는 wallU, 세로는 wallV. gap은 비워 둘 구간 */
+  wallU(u0: number, u1: number, v: number, gap?: [number, number]) {
+    for (let u = u0; u < u1; u++) if (!gap || u + 1 <= gap[0] || u >= gap[1]) this.prop('fence_u', u + 0.5, v);
+    this.keepRect(u0, v - 1, u1, v + 1);
+  }
+
+  wallV(u: number, v0: number, v1: number, gap?: [number, number]) {
+    for (let v = v0; v < v1; v++) if (!gap || v + 1 <= gap[0] || v >= gap[1]) this.prop('fence_v', u, v + 0.5);
+    this.keepRect(u - 1, v0, u + 1, v1);
+  }
+
+  /** 다리: 물을 건너는 구역을 뚫는다 (finish에서 물 막기 다음에 처리) */
+  bridge(id: string, u: number, v: number, halfLen: number, halfWalk: number) {
+    this.prop(id, u, v);
+    const along = id.endsWith('_u');
+    this.bridges.push(along ? [u - halfLen, v - halfWalk, u + halfLen, v + halfWalk] : [u - halfWalk, v - halfLen, u + halfWalk, v + halfLen]);
+  }
+
   isKept(u: number, v: number) {
     const x = Math.floor(u);
     const y = Math.floor(v);
@@ -195,7 +229,7 @@ class Builder {
   }
 
   /** 지도 가장자리를 나무로 메워 막는다. 출구 자리는 keep으로 비워 둔다. */
-  treeBorder(ids: string[], thick = 3) {
+  treeBorder(ids: string[], thick = 3, lowFront?: string[]) {
     const { w, h } = this;
     for (let v = 0.5; v < h; v += 1.05) {
       for (let u = 0.5; u < w; u += 1.05) {
@@ -204,7 +238,9 @@ class Builder {
         if (this.isKept(u, v)) continue;
         const ju = u + (this.rand() - 0.5) * 0.5;
         const jv = v + (this.rand() - 0.5) * 0.5;
-        this.prop(ids[Math.floor(this.rand() * ids.length)], ju, jv);
+        // 화면 앞쪽 가장자리의 큰 나무는 그 뒤의 길을 가린다. 낮은 덤불로 막는다
+        const set = lowFront && h - v < thick + 3 ? lowFront : ids;
+        this.prop(set[Math.floor(this.rand() * set.length)], ju, jv);
       }
     }
     // 틈으로 빠져나가지 못하게 경계 띠를 막는다
@@ -249,6 +285,7 @@ class Builder {
         }
       }
     }
+    for (const [u0, v0, u1, v1] of this.bridges) this.clearSolid(u0, v0, u1, v1);
     // 문·도착 지점은 무조건 뚫어 둔다
     for (const o of this.objects) {
       if (o.type === 'door' || o.type === 'arrive') this.clearSolid(o.u - 0.7, o.v - 0.7, o.u + 0.7, o.v + 0.7);
@@ -286,6 +323,7 @@ class Builder {
       objects: this.objects,
       spawns: this.spawns,
       solid: { w: this.w, h: this.h, res: 2, rows },
+      ...(this.bridges.length ? { bridges: this.bridges } : {}),
       ...opts,
     };
   }
@@ -303,87 +341,190 @@ function segDist(px: number, py: number, a: [number, number], b: [number, number
   return Math.hypot(px - (a[0] + dx * t), py - (a[1] + dy * t));
 }
 
-// ─── 등불마루 ─────────────────────────────────────────────
+// ─── 초롱골 ─────────────────────────────────────────────
 function town(): MapData {
-  const b = new Builder('town', '등불마루', 60, 60, 'grass', 11);
-  const c = 30;
-  b.paint('meadow', (x, y) => b.noise(x + 40, y) > 0.55);
-  b.road('dirt', [[c, c], [59, c]], 2.0);
-  b.road('dirt', [[c, c], [1, c]], 2.0);
-  b.road('dirt', [[c, c], [c, 14]], 1.6);
-  b.road('dirt', [[c, c], [c, 47]], 1.6);
-  b.blob('cobble', c, c, 7.4, 0.14);
-  b.road('cobble', [[c, c], [46, c]], 1.2, 0.2);
-  b.blob('water', 44, 47, 6.5, 0.3);
-  b.keepCircle(c, c, 8.6);
+  // 뒷산을 등지고 개울이 마을을 감싸 도는 한옥 마을.
+  // 키 큰 건물은 길의 위쪽(화면 뒤)에 두어 걷는 사람을 가리지 않는다.
+  const b = new Builder('town', '초롱골', 78, 62, 'grass', 37);
+  const PU = 50; // 마당
+  const PV = 29;
+
+  // 논: 네모난 필지마다 사이에 두렁이 남는다
+  const paddies: [number, number, number, number][] = [
+    [31, 33.5, 39.5, 39.8],
+    [31, 41.4, 39.5, 46],
+    [41, 33.5, 46, 39.8],
+    [41, 41.4, 44, 47],
+    [53, 39.6, 59, 44.4],
+    [66, 41, 73, 47],
+    [66, 48.6, 73, 56],
+    [48.5, 53, 56.5, 57],
+    [58, 52, 64.5, 57],
+  ];
+  for (const [u0, v0, u1, v1] of paddies) {
+    b.paint('paddy', (x, y) => x >= u0 && x <= u1 && y >= v0 && y <= v1);
+    b.keepRect(u0 - 0.5, v0 - 0.5, u1 + 0.5, v1 + 0.5);
+  }
+
+  // 길: 동쪽 큰길, 장터길, 고택 가는 골목, 남쪽 들길
+  b.road('dirt', [[77.5, 38], [68, 37], [58, 37], [54, 33], [PU + 1, PV + 1]], 1.7, 0.25);
+  b.road('dirt', [[PU - 4, PV], [38, 29], [26, 28.6]], 2.3, 0.2);
+  b.road('dirt', [[26, 28.6], [20, 31], [13.5, 33], [15.5, 36.5]], 1.2, 0.3);
+  b.road('dirt', [[33, 28], [33, 16]], 1.3, 0.2);
+  b.road('dirt', [[53.5, 25.5], [55, 18]], 1.1, 0.25);
+  b.road('dirt', [[PU, 34], [47, 43], [44.5, 48], [44.5, 57], [30, 57.4], [12, 57.2]], 1.2, 0.3);
+
+  // 마당: 비질한 밝은 흙
+  b.blob('yard', PU, PV, 7.4, 0.14);
+  b.paint('yard', (x, y) => x >= 26 && x <= 40 && y >= 6.5 && y <= 14.5);
+  b.keepCircle(PU, PV, 8.4);
+
+  // 개울과 연못
+  b.road('water', [[68, -1], [67, 10], [64, 20], [64, 30], [63.5, 37], [63, 44], [56, 48.4], [44.5, 50], [32, 48.6], [24, 47]], 1.5, 0.22);
+  b.blob('water', 16.5, 46.5, 7.2, 0.26);
+  b.keepCircle(16.5, 46.5, 8.6);
+  b.bridge('bridge_u', 63.5, 37, 2.6, 1.05);
+  b.bridge('plank_v', 44.5, 50, 2.6, 0.72);
 
   // 출구
-  b.door('to_woods', 58.2, c, 'woods', 'from_town', '이끼숲');
-  b.arrive('from_woods', 55, c);
-  b.door('to_rift', 3.2, c, 'rift', 'start', '균열', { minLevel: 5, instance: true });
-  b.arrive('from_rift', 6.6, c);
-  b.arrive('start', c + 0.5, c + 3.8);
-  b.prop('portal_arch', 3.2, c);
+  b.door('to_woods', 76.2, 38, 'woods', 'from_town', '솔모루 숲');
+  b.arrive('from_woods', 72.5, 38);
+  b.prop('jangseung', 74, 35.4);
+  b.prop('jangseung', 74, 40.6);
+  b.prop('sotdae', 70.6, 34.4);
+  b.door('to_rift', 7.6, 57, 'rift', 'start', '저승길', { minLevel: 5, instance: true });
+  b.arrive('from_rift', 11.4, 57.2);
+  b.prop('portal_arch', 7.6, 57);
+  b.prop('hongsal', 17.5, 56.9);
+  b.markSolid(15.8, 56.7, 16.2, 57.1);
+  b.markSolid(18.8, 56.7, 19.2, 57.1);
+  b.arrive('start', PU + 0.5, PV + 4.6);
 
-  // 건물
-  b.prop('tavern', c, 15.5);
-  b.keepCircle(c, 19, 2.5);
-  b.prop('house_a', 20, 21);
-  b.prop('house_b', 40.5, 20.5);
-  b.prop('house_c', 18, 41);
-  b.prop('house_a', 41, 39.5);
-  b.prop('house_b', 12, 21);
-  b.prop('house_c', 49, 21);
-  b.prop('smithy', 21.5, 37);
-  b.prop('shop_stall', 37.5, 25);
-  for (const [u, v] of [[20, 21], [40.5, 20.5], [18, 41], [41, 39.5], [12, 21], [49, 21], [21.5, 37], [c, 15.5]] as const) b.keepCircle(u, v, 2.6);
+  // 마당: 큰 석등, 당산나무, 우물
+  b.prop('big_lantern', PU, PV + 1);
+  b.objects.push({ type: 'lantern', name: 'plaza', u: PU, v: PV + 1, r: 10 });
+  b.prop('dangsan', PU, 21.5);
+  b.keepCircle(PU, 21.5, 3.8);
+  b.prop('bench', PU + 3.4, 24.8);
+  b.prop('well', 44.6, 33);
+  b.keepCircle(44.6, 33, 1.4);
+  b.prop('sign', PU + 5.4, PV + 3.2);
 
-  // 광장
-  b.prop('big_lantern', c, c);
-  b.objects.push({ type: 'lantern', name: 'plaza', u: c, v: c, r: 9 });
-  b.prop('well', c + 4.6, c - 4.4);
-  b.prop('bench', c - 4.8, c + 4.8);
-  b.prop('bench', c + 4.8, c + 4.8);
-  b.prop('sign', 46.5, c - 2.2);
+  // 장터: 큰길 위쪽에 가게가 늘어선다
+  b.prop('tavern', 44.6, 20.3);
+  b.keepCircle(44.6, 20.3, 3.2);
+  b.prop('shop_stall', 39, 25.5);
+  b.prop('shop_stall', 36, 25.7);
+  b.wallU(34.5, 41.5, 23.8);
+  b.prop('crate', 41, 25.1);
+  b.prop('crate', 41.6, 25.9);
+  b.prop('barrel', 34.9, 25.2);
+  b.prop('jars', 42.6, 26.6);
+  b.prop('smithy', 28, 24.2);
+  b.keepCircle(28, 24.2, 2.6);
+  b.prop('barrel', 25.6, 26);
+  b.prop('crate', 25.2, 25);
+  b.prop('log', 30.4, 25.2);
 
-  // NPC
-  b.npc('npc_elder', c - 3.4, c - 3.6, 0);
-  b.npc('npc_merchant', 36.4, 27.1, 2);
-  b.npc('npc_smith', 24.4, 35.2, 6);
-  b.npc('npc_guard', 47, c + 2, 2);
-  b.npc('npc_keeper', c + 3.6, c + 5.4, 4);
+  // NPC: 어른은 당산나무 아래, 상인은 장터, 대장장이는 장터 끝, 창고지기는 곳간 앞, 파수꾼은 다리 건너
+  b.npc('npc_elder', 47.2, 25, 0);
+  b.npc('npc_merchant', 39, 27, 1);
+  b.npc('npc_smith', 29.8, 26.4, 0);
+  b.npc('npc_keeper', 57.2, 28.2, 2);
+  b.npc('npc_guard', 68.6, 35.2, 1);
+
+  // 곳간: 마당 동쪽
+  b.prop('house_c', 59, 24.8);
+  b.keepCircle(59, 24.8, 2.6);
+  b.prop('jars', 56.4, 25.4);
+  b.prop('tree_persimmon', 61.3, 21.8);
+
+  // 고택: 돌담으로 두른 큰 집. 솟을대문으로 들어간다
+  b.wallU(25, 41, 15.4, [31.2, 34.8]);
+  b.wallU(25, 41, 4.8);
+  b.wallV(25, 4.8, 15.4);
+  b.wallV(41, 4.8, 15.4);
+  b.prop('gate_tall', 33, 15.3);
+  b.markSolid(30.6, 14.8, 32.2, 15.8);
+  b.markSolid(33.8, 14.8, 35.4, 15.8);
+  b.keepRect(25, 4.8, 41, 15.4);
+  b.prop('hall', 33, 8.4);
+  b.prop('house_a', 27.6, 10.2);
+  b.prop('house_c', 38.4, 10.2);
+  b.prop('jars', 37.8, 13.6);
+  b.prop('tree_persimmon', 27.2, 14);
+  b.prop('tree_pine', 39.6, 6.2);
+  // 고택 가는 골목의 양옆 돌담
+  b.wallV(31.4, 16.4, 23.4);
+  b.wallV(34.6, 16.4, 23.4);
+
+  // 윗마을: 당산나무 뒤쪽의 기와집 한 채
+  b.wallU(50.8, 60, 17.8, [53.8, 56.2]);
+  b.wallU(50.8, 60, 9.6);
+  b.wallV(50.8, 9.6, 17.8);
+  b.wallV(60, 9.6, 17.8);
+  b.keepRect(50.8, 9.6, 60, 17.8);
+  b.prop('house_a', 55.2, 13.2);
+  b.prop('tree_persimmon', 52.4, 15.8);
+  b.prop('jars', 58.4, 15.8);
+
+  // 서쪽 초가 마을
+  b.prop('house_b', 20, 26);
+  b.keepCircle(20, 26, 2.6);
+  b.prop('house_b', 12.4, 28.4);
+  b.keepCircle(12.4, 28.4, 2.6);
+  b.prop('house_b', 8, 21.6);
+  b.keepCircle(8, 21.6, 2.6);
+  b.wallU(15.6, 24, 29.2, [19, 21]);
+  b.wallU(7.6, 15.6, 31.4, [11.4, 13.4]);
+  b.prop('tree_persimmon', 16.4, 24.4);
+  b.prop('tree_persimmon', 23.4, 24.2);
+  b.prop('tree_persimmon', 15.8, 28.2);
+  b.prop('jars', 23, 27.4);
+  b.prop('hay', 17.4, 27.8);
+  b.prop('hay', 9.4, 30);
+  b.prop('cart', 25, 31.8);
+
+  // 연못가 정자
+  b.prop('pavilion', 22.6, 37);
+  b.keepCircle(22.6, 37, 2.6);
+  b.road('dirt', [[15.5, 36.5], [20.6, 37.6]], 0.9, 0.2);
+  b.prop('tree_pine', 26.6, 39.6);
+  b.prop('tree_oak', 10.4, 38);
+  b.prop('rock_l', 25.5, 43);
+  b.prop('rock_s', 24.2, 41.2);
+
+  // 들판: 허수아비와 볏단
+  for (const [u, v] of [[35, 36.6], [35.6, 43.6], [43.4, 36.4], [56, 42], [69.5, 44], [69.8, 52.4], [52.5, 55], [61, 54.6]] as const) b.prop('scarecrow', u, v);
+  b.prop('hay', 40.2, 40.6);
+  b.prop('hay', 30.2, 40.6);
+  b.prop('hay', 65.2, 47.8);
+  b.prop('sotdae', 47.8, 58.4);
+  b.prop('jangseung', 25, 59);
 
   // 길가 등불
-  for (const [u, v] of [[38, 27.6], [38, 32.4], [46, 27.6], [46, 32.4], [52, 32.4], [22, 27.8], [22, 32.2], [14, 27.8], [14, 32.2], [27.6, 22], [32.4, 22], [27.6, 38], [32.4, 38], [32.4, 44]] as const) {
+  for (const [u, v] of [
+    [69.6, 39.4], [59.6, 35], [66.6, 39.2], [53.2, 36.2],
+    [43.6, 31.6], [37, 31.6], [30.6, 31], [24.2, 30.8], [17.6, 33.2],
+    [31.4, 25.6], [34.8, 15.4 + 1.6],
+    [53, 21], [48.4, 36.4], [45.8, 45.8], [42.8, 54.6], [31, 55.4], [22, 55.2],
+  ] as const) {
     b.prop('lantern_post', u, v);
     b.objects.push({ type: 'lantern', name: 'post', u, v, r: 4.5 });
   }
 
-  // 울타리
-  for (let i = 0; i < 7; i++) b.prop('fence_u', 8 + i, 37);
-  for (let i = 0; i < 6; i++) b.prop('fence_v', 8, 37 + i);
-  for (let i = 0; i < 7; i++) b.prop('fence_u', 44 + i, 14);
-  b.prop('hay', 10.5, 39.5);
-  b.prop('hay', 12.5, 40.5);
-  b.prop('cart', 37, 37);
-  b.prop('crate', 38.8, 23.2);
-  b.prop('crate', 39.6, 24);
-  b.prop('barrel', 35.6, 23.2);
-  b.prop('barrel', 19, 35.4);
-  b.prop('crate', 20, 34.6);
-  b.prop('barrel', 26.4, 13.6);
-  b.prop('log', 16, 34);
-
-  b.treeBorder(['tree_oak', 'tree_oak', 'tree_pine'], 4);
-  const inside = (u: number, v: number) => u > 5 && v > 5 && u < 55 && v < 55;
-  b.scatter(['tree_oak', 'tree_pine'], 22, inside, 3.5);
-  b.scatter(['bush', 'bush', 'rock_s', 'stump'], 46, inside, 1.5);
-  return b.finish({ tint: [1, 0.97, 0.9], dark: 0.28, bg: '#0e1a12', music: 'town', safe: true, color: '#3f5f39' });
+  // 시작 지점 앞은 트여 있게 둔다
+  b.keepRect(44, 33, 60, 43);
+  b.treeBorder(['tree_pine', 'tree_pine', 'tree_oak'], 3, ['bush', 'bush', 'rock_s']);
+  const inside = (u: number, v: number) => u > 4 && v > 4 && u < 74 && v < 58;
+  b.scatter(['tree_oak', 'tree_oak', 'tree_pine', 'tree_persimmon'], 26, inside, 4);
+  b.scatter(['bush', 'bush', 'rock_s', 'stump', 'fern'], 44, inside, 1.6);
+  return b.finish({ tint: [1, 0.97, 0.9], dark: 0.28, bg: '#1c1510', music: 'town', safe: true, color: '#5c6a3a' });
 }
 
-// ─── 이끼숲 ─────────────────────────────────────────────
+// ─── 솔모루 숲 ─────────────────────────────────────────────
 function woods(): MapData {
-  const b = new Builder('woods', '이끼숲', 72, 72, 'forest', 23);
+  const b = new Builder('woods', '솔모루 숲', 72, 72, 'forest', 23);
   const c = 36;
   b.paint('meadow', (x, y) => b.noise(x, y + 70) > 0.62);
   b.road('dirt', [[1, c], [20, 34], [c, c], [52, 42], [68, 42]], 1.7);
@@ -397,12 +538,12 @@ function woods(): MapData {
   b.keepCircle(38, 56, 7);
   b.keepCircle(c, 18, 6);
 
-  b.door('to_town', 1.6, c, 'town', 'from_woods', '등불마루');
+  b.door('to_town', 1.6, c, 'town', 'from_woods', '초롱골');
   b.arrive('from_town', 4.6, c);
-  b.door('to_hollow', 68.2, 42, 'hollow', 'start', '고목의 빈터', { minLevel: 5, instance: true });
+  b.door('to_hollow', 68.2, 42, 'hollow', 'start', '여우굴', { minLevel: 5, instance: true });
   b.arrive('from_hollow', 64.8, 42);
   b.prop('door_arch', 68.2, 42);
-  b.door('to_ashfield', 36, 1.6, 'ashfield', 'from_woods', '잿빛 벌판', { minLevel: 9, needQuest: 'q_hollow' });
+  b.door('to_ashfield', 36, 1.6, 'ashfield', 'from_woods', '화전골', { minLevel: 9, needQuest: 'q_hollow' });
   b.arrive('from_ashfield', 36, 4.8);
 
   b.prop('waystone', c + 1.6, c - 1.6);
@@ -412,11 +553,12 @@ function woods(): MapData {
     b.prop('lantern_post', u, v);
     b.objects.push({ type: 'lantern', name: 'post', u, v, r: 4 });
   }
-  b.prop('ruin_pillar', 28, 24);
-  b.prop('ruin_pillar', 30, 26.5);
-  b.prop('ruin_arch', 54, 25);
-  b.prop('ruin_pillar', 51.5, 23);
-  b.prop('ruin_pillar', 57, 28);
+  // 옛 절터의 석탑과 고갯마루의 서낭당
+  b.prop('stone_pagoda', 28, 24);
+  b.prop('jangseung', 30.4, 26.5);
+  b.prop('seonang', 54, 25);
+  b.prop('stone_pagoda', 51.5, 22.6);
+  b.prop('jangseung', 57, 28);
 
   b.treeBorder(['tree_moss_l', 'tree_moss_l', 'tree_moss_s'], 4);
   const inside = (u: number, v: number) => u > 5 && v > 5 && u < 67 && v < 67;
@@ -429,13 +571,14 @@ function woods(): MapData {
   b.spawn('mushroom', 13, 45, 5, 5, 1, 9);
   b.spawn('mushroom', 24, 44, 5, 5, 2, 10);
   b.spawn('mushroom', 24, 28, 5, 5, 2, 10);
-  b.spawn('boar', 34, 54, 6, 4, 3, 13);
-  b.spawn('boar', 45, 56, 6, 4, 4, 13);
-  b.spawn('boar', 26, 57, 5, 3, 4, 13);
-  b.spawn('wisp', 32, 16, 6, 4, 5, 13);
-  b.spawn('wisp', 44, 22, 6, 4, 5, 13);
-  b.spawn('wisp', 52, 18, 6, 4, 6, 13);
-  b.spawn('mushroom', 58, 33, 5, 5, 6, 12, true);
+  // 다람쥐(서쪽 어귀) → 너구리(북쪽 늪가) → 멧돼지(남쪽 골짜기) 순으로 강해진다
+  b.spawn('wisp', 32, 16, 6, 4, 3, 13);
+  b.spawn('wisp', 44, 22, 6, 4, 3, 13);
+  b.spawn('wisp', 52, 18, 6, 4, 4, 13);
+  b.spawn('wisp', 58, 33, 5, 5, 4, 12, true);
+  b.spawn('boar', 34, 54, 6, 4, 5, 13);
+  b.spawn('boar', 45, 56, 6, 4, 5, 13);
+  b.spawn('boar', 26, 57, 5, 3, 6, 13);
   b.spawn('boar', 56, 51, 5, 3, 7, 14, true);
   return b.finish({ tint: [0.86, 0.96, 0.88], dark: 0.42, bg: '#0a120c', music: 'forest', color: '#2e4f35' });
 }
@@ -462,9 +605,9 @@ function carve(b: Builder, rooms: [number, number, number][], halls: [[number, n
   return isOpen;
 }
 
-// ─── 고목의 빈터 ─────────────────────────────────────────
+// ─── 여우굴 ─────────────────────────────────────────
 function hollow(): MapData {
-  const b = new Builder('hollow', '고목의 빈터', 40, 56, 'cave', 37);
+  const b = new Builder('hollow', '여우굴', 40, 56, 'cave', 37);
   const rooms: [number, number, number][] = [[20, 50, 5.2], [12, 36, 6.6], [28, 26, 6.6], [20, 11, 9.4]];
   const halls: [[number, number], [number, number], number][] = [
     [[20, 50], [12, 36], 1.8],
@@ -475,7 +618,7 @@ function hollow(): MapData {
   b.paint('forest', (x, y) => b.noise(x + 5, y + 5) > 0.5);
   b.blob('forest', 20, 11, 9, 0.2);
   b.arrive('start', 20, 51);
-  b.door('leave', 20, 53.6, 'woods', 'from_hollow', '이끼숲으로');
+  b.door('leave', 20, 53.6, 'woods', 'from_hollow', '솔모루 숲으로');
   b.clearSolid(19, 50, 21, 55);
   b.objects.push({ type: 'lantern', name: 't1', u: 20, v: 47, r: 6 });
   b.objects.push({ type: 'lantern', name: 't2', u: 12, v: 36, r: 6 });
@@ -487,16 +630,16 @@ function hollow(): MapData {
     const v = 4 + b.rand() * 48;
     if (isOpen(Math.floor(u), Math.floor(v)) && Math.hypot(u - 20, v - 11) > 6) b.prop(b.rand() < 0.5 ? 'fern' : 'mush_cluster', u, v);
   }
-  b.spawn('mushroom', 12, 37, 4, 6, 5, 0, true);
-  b.spawn('wisp', 28, 28, 4, 4, 6, 0, true);
+  b.spawn('fox', 12, 37, 4, 5, 6, 0, true);
+  b.spawn('fox', 28, 28, 4, 4, 7, 0, true);
   b.spawn('boar', 26, 24, 3, 2, 6, 0, true);
   b.spawn('elder', 20, 10, 0, 1, 8, 0);
   return b.finish({ tint: [0.8, 0.94, 0.82], dark: 0.62, bg: '#05080a', music: 'dungeon', instance: true, color: '#26382b' });
 }
 
-// ─── 잿빛 벌판 ─────────────────────────────────────────
+// ─── 화전골 ─────────────────────────────────────────
 function ashfield(): MapData {
-  const b = new Builder('ashfield', '잿빛 벌판', 76, 76, 'ash', 53);
+  const b = new Builder('ashfield', '화전골', 76, 76, 'ash', 53);
   b.paint('scorch', (x, y) => b.noise(x + 20, y + 40) > 0.58);
   b.road('stone', [[38, 74], [38, 54], [26, 40], [38, 26], [56, 16], [68, 10]], 1.7, 0.45);
   b.road('stone', [[26, 40], [10, 34]], 1.4, 0.45);
@@ -507,9 +650,9 @@ function ashfield(): MapData {
   b.keepCircle(11, 33, 7);
   b.keepCircle(38, 54, 3);
 
-  b.door('to_woods', 38, 74.2, 'woods', 'from_ashfield', '이끼숲');
+  b.door('to_woods', 38, 74.2, 'woods', 'from_ashfield', '솔모루 숲');
   b.arrive('from_woods', 38, 71);
-  b.door('to_furnace', 69, 9.4, 'furnace', 'start', '용광로', { minLevel: 15, instance: true });
+  b.door('to_furnace', 69, 9.4, 'furnace', 'start', '쇠부리터', { minLevel: 15, instance: true });
   b.arrive('from_furnace', 65.6, 11.6);
   b.prop('door_arch', 69, 9.4);
 
@@ -518,7 +661,8 @@ function ashfield(): MapData {
   b.objects.push({ type: 'lantern', name: 'way', u: 39.6, v: 52.4, r: 7 });
   // 서쪽 제단
   b.prop('statue', 11, 33);
-  for (const [u, v] of [[7, 29], [15, 29], [7, 37], [15, 37]] as const) b.prop('ruin_pillar', u, v);
+  // 범굴 앞 산신당 터: 돌부처를 장승이 둘러선다
+  for (const [u, v] of [[7, 29], [15, 29], [7, 37], [15, 37]] as const) b.prop('jangseung', u, v);
   b.objects.push({ type: 'lantern', name: 'altar', u: 11, v: 33, r: 5 });
 
   b.treeBorder(['ash_rock_l', 'tree_dead', 'ash_rock_s'], 4);
@@ -530,21 +674,21 @@ function ashfield(): MapData {
   b.spawn('ashwolf', 30, 62, 6, 4, 9, 14, true);
   b.spawn('ashwolf', 48, 60, 6, 4, 10, 14, true);
   b.spawn('ashwolf', 24, 47, 6, 4, 10, 14, true);
-  b.spawn('emberbug', 44, 32, 5, 6, 11, 11, true);
-  b.spawn('emberbug', 58, 30, 5, 6, 12, 11, true);
+  b.spawn('emberbug', 44, 32, 5, 5, 10, 11, true);
+  b.spawn('emberbug', 58, 30, 5, 5, 11, 11, true);
   b.spawn('golem', 36, 16, 6, 3, 12, 18);
   b.spawn('golem', 52, 24, 6, 3, 13, 18);
-  b.spawn('cultist', 12, 26, 5, 4, 12, 15, true);
-  b.spawn('cultist', 14, 42, 5, 4, 13, 15, true);
-  b.spawn('cultist', 6, 33, 3, 3, 14, 15, true);
+  b.spawn('cultist', 12, 26, 5, 3, 14, 15);
+  b.spawn('cultist', 14, 42, 5, 3, 14, 15);
+  b.spawn('cultist', 6, 33, 3, 2, 15, 15);
   b.spawn('golem', 62, 18, 4, 2, 14, 18);
-  b.spawn('emberbug', 64, 12, 3, 5, 14, 11, true);
+  b.spawn('emberbug', 64, 12, 3, 5, 13, 11, true);
   return b.finish({ tint: [1, 0.86, 0.76], dark: 0.5, bg: '#120a08', music: 'ash', color: '#4d3f3a' });
 }
 
-// ─── 용광로 ─────────────────────────────────────────────
+// ─── 쇠부리터 ─────────────────────────────────────────────
 function furnace(): MapData {
-  const b = new Builder('furnace', '용광로', 44, 60, 'stone', 71);
+  const b = new Builder('furnace', '쇠부리터', 44, 60, 'stone', 71);
   const rooms: [number, number, number][] = [[22, 54, 5.2], [33, 41, 7], [12, 30, 7], [22, 12, 10.6]];
   const halls: [[number, number], [number, number], number][] = [
     [[22, 54], [33, 41], 2],
@@ -557,13 +701,13 @@ function furnace(): MapData {
   b.blob('lava', 33, 41, 2.6, 0.2);
   b.blob('lava', 12, 30, 2.4, 0.2);
   b.arrive('start', 22, 55);
-  b.door('leave', 22, 57.6, 'ashfield', 'from_furnace', '잿빛 벌판으로');
+  b.door('leave', 22, 57.6, 'ashfield', 'from_furnace', '화전골으로');
   b.clearSolid(21, 54, 23, 59);
   for (const [u, v] of [[22, 50], [33, 36], [12, 36], [17, 21], [27, 21]] as const) {
     b.prop('torch', u, v);
     b.objects.push({ type: 'lantern', name: 't', u, v, r: 6 });
   }
-  b.spawn('emberbug', 28, 39, 4, 7, 15, 0, true);
+  b.spawn('shade', 28, 39, 4, 6, 15, 0, true);
   b.spawn('golem', 37, 44, 3, 2, 15, 0, true);
   b.spawn('cultist', 9, 33, 4, 4, 16, 0, true);
   b.spawn('golem', 16, 28, 3, 2, 16, 0, true);
@@ -571,9 +715,9 @@ function furnace(): MapData {
   return b.finish({ tint: [1, 0.82, 0.72], dark: 0.66, bg: '#090504', music: 'dungeon', instance: true, color: '#3a2a26' });
 }
 
-// ─── 균열 ─────────────────────────────────────────────
+// ─── 저승길 ─────────────────────────────────────────────
 function rift(): MapData {
-  const b = new Builder('rift', '균열', 34, 34, 'cave', 91);
+  const b = new Builder('rift', '저승길', 34, 34, 'cave', 91);
   carve(b, [[17, 17, 13]], [], 'wall_stone');
   b.paint('stone', (x, y) => Math.hypot(x - 17, y - 17) < 11 && b.noise(x, y) > 0.46);
   b.arrive('start', 17, 24);

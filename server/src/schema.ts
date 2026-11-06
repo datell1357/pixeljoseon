@@ -6,6 +6,8 @@ export const PlayerS = schema(
     name: t.string(),
     cls: t.string(),
     look: t.uint8(),
+    /** 입은 장비 요약 (gearKey). 겉모습을 그릴 때 쓴다 */
+    gear: t.string(),
     u: t.float32(),
     v: t.float32(),
     dir: t.uint8(),
@@ -82,7 +84,7 @@ export const RoomStateS = schema(
     /** 실행 중 생기는 문·보물 상자 */
     props: t.map(PropS),
     floor: t.uint16(),
-    /** 남은 몬스터 수 (균열) */
+    /** 남은 몬스터 수 (저승길) */
     remain: t.uint16(),
   },
   'RoomStateS',

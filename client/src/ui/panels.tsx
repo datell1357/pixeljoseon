@@ -11,7 +11,9 @@ import {
   SLOTS,
   SLOT_LABEL,
   enhanceCost,
+  gearKey,
   itemName,
+  pcSheet,
   salvageYield,
   type GearInstance,
   type Slot,
@@ -112,7 +114,7 @@ function BagPanel() {
 
 const STAT_ROWS: [string, (m: Me) => string][] = [
   ['체력', (m) => String(m.stats.maxHp)],
-  ['마나', (m) => String(m.stats.maxMp)],
+  ['기력', (m) => String(m.stats.maxMp)],
   ['공격력', (m) => m.stats.atk.toFixed(0)],
   ['방어력', (m) => m.stats.def.toFixed(0)],
   ['치명타', (m) => `${(m.stats.crit * 100).toFixed(0)}%`],
@@ -127,6 +129,9 @@ function EquipPanel() {
   if (!m) return null;
   return (
     <Panel title="장비" onClose={close('equip')} class="equipwin">
+      <div class="equipwho">
+        <CharPreview sheet={pcSheet(m.cls, m.look ?? 0, gearKey(m.equip))} scale={1.5} spin />
+      </div>
       <div class="equipgrid">
         {SLOTS.map((s) => {
           const g = m.equip[s];
@@ -187,7 +192,7 @@ function SkillsPanel() {
                 </b>
                 <p>{s.desc}</p>
                 <small>
-                  {locked ? `${s.req}레벨부터` : `마나 ${s.mp} · 재사용 ${s.cd}초${s.mult ? ` · 위력 ${Math.round(skillMult(s, Math.max(1, rank)) * 100)}%` : ''}`}
+                  {locked ? `${s.req}레벨부터` : `기력 ${s.mp} · 재사용 ${s.cd}초${s.mult ? ` · 위력 ${Math.round(skillMult(s, Math.max(1, rank)) * 100)}%` : ''}`}
                 </small>
               </div>
               <div class="srank">
@@ -225,7 +230,7 @@ function SkillsPanel() {
         </div>
       </div>
       <footer class="bagfoot">
-        <span class="muted">초기화 비용 {m.level * 20} 골드</span>
+        <span class="muted">초기화 비용 {m.level * 20}냥</span>
         <button type="button" class="btn small" onClick={() => send('skillReset', {})}>
           초기화
         </button>
@@ -237,7 +242,7 @@ function SkillsPanel() {
 // ─── 퀘스트 ─────────────────────────────────
 
 function rewardText(q: QuestDef, m: Me) {
-  const parts = [`경험치 ${q.rewards.exp.toLocaleString()}`, `${q.rewards.gold.toLocaleString()} 골드`];
+  const parts = [`경험치 ${q.rewards.exp.toLocaleString()}`, `${q.rewards.gold.toLocaleString()}냥`];
   for (const [id, n] of q.rewards.items ?? []) parts.push(`${CONSUMABLES[id]?.name} ×${n}`);
   if (q.rewards.gear) parts.push(GEAR[q.rewards.gear.base[m.cls]]?.name ?? '장비');
   return parts.join(' · ');
@@ -657,7 +662,7 @@ function RiftTab({ npc, m }: { npc: string; m: Me }) {
   const tokens = countInBag(m, 'rift_token');
   return (
     <div class="shop">
-      <p class="muted">균열 토큰 {tokens}개 · 최고 기록 {m.riftBest}층</p>
+      <p class="muted">저승 엽전 {tokens}개 · 최고 기록 {m.riftBest}층</p>
       <div class="shoplist">
         {RIFT_STOCK.map((s, i) => {
           const g = GEAR[s.base];
@@ -675,7 +680,7 @@ function RiftTab({ npc, m }: { npc: string; m: Me }) {
       </div>
       {riftBoard.value.length ? (
         <>
-          <h3>균열 순위</h3>
+          <h3>저승길 순위</h3>
           <ol class="board">
             {riftBoard.value.map((r) => (
               <li key={r.name}>
@@ -733,7 +738,7 @@ function ForgeTab({ npc, m }: { npc: string; m: Me }) {
                 성공 확률 <b>{Math.round(cost.rate * 100)}%</b>
                 {cost.drop ? ' · 실패하면 한 단계 내려가요' : ''}
               </p>
-              <p class={m.gold < cost.gold ? 'lack' : ''}>골드 {cost.gold.toLocaleString()} / {m.gold.toLocaleString()}</p>
+              <p class={m.gold < cost.gold ? 'lack' : ''}>돈 {cost.gold.toLocaleString()} / {m.gold.toLocaleString()}</p>
               <p class={shards < cost.shards ? 'lack' : ''}>등불 조각 {cost.shards} / {shards}</p>
               <button
                 type="button"
@@ -812,7 +817,7 @@ function NpcPanel() {
     >
       <div class="npcbody">
         <div class="npcprev">
-          <CharPreview sheet={def.sheet} scale={2} />
+          <CharPreview sheet={def.sheet} scale={1.5} />
         </div>
         <div class="npcmain">
           {tabs.length > 1 ? (

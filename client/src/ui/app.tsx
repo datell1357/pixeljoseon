@@ -1,21 +1,20 @@
 // 게임 밖 화면: 시작, 캐릭터 고르기·만들기, 불러오기
 import { useEffect, useState } from 'preact/hooks';
 import { CLASSES, CLASS_IDS, type ClassId } from '@shared/classes';
+import { pcSheet } from '@shared/items';
 import { sfx } from '../audio';
 import { createChar, deleteChar, enterGame, hasToken, login, logout, pingServer, resumeSession, startGuest, refreshChars } from '../net';
 import { assetsReady, chars, enterError, isGuest, loadProgress, screen, serverDown, serverOnline, type CharSummary } from '../store';
 import { CharPreview } from './common';
 import { Hud } from './hud';
 
-const MAP_LABEL: Record<string, string> = { town: '등불마루', woods: '이끼숲', ashfield: '잿빛 벌판' };
-const looks = ['a', 'b', 'c'];
+const MAP_LABEL: Record<string, string> = { town: '초롱골', woods: '솔모루 숲', ashfield: '화전골' };
 /** 구운 그림의 색 변형과 맞춘 견본 */
 const LOOK_COLORS: Record<ClassId, string[]> = {
   warrior: ['#3f6ab0', '#b83a3a', '#2f8a56'],
   mage: ['#4a3aa8', '#b03a5a', '#2f9a90'],
   archer: ['#5f8f4a', '#4a7ab0', '#a84a5a'],
 };
-const sheetOf = (cls: string, look: number) => `pc_${cls}_${looks[look] ?? 'a'}`;
 
 function LoadLine() {
   if (assetsReady.value) return null;
@@ -121,12 +120,12 @@ function CharCard({ c, onPick, onDelete }: { c: CharSummary; onPick: () => void;
   return (
     <div class="panel charcard">
       <button type="button" class="charpick" onClick={onPick} aria-label={`${c.name}로 시작`}>
-        <CharPreview sheet={sheetOf(c.cls, c.look)} scale={2} />
+        <CharPreview sheet={pcSheet(c.cls, c.look, c.gear)} scale={1.5} />
         <b>{c.name}</b>
         <span>
           Lv.{c.level} {CLASSES[c.cls].label}
         </span>
-        <small>{MAP_LABEL[c.map] ?? '등불마루'}</small>
+        <small>{MAP_LABEL[c.map] ?? '초롱골'}</small>
       </button>
       <button type="button" class="link danger" onClick={onDelete}>
         삭제
@@ -218,7 +217,7 @@ function CharCreate() {
       <h2 class="screenhead">새 캐릭터</h2>
       <form class="panel createbox" onSubmit={submit}>
         <div class="createprev">
-          <CharPreview sheet={sheetOf(cls, look)} scale={3} spin />
+          <CharPreview sheet={pcSheet(cls, look)} scale={2} spin />
         </div>
         <div class="createopts">
           <div class="clsrow">
@@ -235,7 +234,7 @@ function CharCreate() {
               <dd>{c.hp}</dd>
             </div>
             <div>
-              <dt>마나</dt>
+              <dt>기력</dt>
               <dd>{c.mp}</dd>
             </div>
             <div>

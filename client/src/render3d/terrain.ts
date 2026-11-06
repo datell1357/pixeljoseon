@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import type { MapData } from '@shared/mapdata';
 
-const KIND: Record<string, number> = { grass: 0, meadow: 1, forest: 2, dirt: 3, cobble: 4, ash: 5, scorch: 6, cave: 7, stone: 8, water: 9, lava: 10 };
+const KIND: Record<string, number> = { grass: 0, meadow: 1, forest: 2, dirt: 3, cobble: 4, ash: 5, scorch: 6, cave: 7, stone: 8, water: 9, lava: 10, paddy: 11, yard: 12 };
 
 function hash2(x: number, y: number) {
   let h = (x * 374761393 + y * 668265263) | 0;
@@ -28,6 +28,9 @@ const smooth = (a: number, b: number, x: number) => {
   const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
   return t * t * (3 - 2 * t);
 };
+
+/** 다리 상판 높이. 모델(props.ts)과 같은 곡선이다 */
+export const bridgeDeck = (t: number) => 0.06 + 0.22 * Math.sin(Math.PI * Math.max(0, Math.min(1, t)));
 
 export class TerrainData {
   splat: THREE.DataTexture;
@@ -106,12 +109,26 @@ export class TerrainData {
   /** 땅 높이. 걷는 곳은 거의 평평하고, 지도 밖은 산이 된다 */
   heightAt(u: number, v: number) {
     const m = this.map;
+    // 뒤쪽과 양옆은 산으로 올라간다. 앞쪽(화면 아래)은 산이 지도를 가리므로 안개 낀 골짜기로 내려간다
     const ox = Math.max(0, -u, u - m.w);
-    const oz = Math.max(0, -v, v - m.h);
+    const oz = Math.max(0, -v);
     const out = Math.hypot(ox, oz);
+    const down = Math.max(0, v - m.h);
     let h = (noise(u * 0.33, v * 0.33) - 0.5) * 0.14;
     if (this.waterIdx >= 0) h -= smooth(0.42, 0.78, this.layerAt(this.waterIdx, u, v)) * 0.55;
     if (out > 0) h += smooth(0, 16, out) * 7 + smooth(0, 16, out) * (noise(u * 0.18, v * 0.18) - 0.3) * 4;
+    if (down > 0) h -= smooth(0, 12, down) * 2.6;
+    return h;
+  }
+
+  /** 인물이 서는 높이. 다리 위에서는 상판을 밟는다 */
+  groundAt(u: number, v: number) {
+    const h = this.heightAt(u, v);
+    for (const [u0, v0, u1, v1] of this.map.bridges ?? []) {
+      if (u < u0 || u > u1 || v < v0 || v > v1) continue;
+      const along = u1 - u0 > v1 - v0 ? (u - u0) / (u1 - u0) : (v - v0) / (v1 - v0);
+      return Math.max(h, bridgeDeck(along));
+    }
     return h;
   }
 
@@ -160,6 +177,8 @@ export class TerrainData {
     for (let z = -M; z < m.h + M; z += 1.9) {
       for (let x = -M; x < m.w + M; x += 1.9) {
         if (x >= -0.5 && x <= m.w + 0.5 && z >= -0.5 && z <= m.h + 0.5) continue;
+        // 화면 앞쪽의 나무는 지도 끝자락을 가린다
+        if (z > m.h - 0.5) continue;
         const u = x + hash2(x * 3 + 11, z * 3) * 1.5;
         const v = z + hash2(x * 3, z * 3 + 7) * 1.5;
         out.push([ids[hash2(x * 7, z * 5) > 0.6 ? 1 : 0], u, v]);
@@ -172,7 +191,7 @@ export class TerrainData {
   grassChunks(chunk: number, tint: THREE.Color) {
     const m = this.map;
     const res: { cx: number; cz: number; n: number; pos: Float32Array; col: Float32Array; seed: Float32Array }[] = [];
-    const DENS: Record<number, number> = { 0: 26, 1: 30, 2: 12, 5: 0, 6: 0, 7: 2 };
+    const DENS: Record<number, number> = { 0: 26, 1: 30, 2: 12, 5: 0, 6: 0, 7: 2, 11: 44 };
     const GOLD = [0.72, 0.62, 0.3];
     const OLIVE = [0.42, 0.47, 0.22];
     const DEEP = [0.27, 0.36, 0.2];
@@ -208,6 +227,13 @@ export class TerrainData {
               // 숲바닥의 풀은 어둡고 짧다
               const dim = k === 2 ? 0.62 : 1;
               P.push(u, this.heightAt(u, v), v);
+              if (k === 11) {
+                // 익은 벼: 노랗게 고개 숙인 줄
+                const g = 0.9 + mid * 0.26;
+                C.push(0.86 * g * j, 0.66 * g * j, 0.2 * g * j);
+                S.push(hash2(u * 17, v * 23), 1.45 + hash2(u * 3, v * 5) * 0.5);
+                continue;
+              }
               C.push((a[0] + (b[0] - a[0]) * f) * j * dim * tint.r, (a[1] + (b[1] - a[1]) * f) * j * dim * tint.g, (a[2] + (b[2] - a[2]) * f) * j * dim * tint.b);
               S.push(hash2(u * 17, v * 23), (0.7 + hash2(u * 3, v * 5) * 0.7) * (k === 2 ? 0.7 : 1));
             }

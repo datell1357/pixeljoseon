@@ -320,6 +320,8 @@ export function bakeMini(map: MapData): HTMLCanvasElement {
   const g = c.getContext('2d')!;
   const colors: Record<string, string> = {
     meadow: '#567a48',
+    paddy: '#b49a3e',
+    yard: '#b8a784',
     dirt: '#7a6648',
     cobble: '#7c7a78',
     water: '#3a6a9a',

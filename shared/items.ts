@@ -8,8 +8,8 @@ export const SLOT_LABEL: Record<Slot, string> = {
   helm: '투구',
   armor: '갑옷',
   boots: '신발',
-  ring: '반지',
-  amulet: '목걸이',
+  ring: '가락지',
+  amulet: '노리개',
 };
 
 export type Rarity = 0 | 1 | 2 | 3;
@@ -22,14 +22,14 @@ export const STAT_LABEL: Record<StatKey, string> = {
   atk: '공격력',
   def: '방어력',
   maxHp: '체력',
-  maxMp: '마나',
+  maxMp: '기력',
   crit: '치명타 확률',
   critDmg: '치명타 피해',
   speed: '이동 속도',
   aspd: '공격 속도',
   cdr: '재사용 감소',
   regenHp: '체력 회복',
-  regenMp: '마나 회복',
+  regenMp: '기력 회복',
 };
 
 export const PERCENT_STATS: StatKey[] = ['crit', 'critDmg', 'aspd', 'cdr'];
@@ -57,31 +57,31 @@ const mk = (id: string, name: string, slot: Slot, icon: string, req: number, tie
 
 export const GEAR: Record<string, GearBase> = Object.fromEntries(
   [
-    mk('sword_1', '견습 장검', 'weapon', 'sword_1', 1, 1, { atk: 4 }, 40, 'warrior'),
-    mk('sword_2', '철날 장검', 'weapon', 'sword_2', 6, 2, { atk: 11 }, 260, 'warrior'),
-    mk('sword_3', '이끼왕의 검', 'weapon', 'sword_3', 12, 3, { atk: 22, maxHp: 30 }, 1100, 'warrior'),
-    mk('sword_4', '등불지기의 대검', 'weapon', 'sword_4', 20, 4, { atk: 42, maxHp: 80 }, 5200, 'warrior'),
+    mk('sword_1', '무딘 환도', 'weapon', 'sword_1', 1, 1, { atk: 4 }, 40, 'warrior'),
+    mk('sword_2', '환도', 'weapon', 'sword_2', 6, 2, { atk: 11 }, 260, 'warrior'),
+    mk('sword_3', '청강 환도', 'weapon', 'sword_3', 12, 3, { atk: 22, maxHp: 30 }, 1100, 'warrior'),
+    mk('sword_4', '청등 대도', 'weapon', 'sword_4', 20, 4, { atk: 42, maxHp: 80 }, 5200, 'warrior'),
     mk('staff_1', '등잔 지팡이', 'weapon', 'staff_1', 1, 1, { atk: 5 }, 40, 'mage'),
-    mk('staff_2', '구리 지팡이', 'weapon', 'staff_2', 6, 2, { atk: 13, maxMp: 12 }, 260, 'mage'),
-    mk('staff_3', '이끼왕의 가지', 'weapon', 'staff_3', 12, 3, { atk: 26, maxMp: 30 }, 1100, 'mage'),
-    mk('staff_4', '꺼지지 않는 등잔', 'weapon', 'staff_4', 20, 4, { atk: 50, maxMp: 70 }, 5200, 'mage'),
-    mk('bow_1', '사냥꾼의 활', 'weapon', 'bow_1', 1, 1, { atk: 4 }, 40, 'archer'),
-    mk('bow_2', '곡궁', 'weapon', 'bow_2', 6, 2, { atk: 12, crit: 0.01 }, 260, 'archer'),
-    mk('bow_3', '이끼왕의 활', 'weapon', 'bow_3', 12, 3, { atk: 24, crit: 0.03 }, 1100, 'archer'),
-    mk('bow_4', '새벽 활', 'weapon', 'bow_4', 20, 4, { atk: 46, crit: 0.05 }, 5200, 'archer'),
-    mk('helm_1', '가죽 모자', 'helm', 'helm_1', 1, 1, { def: 1, maxHp: 6 }, 30),
+    mk('staff_2', '놋쇠 초롱대', 'weapon', 'staff_2', 6, 2, { atk: 13, maxMp: 12 }, 260, 'mage'),
+    mk('staff_3', '천년목 가지', 'weapon', 'staff_3', 12, 3, { atk: 26, maxMp: 30 }, 1100, 'mage'),
+    mk('staff_4', '꺼지지 않는 청사초롱', 'weapon', 'staff_4', 20, 4, { atk: 50, maxMp: 70 }, 5200, 'mage'),
+    mk('bow_1', '목궁', 'weapon', 'bow_1', 1, 1, { atk: 4 }, 40, 'archer'),
+    mk('bow_2', '각궁', 'weapon', 'bow_2', 6, 2, { atk: 12, crit: 0.01 }, 260, 'archer'),
+    mk('bow_3', '덩굴 각궁', 'weapon', 'bow_3', 12, 3, { atk: 24, crit: 0.03 }, 1100, 'archer'),
+    mk('bow_4', '새벽 각궁', 'weapon', 'bow_4', 20, 4, { atk: 46, crit: 0.05 }, 5200, 'archer'),
+    mk('helm_1', '가죽 벙거지', 'helm', 'helm_1', 1, 1, { def: 1, maxHp: 6 }, 30),
     mk('helm_2', '철 투구', 'helm', 'helm_2', 7, 2, { def: 4, maxHp: 22 }, 220),
-    mk('helm_3', '재 강철 투구', 'helm', 'helm_3', 14, 3, { def: 9, maxHp: 60 }, 1000),
-    mk('armor_1', '누빈 옷', 'armor', 'armor_1', 1, 1, { def: 2, maxHp: 10 }, 40),
-    mk('armor_2', '쇠사슬 옷', 'armor', 'armor_2', 7, 2, { def: 6, maxHp: 34 }, 280),
-    mk('armor_3', '재 강철 갑옷', 'armor', 'armor_3', 14, 3, { def: 13, maxHp: 90 }, 1200),
-    mk('boots_1', '낡은 신발', 'boots', 'boots_1', 1, 1, { def: 1, speed: 0.04 }, 30),
-    mk('boots_2', '여행자의 신발', 'boots', 'boots_2', 7, 2, { def: 3, speed: 0.1 }, 220),
-    mk('boots_3', '바람 신발', 'boots', 'boots_3', 14, 3, { def: 6, speed: 0.2 }, 1000),
-    mk('ring_1', '구리 반지', 'ring', 'ring_1', 4, 1, { crit: 0.02 }, 120),
-    mk('ring_2', '호박 반지', 'ring', 'ring_2', 13, 3, { crit: 0.05, atk: 5 }, 1200),
-    mk('amulet_1', '등불 목걸이', 'amulet', 'amulet_1', 4, 1, { maxMp: 14, regenMp: 0.5 }, 120),
-    mk('amulet_2', '새벽 목걸이', 'amulet', 'amulet_2', 13, 3, { maxMp: 40, regenMp: 1.2, cdr: 0.04 }, 1200),
+    mk('helm_3', '흑철 투구', 'helm', 'helm_3', 14, 3, { def: 9, maxHp: 60 }, 1000),
+    mk('armor_1', '누비 철릭', 'armor', 'armor_1', 1, 1, { def: 2, maxHp: 10 }, 40),
+    mk('armor_2', '쇄자갑', 'armor', 'armor_2', 7, 2, { def: 6, maxHp: 34 }, 280),
+    mk('armor_3', '흑철 찰갑', 'armor', 'armor_3', 14, 3, { def: 13, maxHp: 90 }, 1200),
+    mk('boots_1', '짚신', 'boots', 'boots_1', 1, 1, { def: 1, speed: 0.04 }, 30),
+    mk('boots_2', '가죽 목화', 'boots', 'boots_2', 7, 2, { def: 3, speed: 0.1 }, 220),
+    mk('boots_3', '축지 목화', 'boots', 'boots_3', 14, 3, { def: 6, speed: 0.2 }, 1000),
+    mk('ring_1', '구리 가락지', 'ring', 'ring_1', 4, 1, { crit: 0.02 }, 120),
+    mk('ring_2', '호박 가락지', 'ring', 'ring_2', 13, 3, { crit: 0.05, atk: 5 }, 1200),
+    mk('amulet_1', '초롱 노리개', 'amulet', 'amulet_1', 4, 1, { maxMp: 14, regenMp: 0.5 }, 120),
+    mk('amulet_2', '새벽 노리개', 'amulet', 'amulet_2', 13, 3, { maxMp: 40, regenMp: 1.2, cdr: 0.04 }, 1200),
   ].map((g) => [g.id, g]),
 );
 
@@ -101,17 +101,17 @@ export interface ConsumableDef {
 }
 
 export const CONSUMABLES: Record<string, ConsumableDef> = {
-  potion_hp_s: { id: 'potion_hp_s', name: '작은 체력 물약', icon: 'potion_hp_s', desc: '체력을 60 회복합니다.', price: 12, sell: 3, hp: 60, cd: 4 },
-  potion_hp_l: { id: 'potion_hp_l', name: '큰 체력 물약', icon: 'potion_hp_l', desc: '체력을 280 회복합니다.', price: 60, sell: 15, hp: 280, cd: 4 },
-  potion_mp_s: { id: 'potion_mp_s', name: '작은 마나 물약', icon: 'potion_mp_s', desc: '마나를 40 회복합니다.', price: 12, sell: 3, mp: 40, cd: 4 },
-  potion_mp_l: { id: 'potion_mp_l', name: '큰 마나 물약', icon: 'potion_mp_l', desc: '마나를 160 회복합니다.', price: 60, sell: 15, mp: 160, cd: 4 },
-  scroll_home: { id: 'scroll_home', name: '귀환 두루마리', icon: 'scroll_home', desc: '등불마루로 돌아갑니다.', price: 30, sell: 8, home: true, cd: 1 },
-  ember_shard: { id: 'ember_shard', name: '등불 조각', icon: 'ember_shard', desc: '장비를 강화할 때 씁니다.', price: 0, sell: 4, material: true },
-  moss_core: { id: 'moss_core', name: '이끼 심', icon: 'moss_core', desc: '숲 몬스터의 심. 퀘스트와 제작에 씁니다.', price: 0, sell: 6, material: true },
+  potion_hp_s: { id: 'potion_hp_s', name: '보혈환', icon: 'potion_hp_s', desc: '체력을 60 회복합니다.', price: 12, sell: 3, hp: 60, cd: 4 },
+  potion_hp_l: { id: 'potion_hp_l', name: '보혈탕', icon: 'potion_hp_l', desc: '체력을 280 회복합니다.', price: 60, sell: 15, hp: 280, cd: 4 },
+  potion_mp_s: { id: 'potion_mp_s', name: '청심환', icon: 'potion_mp_s', desc: '기력을 40 회복합니다.', price: 12, sell: 3, mp: 40, cd: 4 },
+  potion_mp_l: { id: 'potion_mp_l', name: '정기탕', icon: 'potion_mp_l', desc: '기력을 160 회복합니다.', price: 60, sell: 15, mp: 160, cd: 4 },
+  scroll_home: { id: 'scroll_home', name: '귀향 부적', icon: 'scroll_home', desc: '초롱골로 돌아갑니다.', price: 30, sell: 8, home: true, cd: 1 },
+  ember_shard: { id: 'ember_shard', name: '정철 조각', icon: 'ember_shard', desc: '장비를 강화할 때 씁니다.', price: 0, sell: 4, material: true },
+  moss_core: { id: 'moss_core', name: '짐승 털', icon: 'moss_core', desc: '숲 짐승의 털. 팔면 돈이 됩니다.', price: 0, sell: 6, material: true },
   boar_tusk: { id: 'boar_tusk', name: '멧돼지 어금니', icon: 'boar_tusk', desc: '단단한 어금니. 퀘스트에 씁니다.', price: 0, sell: 8, material: true },
-  ash_core: { id: 'ash_core', name: '재의 심', icon: 'ash_core', desc: '벌판 몬스터의 심. 제작에 씁니다.', price: 0, sell: 14, material: true },
-  warden_seal: { id: 'warden_seal', name: '등불지기의 인장', icon: 'warden_seal', desc: '꺼진 등불지기가 지니던 인장.', price: 0, sell: 300, material: true },
-  rift_token: { id: 'rift_token', name: '균열 토큰', icon: 'rift_token', desc: '균열 깊은 곳에서 얻는 토큰. 상인이 장비와 바꿔 줍니다.', price: 0, sell: 10, material: true },
+  ash_core: { id: 'ash_core', name: '짐승 가죽', icon: 'ash_core', desc: '큰 짐승의 가죽. 곳간지기가 겨울나기에 씁니다.', price: 0, sell: 14, material: true },
+  warden_seal: { id: 'warden_seal', name: '불가사리 쇠비늘', icon: 'warden_seal', desc: '쇠를 먹고 자란 불가사리의 비늘.', price: 0, sell: 300, material: true },
+  rift_token: { id: 'rift_token', name: '저승 엽전', icon: 'rift_token', desc: '저승길 깊은 곳에서 얻는 엽전. 보부상이 장비와 바꿔 줍니다.', price: 0, sell: 10, material: true },
 };
 
 /** 드롭 장비 강화용 품질에 따른 추가 능력 수 */
@@ -192,6 +192,56 @@ export function gearStats(g: GearInstance): Partial<Record<StatKey, number>> {
   return out;
 }
 
+/** 겉모습에 필요한 값만 추린 장비 한 벌. 슬롯 순서는 SLOTS와 같고 방 상태로 모두에게 동기화된다. */
+export function gearKey(equip: Partial<Record<Slot, GearInstance>>): string {
+  return SLOTS.map((s) => {
+    const g = equip[s];
+    return g ? `${g.base}.${g.rarity}.${g.plus}` : '';
+  }).join(',');
+}
+
+export interface WornPiece {
+  base: string;
+  /** 같은 슬롯 안의 단계. sword_3이면 3 */
+  tier: number;
+  rarity: Rarity;
+  /** 강화 빛 단계 0~3 */
+  glow: number;
+}
+
+/** 강화 수치를 빛 단계로. +4, +7, +10에서 눈에 띄게 달라진다 */
+export function plusGlow(plus: number): number {
+  return plus >= 10 ? 3 : plus >= 7 ? 2 : plus >= 4 ? 1 : 0;
+}
+
+export function parseGearKey(key: string): Partial<Record<Slot, WornPiece>> {
+  const out: Partial<Record<Slot, WornPiece>> = {};
+  const parts = key.split(',');
+  SLOTS.forEach((slot, i) => {
+    const [base, rarity, plus] = (parts[i] ?? '').split('.');
+    const def = GEAR[base];
+    if (!def || def.slot !== slot) return;
+    const r = Number(rarity);
+    out[slot] = { base, tier: Number(base.split('_')[1]) || 1, rarity: (r >= 0 && r <= 3 ? r : 0) as Rarity, glow: plusGlow(Number(plus) || 0) };
+  });
+  return out;
+}
+
+/** 강화 수치가 달라도 빛 단계가 같으면 모델을 다시 짓지 않도록 키를 줄인다 */
+export function gearVisualKey(key: string): string {
+  const worn = parseGearKey(key);
+  return SLOTS.map((s) => {
+    const w = worn[s];
+    return w ? `${w.base}.${w.rarity}.${w.glow}` : '';
+  }).join(',');
+}
+
+/** 인물 모델 이름. 장비가 없으면 처음 입는 옷차림으로 보여 준다 */
+export function pcSheet(cls: string, look: number, gear?: string): string {
+  const base = `pc_${cls}_${'abc'[look] ?? 'a'}`;
+  return gear === undefined ? base : `${base}#${gearVisualKey(gear)}`;
+}
+
 export function sellPrice(g: GearInstance): number {
   return Math.round(GEAR[g.base].price * 0.2 * (1 + g.rarity * 0.6) * (1 + g.plus * 0.2));
 }
@@ -212,7 +262,7 @@ export const SHOP_STOCK: string[] = [
   'helm_2', 'armor_2', 'boots_2',
 ];
 
-/** 균열 토큰 교환 */
+/** 저승 엽전 교환 */
 export const RIFT_STOCK: { base: string; tokens: number; rarity: Rarity }[] = [
   { base: 'helm_3', tokens: 12, rarity: 1 },
   { base: 'armor_3', tokens: 14, rarity: 1 },

@@ -30,7 +30,8 @@ await page.goto(url, { waitUntil: 'load' });
 await page.waitForFunction(() => window.LD, null, { timeout: 60000 }).catch((e) => errors.push(String(e)));
 let cur = '';
 try {
-  await page.evaluate(() => window.LD.size(960, 540, 2));
+  const sz = (args.find((a) => a.startsWith("--size=")) ?? "--size=960,540,2").slice(7).split(",").map(Number);
+  await page.evaluate((s) => window.LD.size(s[0], s[1], s[2]), sz);
   for (const s of shots) {
     const [map, u, v, name, t] = s.split(':');
     if (map !== cur) {

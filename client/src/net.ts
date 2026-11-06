@@ -205,7 +205,7 @@ function wire(r: Room) {
         sfx(msg.id);
         break;
       case 'skillFail':
-        if (msg.why === 'mp') toast('마나가 모자라요', 'warn', 1400);
+        if (msg.why === 'mp') toast('기력이 모자라요', 'warn', 1400);
         sfx('deny');
         break;
       case 'enhanced':
@@ -218,7 +218,7 @@ function wire(r: Room) {
         riftBoard.value = msg.board ?? [];
         break;
       case 'riftFloor':
-        showBig(`${msg.floor}층`, '균열');
+        showBig(`${msg.floor}층`, '저승길');
         break;
       case 'riftClear':
         showBig('층 정리', '가운데 빛으로 들어가세요');
