@@ -29,7 +29,7 @@ describe('장비 겉모습 키', () => {
   });
 
   it('모델 이름에 장비가 들어간다', () => {
-    expect(pcSheet('mage', 1)).toBe('pc_mage_b');
-    expect(pcSheet('mage', 1, 'staff_2.0.0,,,,,')).toBe('pc_mage_b#staff_2.0.0,,,,,');
+    expect(pcSheet('dosa', 1)).toBe('pc_dosa_b');
+    expect(pcSheet('dosa', 1, 'staff_2.0.0,,,,,')).toBe('pc_dosa_b#staff_2.0.0,,,,,');
   });
 });

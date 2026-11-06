@@ -25,7 +25,7 @@ await page.evaluate(async () => {
   m.objects = m.objects.filter((o) => o.type !== 'lantern');
   window.LD.stage.loadMap(m);
 });
-const W = { warrior: 'sword', mage: 'staff', archer: 'bow' };
+const W = { musa: 'sword', dosa: 'staff', gungsa: 'bow' };
 const key = (cls, t, ring = '', am = '', r = 0, p = 0) => `${t.w ? `${W[cls]}_${t.w}.${r}.${p}` : ''},${t.h ? `helm_${t.h}.${r}.${p}` : ''},${t.a ? `armor_${t.a}.${r}.${p}` : ''},${t.b ? `boots_${t.b}.${r}.${p}` : ''},${ring},${am}`;
 const tiers = [
   { t: {}, },
@@ -43,7 +43,7 @@ if (RARE) {
 }
 const ANIM = process.argv[7] ?? 'idle';
 const rows = [];
-const cls = ['warrior', 'mage', 'archer'];
+const cls = ['musa', 'dosa', 'gungsa'];
 cls.forEach((c, row) => {
   tiers.forEach((q, i) => {
     rows.push([`pc_${c}_${LOOK}#${key(c, q.t, q.ring ?? '', q.am ?? '', q.r ?? 0, q.p ?? 0)}`, 6 + i * (RARE ? 2.6 : 3), 11 + row * 5, DEG, ANIM, 0.3, 1]);

@@ -48,7 +48,7 @@ const W_STANCE = {
   La: 62, Lr: 0.3, Ly: 0.5, Vy: 42, Vp: 0,
   cry: 4, c1: 10, c2: 8,
 };
-export function warriorAnims() {
+export function musaAnims() {
   const b = W_STANCE;
   const K = (n, keys, loop = false) => bakeKeys(n, keys, b, loop);
   return {
@@ -192,7 +192,7 @@ export function arcSheet(rTop, rBot, height, mat, zScale = 0.55, arc = 200, fold
   return m;
 }
 
-function buildWarrior(pal) {
+function buildMusa(pal) {
   const h = new Human({ holdR: { fwd: 0.78, back: 0.1 } });
   const steel = M('#a9b4c6', { metal: 1 });
   const steelD = M('#7b879b', { metal: 1 });
@@ -241,11 +241,11 @@ function buildWarrior(pal) {
   const sh = roundShield({ face: pal.shield, emblem: pal.emblem, rim: '#cfd7e3', boss: pal.trim });
   h.gripL.add(at(sh, 0, 0, 0.05));
   h.remember();
-  h.anims = warriorAnims();
+  h.anims = musaAnims();
   return h;
 }
 
-const WARRIOR = {
+const MUSA = {
   a: { skin: SKIN.a, hair: '#7a4a28', cape: '#3f62b0', capeDark: '#2c4583', shield: '#3f62b0', emblem: '#e9e3cf', trim: '#e0b040' },
   b: { skin: SKIN.b, hair: '#d8a93c', cape: '#b23a38', capeDark: '#7e2729', shield: '#b23a38', emblem: '#f0d9a0', trim: '#e0b040' },
   c: { skin: SKIN.c, hair: '#2c2838', cape: '#3f8a5c', capeDark: '#2a6041', shield: '#3f8a5c', emblem: '#e6edd2', trim: '#cfd8e6' },
@@ -309,7 +309,7 @@ const M_STANCE = {
   La: 40, Lr: 0.22, Ly: 0.46, Vy: 0, Vp: 0,
   c1: 6, c2: 5,
 };
-export function mageAnims() {
+export function dosaAnims() {
   const b = M_STANCE;
   const K = (n, keys, loop = false) => bakeKeys(n, keys, b, loop);
   return {
@@ -449,7 +449,7 @@ function staffMesh({ wood = '#6a4a30', metal = '#b58a3e', hot = '#fff2bc', glow 
   return g;
 }
 
-function buildMage(pal) {
+function buildDosa(pal) {
   const h = new Human({ hipH: 0.42, holdR: { fwd: 1.05, back: 0.52 } });
   addFace(h, { skin: pal.skin });
   const hairM = M(pal.hair);
@@ -498,10 +498,10 @@ function buildMage(pal) {
     skirtN.rotation.set(0.5 * (P.Fz + P.Gz), 0, 0.42 * (P.Gz - P.Fz));
   };
   h.remember();
-  h.anims = mageAnims();
+  h.anims = dosaAnims();
   return h;
 }
-const MAGE = {
+const DOSA = {
   a: { skin: SKIN.a, hair: '#c9d4e8', robe: '#4a3f9c', robeDark: '#352c72', trim: '#e4c35a', boot: '#3c2f58' },
   b: { skin: SKIN.b, hair: '#9e3f2e', robe: '#a83b4e', robeDark: '#792a38', trim: '#ecd9a4', boot: '#4c2630' },
   c: { skin: SKIN.c, hair: '#26303a', robe: '#2f7f88', robeDark: '#205c63', trim: '#d9e2b0', boot: '#22424a' },
@@ -524,7 +524,7 @@ function aim(draw, { lean = 0, crouch = 0, up = 0 } = {}) {
     Ra: -2, Rr: pullR, Ry: y + (draw > 0 ? -0.08 : -0.16), Fz: 0.1, Gz: -0.1, draw, arrow: draw > 0 ? 1 : 0,
   };
 }
-export function archerAnims() {
+export function gungsaAnims() {
   const b = A_STANCE;
   const K = (n, keys) => bakeKeys(n, keys, b);
   const release = (o = {}) => ({ ...aim(0, o), arrow: 0, draw: 0, La: 26, Lr: 0.52, Ra: -34, Rr: 0.12, Ry: 0.72, crx: -4 });
@@ -660,7 +660,7 @@ function bowMesh({ wood = '#8a5a32', wrap = '#3e2a1c', R = 0.68, arcDeg = 50 }) 
   g.tips = [new THREE.Vector3(0, tipY, tipZ), new THREE.Vector3(0, -tipY, tipZ)];
   return g;
 }
-function buildArcher(pal) {
+function buildGungsa(pal) {
   const h = new Human({ hipH: 0.42 });
   addFace(h, { skin: pal.skin });
   const hairM = M(pal.hair);
@@ -756,10 +756,10 @@ function buildArcher(pal) {
     }
   };
   h.remember();
-  h.anims = archerAnims();
+  h.anims = gungsaAnims();
   return h;
 }
-const ARCHER = {
+const GUNGSA = {
   a: { skin: SKIN.a, hair: '#a3652e', hood: '#8a6236', hoodTrim: '#b39155', shirt: '#6fa04e', bracer: '#6a4a2c', vest: '#6e4a2a', pants: '#4a5240', boot: '#4f3522', quiver: '#6a4528', fletch: '#c8483c', bow: '#94602f' },
   b: { skin: SKIN.b, hair: '#e6c86a', hood: '#6e563c', hoodTrim: '#9a8058', shirt: '#5c8ab4', bracer: '#574632', vest: '#5a4830', pants: '#3f4656', boot: '#3e3a2c', quiver: '#5a4a2e', fletch: '#e8e2d0', bow: '#74502e' },
   c: { skin: SKIN.c, hair: '#3a2a26', hood: '#96502f', hoodTrim: '#c28650', shirt: '#a84e62', bracer: '#6a3c2c', vest: '#70402c', pants: '#3e3844', boot: '#33262c', quiver: '#4a3430', fletch: '#e0b040', bow: '#7e4c2c' },
@@ -767,7 +767,7 @@ const ARCHER = {
 
 export const PLAYERS = {};
 for (const v of ['a', 'b', 'c']) {
-  PLAYERS['pc_warrior_' + v] = { kind: 'player', build: () => buildWarrior(WARRIOR[v]) };
-  PLAYERS['pc_mage_' + v] = { kind: 'player', build: () => buildMage(MAGE[v]) };
-  PLAYERS['pc_archer_' + v] = { kind: 'player', build: () => buildArcher(ARCHER[v]) };
+  PLAYERS['pc_musa_' + v] = { kind: 'player', build: () => buildMusa(MUSA[v]) };
+  PLAYERS['pc_dosa_' + v] = { kind: 'player', build: () => buildDosa(DOSA[v]) };
+  PLAYERS['pc_gungsa_' + v] = { kind: 'player', build: () => buildGungsa(GUNGSA[v]) };
 }

@@ -749,7 +749,7 @@ export class GameRoom extends Room {
         case 'groundMulti': {
           const n = sk.count!;
           const [cu, cv] = at;
-          const col = sk.cls === 'mage' ? 'star' : 'arrow';
+          const col = sk.cls === 'dosa' ? 'star' : 'arrow';
           this.broadcast('warn', { shape: 'circle', u: cu, v: cv, r: sk.r, t: sk.delay! + n * 0.17, friendly: true, soft: true });
           for (let i = 0; i < n; i++) {
             const a = Math.random() * Math.PI * 2;

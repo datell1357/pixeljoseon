@@ -184,12 +184,12 @@ async function main() {
   }
   const guest = await api('/api/guest', null, {});
   check('게스트 토큰 발급', !!guest.token);
-  const bad = await api('/api/chars', guest.token, { name: '!', cls: 'warrior' });
+  const bad = await api('/api/chars', guest.token, { name: '!', cls: 'musa' });
   check('이상한 이름 거부', !!bad.err);
   const noAuth = await api('/api/chars', null);
   check('토큰 없이 캐릭터 목록 거부', !!noAuth.err);
 
-  const a = new Bot('시험전사', 'warrior');
+  const a = new Bot('시험전사', 'musa');
   await a.create();
   await a.join('town');
   check('마을 입장 · me 수신', a.me?.level === 1 && a.me.bag.length === 32);
@@ -272,24 +272,24 @@ async function main() {
   await setLevel(a.charId, 8);
   await a.join('woods', { arrive: 'from_hollow' });
   check('저장 후 다시 입장', a.me.level === 8);
-  a.room.send('skillUp', { id: 'w_whirl' });
-  await a.until(() => a.me.skills.w_whirl === 1, '스킬 찍기');
+  a.room.send('skillUp', { id: 'musa_hwimori' });
+  await a.until(() => a.me.skills.musa_hwimori === 1, '스킬 찍기');
   check('스킬 포인트 사용', a.me.points === 6, `남은 ${a.me.points}`);
-  a.room.send('skillUp', { id: 'w_judge' });
+  a.room.send('skillUp', { id: 'musa_cheongeun' });
   await sleep(200);
-  check('레벨 부족 스킬 거부', !a.me.skills.w_judge);
+  check('레벨 부족 스킬 거부', !a.me.skills.musa_cheongeun);
   const mpBefore = a.player().mp;
-  a.room.send('skill', { id: 'w_whirl', aim: [1, 0] });
+  a.room.send('skill', { id: 'musa_hwimori', aim: [1, 0] });
   await sleep(150);
   check('스킬 사용 · 마나 소모', a.player().mp < mpBefore, `${mpBefore}→${a.player().mp}`);
   await a.until(() => !!a.events.cd?.length, '재사용 대기');
   const mp2 = a.player().mp;
-  a.room.send('skill', { id: 'w_whirl', aim: [1, 0] });
+  a.room.send('skill', { id: 'musa_hwimori', aim: [1, 0] });
   await sleep(150);
   check('재사용 대기 중 거부', a.player().mp >= mp2);
 
   // 파티와 인스턴스
-  const b = new Bot('시험마법', 'mage');
+  const b = new Bot('시험마법', 'dosa');
   await b.create();
   await setLevel(b.charId, 8);
   await b.join('woods', { arrive: 'from_hollow' });
@@ -334,7 +334,7 @@ async function main() {
   // 균열
   await b.room.leave();
   await a.room.leave();
-  const c = new Bot('시험궁수', 'archer');
+  const c = new Bot('시험궁수', 'gungsa');
   await c.create();
   await setLevel(c.charId, 10);
   await c.join('town', { arrive: 'from_rift' });
@@ -395,7 +395,7 @@ async function main() {
   await c.room.leave();
 
   // 던전 보스를 쓰러뜨리면 퀘스트가 차고 출구가 생긴다
-  const d = new Bot('시험보스', 'warrior');
+  const d = new Bot('시험보스', 'musa');
   await d.create();
   await setLevel(d.charId, 10);
   await d.join('woods', { arrive: 'from_hollow' });

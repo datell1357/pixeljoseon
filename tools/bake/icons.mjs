@@ -708,7 +708,7 @@ function deungpae(q, cx, cy, r) {
 }
 
 const S = {
-  w_whirl() {
+  musa_hwimori() {
     const p = frame('w');
     const q = new P();
     // 원을 그리는 칼바람
@@ -718,7 +718,7 @@ const S = {
     hwando(q, 10, 22, 24, 9, 1.8);
     return finish(p, q);
   },
-  w_charge() {
+  musa_dolgyeok() {
     const p = frame('w');
     const q = new P();
     for (const [y, x0, l] of [[8, 3, 7], [14, 2, 6], [20, 3, 7], [26, 5, 5]]) q.line(x0, y, x0 + l, y, '#f0d0a0');
@@ -726,7 +726,7 @@ const S = {
     hwando(q, 24, 24, 29, 10, 0.6);
     return finish(p, q);
   },
-  w_slam() {
+  musa_ttanggareugi() {
     const p = frame('w');
     const q = new P();
     // 갈라진 땅
@@ -744,7 +744,7 @@ const S = {
     q.rect(15, 1, 2, 4, '#5a2e32');
     return finish(p, q);
   },
-  w_cry() {
+  musa_horyeong() {
     const p = frame('w');
     const q = new P();
     // 용고: 정면에서 본 북면, 붉은 테와 금 징, 비스듬한 북채
@@ -764,7 +764,7 @@ const S = {
     q.arc(14, 17, 16, -0.45, 0.45, '#ffb24a');
     return finish(p, q);
   },
-  w_judge() {
+  musa_cheongeun() {
     const p = frame('w');
     const q = new P();
     // 하늘에서 내리꽂히는 큰 환도와 땅의 충격
@@ -778,7 +778,7 @@ const S = {
     sparkle(q, 7, 9, '#ffe48a', true);
     return finish(p, q);
   },
-  m_fireball() {
+  dosa_hwabu() {
     const p = frame('m');
     const q = new P();
     flame(q, 17, 28, 16, 9);
@@ -789,7 +789,7 @@ const S = {
     sparkle(q, 25, 7, '#ffd27a');
     return finish(p, q);
   },
-  m_nova() {
+  dosa_bingyeolbu() {
     const p = frame('m');
     const q = new P();
     // 얼음 결정 여섯 갈래
@@ -804,7 +804,7 @@ const S = {
     talisman(q, 13, 9, 7, 14, ['#3a6a9a', '#6aa6d6', '#bfe6f8', '#f0fcff'], '#1e3a7a');
     return finish(p, q);
   },
-  m_meteor() {
+  dosa_nakseong() {
     const p = frame('m');
     const q = new P();
     q.rect(4, 26, 24, 2, '#3a3448');
@@ -814,7 +814,7 @@ const S = {
     sparkle(q, 9, 20, '#c8d8ff');
     return finish(p, q);
   },
-  m_shield() {
+  dosa_hosinbu() {
     const p = frame('m');
     const q = new P();
     // 부적을 감싼 기운의 막
@@ -827,7 +827,7 @@ const S = {
     talisman(q, 12, 8, 8, 16);
     return finish(p, q);
   },
-  m_starfall() {
+  dosa_yuseongu() {
     const p = frame('m');
     const q = new P();
     meteor(q, 12, 22, 4, 8, 2.6, ['#4a6ac8', '#7aa6f2', '#c8e0ff', '#ffffff']);
@@ -836,7 +836,7 @@ const S = {
     sparkle(q, 7, 25, '#c8e0ff');
     return finish(p, q);
   },
-  a_fan() {
+  gungsa_osi() {
     const p = frame('a');
     const q = new P();
     for (let k = -2; k <= 2; k++) {
@@ -845,7 +845,7 @@ const S = {
     }
     return finish(p, q);
   },
-  a_pierce() {
+  gungsa_pyeonjeon() {
     const p = frame('a');
     const q = new P();
     // 짧은 애기살이 짚 과녁 둘을 한 줄로 꿰뚫는다
@@ -864,7 +864,7 @@ const S = {
     q.px(21, 16, '#fff0a0');
     return finish(p, q);
   },
-  a_trap() {
+  gungsa_olmu() {
     const p = frame('a');
     const q = new P();
     // 땅에 놓인 올무: 밧줄 고리와 말뚝
@@ -878,7 +878,7 @@ const S = {
     for (const x of [10, 22]) q.px(x, 21, '#7a5a3a');
     return finish(p, q);
   },
-  a_hawk() {
+  gungsa_maenun() {
     const p = frame('a');
     const q = new P();
     // 보라매 머리: 매서운 눈, 굽은 부리
@@ -893,7 +893,7 @@ const S = {
     for (const [x, y] of [[11, 19], [13, 23], [10, 24]]) q.px(x, y, '#4a3224');
     return finish(p, q);
   },
-  a_rain() {
+  gungsa_hwasalbi() {
     const p = frame('a');
     const q = new P();
     // 하늘에서 곧게 쏟아지는 화살 다섯
@@ -909,7 +909,7 @@ const S = {
     for (const x of [8, 15, 21]) q.px(x, 26, '#8a7a5a');
     return finish(p, q);
   },
-  roll() {
+  gureugi() {
     const p = frame('x');
     const q = new P();
     q.arc(16, 15, 9, Math.PI * 0.2, Math.PI * 1.75, '#e8e0d0', 2);
@@ -918,7 +918,7 @@ const S = {
     q.rect(5, 28, 22, 1, '#5a4e44');
     return finish(p, q);
   },
-  blink() {
+  chukjibeop() {
     const p = frame('x');
     const q = new P();
     // 축지법: 땅을 접어 한 걸음에 건너간다. 흐린 출발점에서 밝은 도착점으로 점선이 휘어 넘어간다
@@ -938,7 +938,7 @@ const S = {
     sparkle(q, 27, 7, QI[3]);
     return finish(p, q);
   },
-  leap() {
+  dwittwigi() {
     const p = frame('x');
     const q = new P();
     // 뒤로 크게 뛰어 물러난다
@@ -948,13 +948,13 @@ const S = {
     for (const x of [22, 25]) q.line(x, 26, x + 2, 23, '#8a7a68');
     return finish(p, q);
   },
-  guard_w() {
+  deungpae() {
     const p = frame('w');
     const q = new P();
     deungpae(q, 16, 16, 11);
     return finish(p, q);
   },
-  guard_m() {
+  bujeok_makgi() {
     const p = frame('m');
     const q = new P();
     // 여섯모 기운의 막 앞에 선 부적
@@ -963,7 +963,7 @@ const S = {
     talisman(q, 12, 8, 8, 16);
     return finish(p, q);
   },
-  guard_a() {
+  bitgyeo_naegi() {
     const p = frame('a');
     const q = new P();
     // 활대로 화살을 빗겨 낸다: 튕겨 나가는 화살과 불똥
@@ -1365,7 +1365,7 @@ const ITEMS = {
   scroll_home: jTalisman, ember_shard: jIngot, moss_core: jFur, boar_tusk: boarTusk, ash_core: jHide,
   warden_seal: jScale, gold: jCoins, rift_token: jUnderCoin, key,
 };
-const SKILL_ORDER = 'w_whirl w_charge w_slam w_cry w_judge m_fireball m_nova m_meteor m_shield m_starfall a_fan a_pierce a_trap a_hawk a_rain roll blink leap guard_w guard_m guard_a'.split(' ');
+const SKILL_ORDER = 'musa_hwimori musa_dolgyeok musa_ttanggareugi musa_horyeong musa_cheongeun dosa_hwabu dosa_bingyeolbu dosa_nakseong dosa_hosinbu dosa_yuseongu gungsa_osi gungsa_pyeonjeon gungsa_olmu gungsa_maenun gungsa_hwasalbi gureugi chukjibeop dwittwigi deungpae bujeok_makgi bitgyeo_naegi'.split(' ');
 
 function sheet(list, makers, art, name) {
   const cols = 8;

@@ -25,9 +25,9 @@ export type QuestGoal =
   | { type: 'rift'; floor: number; label: string };
 
 const classWeapon = (tier: number) => ({
-  warrior: `sword_${tier}`,
-  mage: `staff_${tier}`,
-  archer: `bow_${tier}`,
+  musa: `sword_${tier}`,
+  dosa: `staff_${tier}`,
+  gungsa: `bow_${tier}`,
 });
 
 export const QUESTS: QuestDef[] = [

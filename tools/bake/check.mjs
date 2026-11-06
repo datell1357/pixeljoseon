@@ -181,9 +181,9 @@ export async function runCheck(root) {
     if (out.SE?.n && !(out.SE.x > 0)) fail(`${id}: SE인데 눈이 왼쪽`);
     if (out.SW?.n && !(out.SW.x < 0)) fail(`${id}: SW인데 눈이 오른쪽`);
   };
-  eyeTest('pc_warrior_a', [36, 26, 44]);
-  eyeTest('pc_mage_a', [36, 26, 44]);
-  eyeTest('pc_archer_a', [36, 26, 44]);
+  eyeTest('pc_musa_a', [36, 26, 44]);
+  eyeTest('pc_dosa_a', [36, 26, 44]);
+  eyeTest('pc_gungsa_a', [36, 26, 44]);
   eyeTest('ashwolf', [255, 58, 42]);
 
   // ---------- 소품 ----------

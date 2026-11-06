@@ -24,9 +24,9 @@ const N = FPS * 9;
 await page.evaluate(() => {
   const L = window.LD;
   L.cast([
-    ['pc_warrior_a', 24, 31, 90, 'walk'],
-    ['pc_mage_a', 23, 32, 90, 'walk'],
-    ['pc_archer_b', 22.6, 30.2, 90, 'walk'],
+    ['pc_musa_a', 24, 31, 90, 'walk'],
+    ['pc_dosa_a', 23, 32, 90, 'walk'],
+    ['pc_gungsa_b', 22.6, 30.2, 90, 'walk'],
     ['mushroom', 34, 31, -90, 'walk'],
     ['boar', 35, 32.6, -90, 'walk'],
     ['npc_elder', 26.6, 26.4, 20, 'idle'],

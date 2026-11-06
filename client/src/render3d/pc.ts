@@ -2,13 +2,13 @@
 // 얼굴·머리·옷 색은 캐릭터 것을 유지하고, 투구·갑옷·신발·반지·목걸이·무기가 겉모습을 바꾼다.
 // 한 인물이 그리기 호출 하나로 끝나도록 조합마다 모델 하나를 굽고, 같은 조합은 함께 쓴다.
 import * as THREE from 'three';
-import { archerAnims, mageAnims, warriorAnims } from '@bake/humans.js';
+import { gungsaAnims, dosaAnims, musaAnims } from '@bake/humans.js';
 import { parseGearKey, type Slot, type WornPiece } from '@shared/items';
 import { Geo, mix, tone, v3, type Hex } from './geo';
 import { Body, DIMS, SKINS, addChain, arms, bangs, belt, bonnet, finish, fineRings, gat, hairCap, head, headband, legs, pauldrons, pelvis, ponytail, skirtPanels, topknot, torso, torsoFront, torsoRings, type Build, type CharAsset } from './chars';
 
 type Worn = Partial<Record<Slot, WornPiece>>;
-type Cls = 'warrior' | 'mage' | 'archer';
+type Cls = 'musa' | 'dosa' | 'gungsa';
 
 const RARE: Hex[] = [0, 0x7ee08a, 0x6fb7ff, 0xc79bff];
 const STEEL = 0x98a0ac;
@@ -48,17 +48,17 @@ interface Look {
 }
 
 const LOOKS: Record<Cls, Record<string, Look>> = {
-  warrior: {
+  musa: {
     a: { coat: 0x2c3f66, trim: 0xc9913e, under: 0x7a2c2c, accent: 0xa8302c, hair: 0x241c1c, band: 0xa8302c, pants: 0x38333e, hat: 0x5c432e, shield: 0x8a2c28, ring: 0x2c3f66, vest: 0x2c221c, style: 0, skin: 0 },
     b: { coat: 0x7a2c30, trim: 0xd2a24a, under: 0x263a5e, accent: 0xe6dcc4, hair: 0x2c1e1a, band: 0xe6dcc4, pants: 0x3a2e30, hat: 0x5c432e, shield: 0x2c3f66, ring: 0x7a2c30, vest: 0x2c221c, female: true, style: 1, skin: 1 },
     c: { coat: 0x2f4f46, trim: 0xb88a3c, under: 0x5a3a24, accent: 0x24302c, hair: 0x4a3024, band: 0x24302c, pants: 0x38362e, hat: 0x5c432e, shield: 0x5c4630, ring: 0x2f4f46, vest: 0x2c221c, style: 2, skin: 2 },
   },
-  mage: {
+  dosa: {
     a: { coat: 0xe6e0d0, trim: 0x2c4a6e, under: 0xe6e0d0, accent: 0x8a2f35, hair: 0x201a1e, band: 0x8a2f35, pants: 0x3a3640, hat: 0x1e1c22, shield: 0, ring: 0, vest: 0x3a3640, style: 0, skin: 0 },
     b: { coat: 0x6e8fa8, trim: 0xece4d0, under: 0x6e8fa8, accent: 0xd2a24a, hair: 0x2a2028, band: 0xd2a24a, pants: 0x3a3640, hat: 0x1e1c22, shield: 0, ring: 0, vest: 0x3a3640, female: true, style: 1, skin: 1 },
     c: { coat: 0x5c4670, trim: 0xd2a24a, under: 0x5c4670, accent: 0xe6dcc4, hair: 0xd8d4cc, band: 0xe6dcc4, pants: 0x3a3640, hat: 0x26222c, shield: 0, ring: 0, vest: 0x3a3640, style: 2, skin: 2 },
   },
-  archer: {
+  gungsa: {
     a: { coat: 0x56683e, trim: 0xc9a65a, under: 0x56683e, accent: 0xa8382e, hair: 0x241c18, band: 0xa8382e, pants: 0x4a4436, hat: 0x3c3028, shield: 0, ring: 0, vest: 0x6e4c30, style: 0, skin: 0 },
     b: { coat: 0x7d5a38, trim: 0xd2a24a, under: 0x7d5a38, accent: 0xe4dcc4, hair: 0x332019, pants: 0x423a30, band: 0xe4dcc4, hat: 0x2c2c2c, shield: 0, ring: 0, vest: 0x455840, female: true, style: 1, skin: 1 },
     c: { coat: 0x4a4f6a, trim: 0xb88a3c, under: 0x4a4f6a, accent: 0x3e5e6a, hair: 0x4a3226, pants: 0x38343e, band: 0x3e5e6a, hat: 0x4a3a2c, shield: 0, ring: 0, vest: 0x5c3c2c, style: 2, skin: 2 },
@@ -77,7 +77,7 @@ function hair(b: Body, cls: Cls, L: Look, covered: boolean) {
 }
 
 function hairStyle(b: Body, cls: Cls, L: Look, covered: boolean, opt: { lift: number }, fringe: (o: Parameters<typeof bangs>[2]) => void) {
-  if (cls === 'warrior') {
+  if (cls === 'musa') {
     if (L.style === 0) {
       hairCap(b, L.hair, (a, i) => (Math.abs(a) < 1.15 ? 0.262 + (i % 2) * 0.012 : Math.abs(a) < 1.75 ? 0.15 : 0.1), opt);
       fringe({ front: 0.262, side: 0.12 });
@@ -95,7 +95,7 @@ function hairStyle(b: Body, cls: Cls, L: Look, covered: boolean, opt: { lift: nu
       fringe({ front: 0.24, side: 0.1, part: -1 });
       if (!covered) headband(b, L.band, true);
     }
-  } else if (cls === 'mage') {
+  } else if (cls === 'dosa') {
     if (L.style === 0) {
       hairCap(b, L.hair, (a, i) => (Math.abs(a) < 1.2 ? 0.27 : Math.abs(a) < 1.8 ? 0.16 : 0.1 + (i % 2) * 0.02), opt);
       fringe({ front: 0.27, side: 0.11 });
@@ -280,8 +280,8 @@ function helmet(b: Body, cls: Cls, L: Look, w: WornPiece) {
   const trim = tint(L.trim, w);
   const em = trimGlow(w);
   if (w.tier <= 1) {
-    if (cls === 'mage') gat(b, L.hat, trim);
-    else if (cls === 'archer') bonnet(b, L.hat, trim);
+    if (cls === 'dosa') gat(b, L.hat, trim);
+    else if (cls === 'gungsa') bonnet(b, L.hat, trim);
     else leatherCap(b, trim, em);
     return;
   }
@@ -524,7 +524,7 @@ function ribbons(b: Body, name: string, parent: string, x: number, y: number, z:
   }, 0.26, 18);
 }
 
-function dressWarrior(b: Body, L: Look, w: WornPiece | undefined, skin: Hex) {
+function dressMusa(b: Body, L: Look, w: WornPiece | undefined, skin: Hex) {
   if (!w) return bareClothes(b, skin);
   const trim = tint(L.trim, w);
   const em = trimGlow(w);
@@ -555,7 +555,7 @@ function dressWarrior(b: Body, L: Look, w: WornPiece | undefined, skin: Hex) {
   }
 }
 
-function dressMage(b: Body, L: Look, w: WornPiece | undefined, skin: Hex) {
+function dressDosa(b: Body, L: Look, w: WornPiece | undefined, skin: Hex) {
   if (!w) return bareClothes(b, skin);
   const trim = tint(L.trim, w);
   const em = trimGlow(w);
@@ -586,7 +586,7 @@ function dressMage(b: Body, L: Look, w: WornPiece | undefined, skin: Hex) {
   }
 }
 
-function dressArcher(b: Body, L: Look, w: WornPiece | undefined, skin: Hex) {
+function dressGungsa(b: Body, L: Look, w: WornPiece | undefined, skin: Hex) {
   if (!w) return bareClothes(b, skin);
   const trim = tint(L.trim, w);
   const em = trimGlow(w);
@@ -1127,32 +1127,32 @@ function buildPc(cls: Cls, look: string, worn: Worn): Build {
   head(b, skin, { brow: L.hair === 0xd8d4cc ? 0x8a8680 : L.hair, blush: !!L.female, lash: !!L.female });
   hair(b, cls, L, !!worn.helm);
   if (worn.helm) helmet(b, cls, L, worn.helm);
-  if (cls === 'warrior') dressWarrior(b, L, worn.armor, skin);
-  else if (cls === 'mage') dressMage(b, L, worn.armor, skin);
-  else dressArcher(b, L, worn.armor, skin);
+  if (cls === 'musa') dressMusa(b, L, worn.armor, skin);
+  else if (cls === 'dosa') dressDosa(b, L, worn.armor, skin);
+  else dressGungsa(b, L, worn.armor, skin);
   const pants = worn.armor ? (worn.armor.tier >= 3 ? tone(L.pants, 0.72) : L.pants) : 0xd8d2c4;
   footwear(b, L, worn.boots, pants, skin);
   if (worn.ring) ring(b, worn.ring);
   if (worn.amulet) amulet(b, worn.amulet);
   let bowInfo: Build['bow'];
   const w = worn.weapon;
-  if (cls === 'warrior') {
+  if (cls === 'musa') {
     if (w) sword(b, w);
     // 방패는 막기의 일부라 늘 든다. 무기 단계에 맞춰 좋아진다
     roundShield(b, L, w?.tier ?? 1, w?.glow ?? 0);
-  } else if (cls === 'mage') {
+  } else if (cls === 'dosa') {
     if (w) staff(b, w);
   } else if (w) {
     bowInfo = bow(b, L, w);
   }
-  const anims = cls === 'warrior' ? warriorAnims() : cls === 'mage' ? mageAnims() : archerAnims();
+  const anims = cls === 'musa' ? musaAnims() : cls === 'dosa' ? dosaAnims() : gungsaAnims();
   return { body: b, anims, bow: bowInfo };
 }
 
 const STARTER: Record<Cls, string> = {
-  warrior: 'sword_1.0.0,,armor_1.0.0,,,',
-  mage: 'staff_1.0.0,,armor_1.0.0,,,',
-  archer: 'bow_1.0.0,,armor_1.0.0,,,',
+  musa: 'sword_1.0.0,,armor_1.0.0,,,',
+  dosa: 'staff_1.0.0,,armor_1.0.0,,,',
+  gungsa: 'bow_1.0.0,,armor_1.0.0,,,',
 };
 
 const cache = new Map<string, CharAsset>();
@@ -1171,7 +1171,7 @@ function trim() {
 
 /** pc_<직업>_<모습>#<gearVisualKey>. 뒤를 생략하면 처음 입는 옷차림이다. */
 export function pcAsset(id: string): CharAsset | null {
-  const m = /^pc_(warrior|mage|archer)_([abc])(?:#(.*))?$/.exec(id);
+  const m = /^pc_(musa|dosa|gungsa)_([abc])(?:#(.*))?$/.exec(id);
   if (!m) return null;
   const hit = cache.get(id);
   if (hit) {

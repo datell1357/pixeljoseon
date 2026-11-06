@@ -1,7 +1,7 @@
 // 직업과 스킬 데이터. 값은 전부 이 게임을 위해 새로 정한 것이다.
 
-export type ClassId = 'warrior' | 'mage' | 'archer';
-export const CLASS_IDS: ClassId[] = ['warrior', 'mage', 'archer'];
+export type ClassId = 'musa' | 'dosa' | 'gungsa';
+export const CLASS_IDS: ClassId[] = ['musa', 'dosa', 'gungsa'];
 export const MAX_LEVEL = 30;
 
 export interface ClassDef {
@@ -49,7 +49,7 @@ export interface ProjSpec {
 }
 
 export interface DodgeDef {
-  kind: 'roll' | 'blink' | 'leap';
+  kind: 'gureugi' | 'chukjibeop' | 'dwittwigi';
   label: string;
   icon: string;
   dist: number;
@@ -73,8 +73,8 @@ export interface GuardDef {
 }
 
 export const CLASSES: Record<ClassId, ClassDef> = {
-  warrior: {
-    id: 'warrior',
+  musa: {
+    id: 'musa',
     label: '무사',
     blurb: '환도와 방패 · 근접 · 튼튼함',
     hp: 130,
@@ -91,12 +91,12 @@ export const CLASSES: Record<ClassId, ClassDef> = {
       { anim: 'attack2', kind: 'melee', mult: 1.1, dur: 0.34, impact: 0.13, reach: 1.45, arc: 120, knock: 0.15, lunge: 0.28 },
       { anim: 'attack3', kind: 'melee', mult: 1.7, dur: 0.48, impact: 0.22, reach: 1.7, arc: 150, knock: 0.7, lunge: 0.42 },
     ],
-    dodge: { kind: 'roll', label: '구르기', icon: 'roll', dist: 2.8, dur: 0.38, iframes: 0.3, cd: 3.5 },
-    guard: { label: '방패 들기', icon: 'guard_w', reduce: 0.25, parry: 0.22, maxHold: 0, cd: 0.6 },
-    skills: ['w_whirl', 'w_charge', 'w_slam', 'w_cry', 'w_judge'],
+    dodge: { kind: 'gureugi', label: '구르기', icon: 'gureugi', dist: 2.8, dur: 0.38, iframes: 0.3, cd: 3.5 },
+    guard: { label: '방패 들기', icon: 'deungpae', reduce: 0.25, parry: 0.22, maxHold: 0, cd: 0.6 },
+    skills: ['musa_hwimori', 'musa_dolgyeok', 'musa_ttanggareugi', 'musa_horyeong', 'musa_cheongeun'],
   },
-  mage: {
-    id: 'mage',
+  dosa: {
+    id: 'dosa',
     label: '도사',
     blurb: '부적과 도술 · 원거리 · 광역',
     hp: 90,
@@ -113,12 +113,12 @@ export const CLASSES: Record<ClassId, ClassDef> = {
       { anim: 'attack2', kind: 'shot', mult: 1.0, dur: 0.36, impact: 0.15, proj: { kind: 'orb', speed: 9, range: 7.5, r: 0.3 } },
       { anim: 'attack3', kind: 'shot', mult: 1.5, dur: 0.5, impact: 0.24, proj: { kind: 'orb_big', speed: 8, range: 8, r: 0.42, blast: 1.2 } },
     ],
-    dodge: { kind: 'blink', label: '축지법', icon: 'blink', dist: 3.6, dur: 0.22, iframes: 0.24, cd: 5 },
-    guard: { label: '부적 막기', icon: 'guard_m', reduce: 0.5, parry: 0.3, maxHold: 0.5, cd: 5 },
-    skills: ['m_fireball', 'm_nova', 'm_meteor', 'm_shield', 'm_starfall'],
+    dodge: { kind: 'chukjibeop', label: '축지법', icon: 'chukjibeop', dist: 3.6, dur: 0.22, iframes: 0.24, cd: 5 },
+    guard: { label: '부적 막기', icon: 'bujeok_makgi', reduce: 0.5, parry: 0.3, maxHold: 0.5, cd: 5 },
+    skills: ['dosa_hwabu', 'dosa_bingyeolbu', 'dosa_nakseong', 'dosa_hosinbu', 'dosa_yuseongu'],
   },
-  archer: {
-    id: 'archer',
+  gungsa: {
+    id: 'gungsa',
     label: '궁사',
     blurb: '각궁과 올무 · 원거리 · 기동',
     hp: 105,
@@ -135,9 +135,9 @@ export const CLASSES: Record<ClassId, ClassDef> = {
       { anim: 'attack2', kind: 'shot', mult: 0.85, dur: 0.28, impact: 0.12, proj: { kind: 'arrow', speed: 13, range: 8.5, r: 0.2 } },
       { anim: 'attack3', kind: 'shot', mult: 1.6, dur: 0.48, impact: 0.28, proj: { kind: 'arrow_big', speed: 15, range: 9.5, r: 0.26, pierce: 2 } },
     ],
-    dodge: { kind: 'leap', label: '뒤로 뛰기', icon: 'leap', dist: 3.2, dur: 0.36, iframes: 0.28, cd: 4, backward: true },
-    guard: { label: '빗겨 내기', icon: 'guard_a', reduce: 0.5, parry: 0.26, maxHold: 0.5, cd: 4 },
-    skills: ['a_fan', 'a_pierce', 'a_trap', 'a_hawk', 'a_rain'],
+    dodge: { kind: 'dwittwigi', label: '뒤로 뛰기', icon: 'dwittwigi', dist: 3.2, dur: 0.36, iframes: 0.28, cd: 4, backward: true },
+    guard: { label: '빗겨 내기', icon: 'bitgyeo_naegi', reduce: 0.5, parry: 0.26, maxHold: 0.5, cd: 4 },
+    skills: ['gungsa_osi', 'gungsa_pyeonjeon', 'gungsa_olmu', 'gungsa_maenun', 'gungsa_hwasalbi'],
   },
 };
 
@@ -190,80 +190,80 @@ export interface SkillDef {
 
 export const SKILLS: Record<string, SkillDef> = {
   // 수호자
-  w_whirl: {
-    id: 'w_whirl', cls: 'warrior', name: '휘몰이 베기', desc: '몸을 돌려 주변 적을 모두 벱니다.',
+  musa_hwimori: {
+    id: 'musa_hwimori', cls: 'musa', name: '휘몰이 베기', desc: '몸을 돌려 주변 적을 모두 벱니다.',
     kind: 'whirl', req: 2, maxRank: 5, mp: 12, cd: 5, dur: 0.5, impact: 0.22, anim: 'spin',
     mult: 1.8, multPerRank: 0.3, r: 2.1, knock: 0.5,
   },
-  w_charge: {
-    id: 'w_charge', cls: 'warrior', name: '돌격', desc: '앞으로 내달려 부딪힌 적을 기절시킵니다.',
+  musa_dolgyeok: {
+    id: 'musa_dolgyeok', cls: 'musa', name: '돌격', desc: '앞으로 내달려 부딪힌 적을 기절시킵니다.',
     kind: 'charge', req: 4, maxRank: 5, mp: 14, cd: 8, dur: 0.4, impact: 0.05, anim: 'attack3',
     mult: 1.5, multPerRank: 0.25, reach: 5, r: 1.0, stun: 0.9, knock: 0.4,
   },
-  w_slam: {
-    id: 'w_slam', cls: 'warrior', name: '땅 가르기', desc: '땅을 내리쳐 앞쪽 넓은 범위에 충격파를 보냅니다.',
+  musa_ttanggareugi: {
+    id: 'musa_ttanggareugi', cls: 'musa', name: '땅 가르기', desc: '땅을 내리쳐 앞쪽 넓은 범위에 충격파를 보냅니다.',
     kind: 'cone', req: 7, maxRank: 5, mp: 20, cd: 10, dur: 0.6, impact: 0.3, anim: 'attack3',
     mult: 2.6, multPerRank: 0.4, reach: 4, arc: 80, knock: 0.9, stun: 0.5,
   },
-  w_cry: {
-    id: 'w_cry', cls: 'warrior', name: '호령', desc: '자신과 파티원의 공격력을 높이고 받는 피해를 줄입니다.',
+  musa_horyeong: {
+    id: 'musa_horyeong', cls: 'musa', name: '호령', desc: '자신과 파티원의 공격력을 높이고 받는 피해를 줄입니다.',
     kind: 'buff', req: 11, maxRank: 5, mp: 18, cd: 24, dur: 0.5, impact: 0.2, anim: 'cast',
     mult: 0, multPerRank: 0, buff: { atk: 0.2, dr: 0.2, dur: 10, party: true },
   },
-  w_judge: {
-    id: 'w_judge', cls: 'warrior', name: '천근 내려치기', desc: '지정한 곳으로 뛰어올라 내려칩니다. 궁극기.',
+  musa_cheongeun: {
+    id: 'musa_cheongeun', cls: 'musa', name: '천근 내려치기', desc: '지정한 곳으로 뛰어올라 내려칩니다. 궁극기.',
     kind: 'leapSmash', req: 18, maxRank: 3, mp: 40, cd: 45, dur: 0.75, impact: 0.55, anim: 'attack3',
     mult: 6, multPerRank: 1.5, range: 6.5, r: 3, knock: 1.2, stun: 1.2, ult: true,
   },
   // 등불술사
-  m_fireball: {
-    id: 'm_fireball', cls: 'mage', name: '화부(火符)', desc: '불 부적을 던져 터뜨립니다.',
+  dosa_hwabu: {
+    id: 'dosa_hwabu', cls: 'dosa', name: '화부(火符)', desc: '불 부적을 던져 터뜨립니다.',
     kind: 'proj', req: 2, maxRank: 5, mp: 12, cd: 3.5, dur: 0.42, impact: 0.2, anim: 'cast',
     mult: 2.1, multPerRank: 0.32, proj: { kind: 'fireball', speed: 8.5, range: 8.5, r: 0.45, blast: 1.7 },
   },
-  m_nova: {
-    id: 'm_nova', cls: 'mage', name: '빙결부', desc: '주변을 얼려 적의 발을 묶습니다.',
+  dosa_bingyeolbu: {
+    id: 'dosa_bingyeolbu', cls: 'dosa', name: '빙결부', desc: '주변을 얼려 적의 발을 묶습니다.',
     kind: 'nova', req: 4, maxRank: 5, mp: 18, cd: 9, dur: 0.42, impact: 0.2, anim: 'spin',
     mult: 1.4, multPerRank: 0.25, r: 3, slow: 0.55, stun: 0.3,
   },
-  m_meteor: {
-    id: 'm_meteor', cls: 'mage', name: '낙성(落星)', desc: '지정한 곳에 별똥을 떨어뜨립니다. 떨어지기까지 잠시 걸립니다.',
+  dosa_nakseong: {
+    id: 'dosa_nakseong', cls: 'dosa', name: '낙성(落星)', desc: '지정한 곳에 별똥을 떨어뜨립니다. 떨어지기까지 잠시 걸립니다.',
     kind: 'ground', req: 7, maxRank: 5, mp: 26, cd: 11, dur: 0.5, impact: 0.3, anim: 'cast',
     mult: 3.6, multPerRank: 0.55, range: 8, r: 2.3, delay: 0.8, knock: 0.6,
   },
-  m_shield: {
-    id: 'm_shield', cls: 'mage', name: '호신부', desc: '피해를 대신 받아 주는 부적의 막을 두릅니다.',
+  dosa_hosinbu: {
+    id: 'dosa_hosinbu', cls: 'dosa', name: '호신부', desc: '피해를 대신 받아 주는 부적의 막을 두릅니다.',
     kind: 'shield', req: 11, maxRank: 5, mp: 24, cd: 20, dur: 0.4, impact: 0.15, anim: 'cast',
     mult: 0, multPerRank: 0, shield: 3.2,
   },
-  m_starfall: {
-    id: 'm_starfall', cls: 'mage', name: '유성우', desc: '넓은 곳에 별똥을 쏟아붓습니다. 궁극기.',
+  dosa_yuseongu: {
+    id: 'dosa_yuseongu', cls: 'dosa', name: '유성우', desc: '넓은 곳에 별똥을 쏟아붓습니다. 궁극기.',
     kind: 'groundMulti', req: 18, maxRank: 3, mp: 55, cd: 50, dur: 0.8, impact: 0.3, anim: 'cast',
     mult: 1.9, multPerRank: 0.5, range: 8, r: 3.4, count: 9, delay: 0.5,
   },
   // 순찰자
-  a_fan: {
-    id: 'a_fan', cls: 'archer', name: '오시(五矢)', desc: '화살 다섯 대를 부채꼴로 쏩니다.',
+  gungsa_osi: {
+    id: 'gungsa_osi', cls: 'gungsa', name: '오시(五矢)', desc: '화살 다섯 대를 부채꼴로 쏩니다.',
     kind: 'fan', req: 2, maxRank: 5, mp: 11, cd: 4.5, dur: 0.42, impact: 0.2, anim: 'attack3',
     mult: 0.9, multPerRank: 0.14, count: 5, arc: 55, proj: { kind: 'arrow', speed: 13, range: 7, r: 0.22 },
   },
-  a_pierce: {
-    id: 'a_pierce', cls: 'archer', name: '편전', desc: '짧고 빠른 애기살로 일직선의 모든 적을 꿰뚫습니다.',
+  gungsa_pyeonjeon: {
+    id: 'gungsa_pyeonjeon', cls: 'gungsa', name: '편전', desc: '짧고 빠른 애기살로 일직선의 모든 적을 꿰뚫습니다.',
     kind: 'proj', req: 4, maxRank: 5, mp: 15, cd: 7, dur: 0.6, impact: 0.36, anim: 'attack3',
     mult: 2.8, multPerRank: 0.42, proj: { kind: 'arrow_big', speed: 18, range: 12, r: 0.32, pierce: 99 },
   },
-  a_trap: {
-    id: 'a_trap', cls: 'archer', name: '올무', desc: '올무를 놓습니다. 밟은 적은 묶이고 피해를 입습니다.',
+  gungsa_olmu: {
+    id: 'gungsa_olmu', cls: 'gungsa', name: '올무', desc: '올무를 놓습니다. 밟은 적은 묶이고 피해를 입습니다.',
     kind: 'trap', req: 7, maxRank: 5, mp: 16, cd: 12, dur: 0.36, impact: 0.2, anim: 'cast',
     mult: 2.4, multPerRank: 0.4, range: 6, r: 1.6, stun: 2.2,
   },
-  a_hawk: {
-    id: 'a_hawk', cls: 'archer', name: '매의 눈', desc: '치명타 확률과 공격 속도를 높입니다.',
+  gungsa_maenun: {
+    id: 'gungsa_maenun', cls: 'gungsa', name: '매의 눈', desc: '치명타 확률과 공격 속도를 높입니다.',
     kind: 'buff', req: 11, maxRank: 5, mp: 18, cd: 22, dur: 0.36, impact: 0.15, anim: 'cast',
     mult: 0, multPerRank: 0, buff: { crit: 0.2, aspd: 0.3, dur: 10 },
   },
-  a_rain: {
-    id: 'a_rain', cls: 'archer', name: '화살비', desc: '지정한 곳에 화살을 비처럼 쏟아붓습니다. 궁극기.',
+  gungsa_hwasalbi: {
+    id: 'gungsa_hwasalbi', cls: 'gungsa', name: '화살비', desc: '지정한 곳에 화살을 비처럼 쏟아붓습니다. 궁극기.',
     kind: 'groundMulti', req: 18, maxRank: 3, mp: 42, cd: 42, dur: 0.7, impact: 0.3, anim: 'attack3',
     mult: 1.3, multPerRank: 0.35, range: 9, r: 3, count: 12, delay: 0.3,
   },

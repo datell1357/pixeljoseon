@@ -6,11 +6,11 @@ import { MONSTERS } from '../../shared/monsters';
 import { QUESTS, npcMark, questAvailable, questComplete } from '../../shared/quests';
 import * as C from '../src/char';
 
-const fresh = (cls: 'warrior' | 'mage' | 'archer' = 'warrior') => C.newChar('id', 'acc', '시험', cls, 0);
+const fresh = (cls: 'musa' | 'dosa' | 'gungsa' = 'musa') => C.newChar('id', 'acc', '시험', cls, 0);
 
 describe('새 캐릭터', () => {
   it('직업 무기와 물약을 갖고 시작한다', () => {
-    for (const cls of ['warrior', 'mage', 'archer'] as const) {
+    for (const cls of ['musa', 'dosa', 'gungsa'] as const) {
       const c = fresh(cls);
       expect(GEAR[c.equip.weapon!.base].cls).toBe(cls);
       expect(C.countItem(c, 'potion_hp_s')).toBe(5);
@@ -64,14 +64,14 @@ describe('성장', () => {
 
   it('스킬은 레벨·포인트·최고 단계를 지킨다', () => {
     const c = fresh();
-    expect(C.skillUp(c, 'w_whirl').ok).toBe(false);
+    expect(C.skillUp(c, 'musa_hwimori').ok).toBe(false);
     c.level = 2;
-    expect(C.skillUp(c, 'w_whirl').ok).toBe(true);
-    expect(C.skillUp(c, 'w_whirl').ok).toBe(false);
+    expect(C.skillUp(c, 'musa_hwimori').ok).toBe(true);
+    expect(C.skillUp(c, 'musa_hwimori').ok).toBe(false);
     c.level = 30;
-    for (let i = 0; i < 4; i++) expect(C.skillUp(c, 'w_whirl').ok).toBe(true);
-    expect(C.skillUp(c, 'w_whirl').ok).toBe(false);
-    expect(C.skillUp(c, 'm_nova').ok).toBe(false);
+    for (let i = 0; i < 4; i++) expect(C.skillUp(c, 'musa_hwimori').ok).toBe(true);
+    expect(C.skillUp(c, 'musa_hwimori').ok).toBe(false);
+    expect(C.skillUp(c, 'dosa_bingyeolbu').ok).toBe(false);
   });
 
   it('직업마다 스킬 데이터가 모두 있다', () => {
@@ -151,14 +151,14 @@ describe('퀘스트', () => {
   });
 
   it('보상 장비는 직업에 맞게 나온다', () => {
-    const c = fresh('archer');
+    const c = fresh('gungsa');
     c.level = 5;
     c.quests.done.push('q_first_light');
     C.acceptQuest(c, 'q_smith_iron');
     for (let i = 0; i < 8; i++) C.onKill(c, 'wisp');
     C.turnInQuest(c, 'q_smith_iron');
     const g = c.bag.find((x) => x?.kind === 'gear');
-    expect(g && g.kind === 'gear' && GEAR[g.gear.base].cls).toBe('archer');
+    expect(g && g.kind === 'gear' && GEAR[g.gear.base].cls).toBe('gungsa');
   });
 
   it('퀘스트가 가리키는 몬스터·아이템·NPC·지도가 모두 있다', () => {
@@ -187,7 +187,7 @@ describe('밸런스', () => {
   });
 
   it('직업별 체력·마나가 레벨에 따라 오른다', () => {
-    for (const id of ['warrior', 'mage', 'archer'] as const) {
+    for (const id of ['musa', 'dosa', 'gungsa'] as const) {
       expect(baseStats(id, 10).maxHp).toBeGreaterThan(baseStats(id, 1).maxHp);
       expect(baseStats(id, 10).atk).toBeGreaterThan(baseStats(id, 1).atk);
     }

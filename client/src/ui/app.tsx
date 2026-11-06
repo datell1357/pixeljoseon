@@ -11,9 +11,9 @@ import { Hud } from './hud';
 const MAP_LABEL: Record<string, string> = { town: '초롱골', woods: '솔모루 숲', ashfield: '화전골' };
 /** 구운 그림의 색 변형과 맞춘 견본 */
 const LOOK_COLORS: Record<ClassId, string[]> = {
-  warrior: ['#3f6ab0', '#b83a3a', '#2f8a56'],
-  mage: ['#4a3aa8', '#b03a5a', '#2f9a90'],
-  archer: ['#5f8f4a', '#4a7ab0', '#a84a5a'],
+  musa: ['#3f6ab0', '#b83a3a', '#2f8a56'],
+  dosa: ['#4a3aa8', '#b03a5a', '#2f9a90'],
+  gungsa: ['#5f8f4a', '#4a7ab0', '#a84a5a'],
 };
 
 function LoadLine() {
@@ -191,7 +191,7 @@ function CharSelect() {
 }
 
 function CharCreate() {
-  const [cls, setCls] = useState<ClassId>('warrior');
+  const [cls, setCls] = useState<ClassId>('musa');
   const [look, setLook] = useState(0);
   const [name, setName] = useState('');
   const [err, setErr] = useState('');
