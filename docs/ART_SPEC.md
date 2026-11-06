@@ -35,13 +35,14 @@
 
 짐승은 블렌더에서 만든 스킨드 모델(glb)로 바꾸는 중이다. glb가 있는 짐승은 그 모델을, 없는 짐승은 코드로 지은 모델(`beasts.ts`)을 쓴다.
 
-- 만드는 법: `tools/blender/beastlib.py`(공용) + 종별 스크립트. 개과는 `tools/blender/canid.py <종> client/public/models`.
+- 만드는 법: `tools/blender/beastlib.py`(공용) + 종별 스크립트. 개과(여우·늑대·승냥이·너구리·구미호)는 `tools/blender/canid.py <종> client/public/models`, 덩치 큰 짐승(호랑이·반달가슴곰·멧돼지)은 `tools/blender/big.py <종> client/public/models`.
   1. 부위마다 단면 곡면을 짓고 복셀 재메시로 하나로 합친 뒤 이음새를 녹인다.
   2. 정점마다 겉면이 가장 가까운 부위(몸통·머리·꼬리·다리 마디)를 찾아 부위 기준으로 털 무늬를 칠한다.
   3. 약 3천 개 삼각형으로 줄이고 128px 텍스처로 굽는다 (`Closest` 보간).
   4. 표준 네발 뼈대를 심고 자동 가중치로 붙인다. 다리는 발 목표점(IK)으로 움직인다.
   5. 서기·걷기·물기·맞기·쓰러지기(보스는 sweep·slam·cast)를 키프레임으로 넣고 12fps로 뽑아 glb로 내보낸다.
 - 게임(`client/src/render3d/skinned.ts`): 정점마다 뼈 4개를 섞는 스키닝, 텍스처 색, 뼈 가중치로 나눈 안쪽 외곽선(몸·머리·꼬리·다리 넷), 동작은 12fps로 끊어 재생. `fire`로 시작하는 뼈에 붙은 정점은 스스로 빛난다.
+- 작은 덧붙이(발톱 등)는 자동 가중치가 엉뚱한 뼈에 붙여 걸을 때 떨어져 보이므로 넣지 않는다.
 - 블렌더는 `/Applications/Blender.app/Contents/MacOS/Blender`로 직접 부른다 (홈브루 링크 경로로 부르면 내장 파이썬이 뜨지 않았다).
 - 그림 점검 도구에서 `이름@old`로 부르면 예전 코드 모델이 나와 나란히 비교할 수 있다.
 
