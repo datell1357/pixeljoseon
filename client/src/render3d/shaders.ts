@@ -16,6 +16,7 @@ float bayer4(vec2 p){ ivec2 q=ivec2(mod(p,4.)); int m[16]=int[16](0,8,2,10,12,4,
 
 export const LIT = /* glsl */ `
 uniform float uTime;
+uniform float uStyle;
 uniform vec3 uSunDir; uniform vec3 uSunCol; uniform vec3 uSky; uniform vec3 uGnd;
 uniform mat4 uShadowMat; uniform sampler2D uShadowMap;
 uniform vec4 uLampPos[${MAX_LAMPS}]; uniform vec3 uLampCol[${MAX_LAMPS}]; uniform int uLampN;
@@ -40,6 +41,8 @@ vec3 lit(vec3 alb, vec3 n, vec3 wp, float spec, float paint, float sh, float war
   float wob = (vnoise3(wp*11.)-.5)*paint;
   float ndl = dot(n,uSunDir) + wob;
   float b = ndl<-.02 ? 0. : ndl<.22 ? .42 : ndl<.55 ? .72 : 1.;
+  // 사실적 모드: 끊긴 단계 대신 부드러운 명암
+  b = mix(b, smoothstep(-.05,.6,ndl), uStyle);
   float sun = b*sh;
   float up = n.y*.5+.5;
   vec3 amb = mix(uGnd,uSky, up<.33?0.:up<.7?.55:1.);
@@ -490,7 +493,7 @@ in vec2 vUv; out vec4 o;
 uniform sampler2D tC, tN, tD, tB1, tB2;
 uniform vec2 uRes; uniform vec2 uCamPx; uniform float uTime;
 uniform float uDepthRange; uniform vec3 uSunDir; uniform mat4 uInvVP; uniform vec2 uMapSize;
-uniform vec3 uFogCol; uniform float uFog; uniform vec3 uShadowTint; uniform vec3 uHighTint; uniform float uSat;
+uniform vec3 uFogCol; uniform float uFog; uniform vec3 uShadowTint; uniform vec3 uHighTint; uniform float uSat; uniform float uStyle;
 uniform vec4 uHalo[${MAX_LAMPS}]; uniform vec3 uHaloCol[${MAX_LAMPS}]; uniform int uHaloN; uniform float uHaloK; uniform float uKey;
 
 float D(vec2 uv){ return texture(tD,uv).r*uDepthRange; }
@@ -530,6 +533,8 @@ void main(){
       }
     }
   }
+  // 사실적 모드: 외곽선을 거의 지운다
+  darkEdge *= 1.-uStyle*.85; lightEdge *= 1.-uStyle;
   // 어두운 윤곽도 제 색을 지니게: 검정이 아니라 물체 색의 진한 그늘
   if(darkEdge>0.){
     vec3 selout = col*vec3(.40,.36,.46)+vec3(.012,.008,.03);
@@ -568,15 +573,17 @@ void main(){
 
   // 색 보정: 어두운 곳은 차갑게, 밝은 곳은 따뜻하게
   float l = dot(col,vec3(.299,.587,.114));
-  col = mix(vec3(l),col,uSat);
+  col = mix(vec3(l),col,uSat*(1.-uStyle*.32));
+  // 사실적 모드: 흙빛으로 눌러 대비를 키운다
+  col = mix(col, pow(col*vec3(1.02,.96,.86), vec3(1.12)), uStyle);
   col = mix(col*uShadowTint, col*uHighTint, smoothstep(.08,.7,l));
   // 색 수를 줄여 도트 느낌을 살린다
   vec2 wp = floor(fc)+vec2(uCamPx.x,-uCamPx.y)+65536.;
   float dither = bayer4(wp)-.5;
   float levels = 40.;
-  col = floor(col*levels+.5+dither*.4)/levels;
+  col = mix(floor(col*levels+.5+dither*.4)/levels, col, uStyle);
   // 가장자리 어둡게
-  vec2 c = vUv-.5; float vig = 1.-dot(c,c)*.42;
+  vec2 c = vUv-.5; float vig = 1.-dot(c,c)*(.42+uStyle*.9);
   col *= uKey>.5 ? 1. : vig;
   o = vec4(col, uKey>.5 && sky ? 0. : 1.);
 }

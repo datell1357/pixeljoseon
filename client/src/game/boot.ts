@@ -122,7 +122,11 @@ function logicalSize() {
 /** 설정에 맞춰 그래픽 수준을 정한다 */
 export function applyGfx() {
   if (!stage) return;
-  stage.setQuality(settings.value.gfx === 'low' ? 0 : 1);
+  const low = settings.value.gfx === 'low';
+  stage.setQuality(low ? 0 : 1);
+  // 기본은 사실적 모드. 주소에 ?style=pixel을 붙이면 예전 도트 모드로 본다
+  const pixel = new URLSearchParams(location.search).get('style') === 'pixel';
+  stage.setStyle(!pixel, low ? 0.6 : 1);
 }
 
 export async function createGame() {
@@ -136,6 +140,7 @@ export async function createGame() {
   stage.onSlow = () => {
     if (settings.value.gfx !== 'auto') return;
     stage?.setQuality(0);
+    if (stage?.realistic) stage.setStyle(true, 0.6);
     toast('화면이 느려서 그래픽을 낮췄어요. 설정에서 바꿀 수 있어요.', 'info', 3200);
   };
   (window as unknown as { __stage?: Stage3D }).__stage = stage;

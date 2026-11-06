@@ -32,6 +32,8 @@ let cur = '';
 try {
   const sz = (args.find((a) => a.startsWith("--size=")) ?? "--size=960,540,2").slice(7).split(",").map(Number);
   await page.evaluate((s) => window.LD.size(s[0], s[1], s[2]), sz);
+  const styleArg = args.find((a) => a.startsWith('--style='));
+  if (styleArg) await page.evaluate((v) => window.LD.style(v), Number(styleArg.slice(8)));
   for (const s of shots) {
     const [map, u, v, name, t] = s.split(':');
     if (map !== cur) {

@@ -33,6 +33,8 @@ export const CAM_DIR = new THREE.Vector3(0, SIN_E, COS_E).normalize();
 /** 모든 재질이 같이 쓰는 값 */
 export const shared = {
   uTime: { value: 0 },
+  /** 0 도트, 1 사실적 (시제품) */
+  uStyle: { value: 0 },
   uSunDir: { value: new THREE.Vector3(-0.5, 0.7, 0.5).normalize() },
   uSunCol: { value: new THREE.Color(1, 0.9, 0.7) },
   uSky: { value: new THREE.Color(0.4, 0.5, 0.7) },
@@ -92,6 +94,12 @@ export class Stage3D {
   w = 640;
   h = 360;
   k = 2;
+  /** 3D를 그리는 실제 해상도 배율 (도트 모드는 1: 논리 픽셀 그대로) */
+  res = 1;
+  /** 사실적 모드: 화면 해상도로 매끈하게, 부드러운 명암, 외곽선·색 줄이기 없음 */
+  realistic = false;
+  /** 사실적 모드의 해상도 비율 (낮은 그래픽 설정에서 줄인다) */
+  renderScale = 1;
   cx = 0;
   cy = 0;
   main!: THREE.WebGLRenderTarget;
@@ -180,6 +188,7 @@ export class Stage3D {
         uShadowTint: { value: new THREE.Color(1, 1, 1) },
         uHighTint: { value: new THREE.Color(1, 1, 1) },
         uSat: { value: 1 },
+        uStyle: shared.uStyle,
         uHalo: { value: Array.from({ length: MAX_LAMPS }, () => new THREE.Vector4()) },
         uHaloCol: { value: Array.from({ length: MAX_LAMPS }, () => new THREE.Vector3()) },
         uHaloN: { value: 0 },
@@ -208,15 +217,29 @@ export class Stage3D {
     this.setSize(640, 360, 2);
   }
 
-  setSize(w: number, h: number, k: number) {
-    w = Math.max(2, w);
-    h = Math.max(2, h);
-    this.w = w;
-    this.h = h;
+  /** 그리는 방식을 바꾼다. scale은 사실적 모드의 해상도 비율 */
+  setStyle(realistic: boolean, scale = 1) {
+    this.realistic = realistic;
+    this.renderScale = scale;
+    shared.uStyle.value = realistic ? 1 : 0;
+    this.setSize(this.w, this.h, this.k);
+  }
+
+  setSize(lw: number, lh: number, k: number) {
+    lw = Math.max(2, lw);
+    lh = Math.max(2, lh);
+    this.w = lw;
+    this.h = lh;
     this.k = k;
+    // 사실적 모드는 화면의 실제 픽셀 수만큼 그린다 (너무 큰 화면은 1.5배까지)
+    const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+    this.res = this.realistic ? Math.max(1, k * Math.min(dpr, 1.5) * this.renderScale) : 1;
+    const w = Math.max(2, Math.round(lw * this.res));
+    const h = Math.max(2, Math.round(lh * this.res));
     this.renderer.setSize(w, h, false);
-    this.canvas.style.width = `${w * k}px`;
-    this.canvas.style.height = `${h * k}px`;
+    this.canvas.style.width = `${lw * k}px`;
+    this.canvas.style.height = `${lh * k}px`;
+    this.canvas.style.imageRendering = this.realistic ? 'auto' : 'pixelated';
     this.main?.dispose();
     this.main?.depthTexture?.dispose();
     const dt = new THREE.DepthTexture(w, h, THREE.UnsignedIntType);
@@ -614,7 +637,7 @@ export class Stage3D {
       n++;
       const [sx, sy] = screen(l.x, l.y, l.z);
       if (sx > -160 && sx < this.w + 160 && sy > -160 && sy < this.h + 160) {
-        u.uHalo.value[hn].set(sx, sy, 34 + l.r * 6, 0.32 * flick);
+        u.uHalo.value[hn].set(sx * this.res, sy * this.res, (34 + l.r * 6) * this.res, 0.32 * flick);
         u.uHaloCol.value[hn].set(l.col.r, l.col.g, l.col.b);
         hn++;
       }
