@@ -4,8 +4,22 @@
     {
       "name": "lantern-road",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "start"],
+      "runtimeArgs": [
+        "run",
+        "start"
+      ],
       "port": 2567
+    },
+    {
+      "name": "asset-viewer",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--port",
+        "5174",
+        "--strictPort"
+      ],
+      "port": 5174
     }
   ]
 }
