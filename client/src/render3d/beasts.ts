@@ -104,7 +104,7 @@ function quadRig(d: Dims, o: { head: [number, number]; headRx?: number; jaw?: [n
 
 // ======================= 다람쥐 =======================
 /** 한국 다람쥐: 등에 검은 줄 다섯, 눈 위아래 흰 줄, 위로 세운 털꼬리. 깡충깡충 뛴다 */
-function squirrel(): Beast {
+function daramjwi(): Beast {
   const b = new MB();
   const d: Dims = { bodyH: 0.19, hipX: 0.065, frontZ: 0.1, backZ: -0.1, upper: 0.1, lower: 0.11, shift: 0.0 };
   // 한국 다람쥐: 회갈색에 누런 기, 엉덩이만 살짝 붉다. 여우처럼 진한 주황이 아니다
@@ -299,7 +299,7 @@ function canidAnims(k: number, o: { stride: number; lift: number; dur: number; t
 }
 
 // ======================= 여우 =======================
-function fox(): Beast {
+function yeou(): Beast {
   const red = 0xcf6526;
   const redD = 0xa84a1c;
   const white = 0xf2ece0;
@@ -355,7 +355,7 @@ function fox(): Beast {
 }
 
 // ======================= 늑대 =======================
-function wolf(): Beast {
+function neukdae(): Beast {
   const grey = 0x4e4a44;
   const greyD = 0x201e1c;
   const tan = 0x765e48;
@@ -422,7 +422,7 @@ function wolf(): Beast {
 }
 
 // ======================= 승냥이 =======================
-function dhole(): Beast {
+function seungnyangi(): Beast {
   const rust = 0xb85a26;
   const rustD = 0x8a3e1c;
   const cream = 0xe8d4b4;
@@ -470,7 +470,7 @@ function dhole(): Beast {
 
 // ======================= 너구리 =======================
 /** 너구리: 둥글고 털이 부숭부숭한 몸, 눈가의 검은 털, 검은 다리와 가슴, 짧고 굵은 꼬리 */
-function raccoonDog(): Beast {
+function neoguri(): Beast {
   const buff = 0xa88c62;
   const grizz = 0x5a4e40;
   const pale = 0xd8ccb4;
@@ -546,7 +546,7 @@ function raccoonDog(): Beast {
 
 // ======================= 멧돼지 =======================
 /** 멧돼지: 높이 솟은 어깨와 억센 갈기, 길쭉한 쐐기 머리와 둥근 코, 위로 휜 엄니, 가는 다리 */
-function boar(): Beast {
+function metdwaeji(): Beast {
   const b = new MB();
   const hide = 0x5c4636;
   const hideD = 0x3a2c24;
@@ -651,7 +651,7 @@ function boar(): Beast {
 }
 
 // ======================= 곰 공통 =======================
-interface BearOpt {
+interface GomOpt {
   fur: Hex;
   furD: Hex;
   muzzle: Hex;
@@ -665,11 +665,11 @@ interface BearOpt {
   furLen?: number;
 }
 
-const BEAR_D: Dims = { bodyH: 0.48, hipX: 0.14, frontZ: 0.28, backZ: -0.28, upper: 0.24, lower: 0.22, shift: -0.02 };
+const GOM_D: Dims = { bodyH: 0.48, hipX: 0.14, frontZ: 0.28, backZ: -0.28, upper: 0.24, lower: 0.22, shift: -0.02 };
 
-function bearBody(o: BearOpt) {
+function gomBody(o: GomOpt) {
   const b = new MB();
-  const d = BEAR_D;
+  const d = GOM_D;
   // 가슴의 흰 반달(V): 가슴 앞면에서 가운데로 모이는 띠
   const crescent = (p: THREE.Vector3) => {
     if (o.chest === undefined || p.z < 0.26) return false;
@@ -742,11 +742,11 @@ function bearBody(o: BearOpt) {
   return b;
 }
 
-function bearRig(extra?: (q: any) => void) {
-  return quadRig(BEAR_D, { head: [0.18, 0.5], headRx: 0.05, jaw: [-0.06, 0.12], tail: [0.12, -0.42], extra });
+function gomRig(extra?: (q: any) => void) {
+  return quadRig(GOM_D, { head: [0.18, 0.5], headRx: 0.05, jaw: [-0.06, 0.12], tail: [0.12, -0.42], extra });
 }
 
-function bearAnims(k: number): Record<string, Anim> {
+function gomAnims(k: number): Record<string, Anim> {
   return {
     idle: anim(idleLoop(8, 0.012 * k, (ph) => ({ 'head.ry': 14 * Math.sin(ph * 0.5) ** 3, 'head.rx': 3 * Math.sin(ph), 'jaw.rx': 2 + 2 * Math.sin(ph * 2) })), 2.0, true),
     // 육중하게 어깨를 흔들며 걷는다
@@ -757,14 +757,14 @@ function bearAnims(k: number): Record<string, Anim> {
   };
 }
 
-function bear(): Beast {
-  const b = bearBody({ fur: 0x201c1e, furD: 0x141214, muzzle: 0x8a6a4c, chest: 0xeee6d6, eye: 0x4a2c18 });
-  return { b, rig: bearRig(), anims: bearAnims(1) };
+function bandalgom(): Beast {
+  const b = gomBody({ fur: 0x201c1e, furD: 0x141214, muzzle: 0x8a6a4c, chest: 0xeee6d6, eye: 0x4a2c18 });
+  return { b, rig: gomRig(), anims: gomAnims(1) };
 }
 
 // ======================= 호랑이 =======================
 /** 범: 길고 낮은 몸, 굵은 앞다리, 둥근 머리와 흰 볼털, 몸을 감싸는 검은 줄, 고리 무늬 긴 꼬리 */
-function tiger(): Beast {
+function horangi(): Beast {
   const b = new MB();
   const orange = 0xcc6a1e;
   const orangeD = 0xb05416;
@@ -870,7 +870,7 @@ function tiger(): Beast {
 
 // ======================= 박쥐 =======================
 /** 박쥐: 털 뭉치 몸, 큰 귀, 손가락 뼈 사이에 막이 펼쳐진 날개 */
-function bat(): Beast {
+function bakjwi(): Beast {
   const b = new MB();
   const fur = 0x4a3a34;
   const furL = 0x6a5446;
@@ -1120,7 +1120,7 @@ function bulgasari(): Beast {
   const rust = 0x7a5640;
   const molten = 0xff7a2a;
   const seam = (p: THREE.Vector3) => Math.abs(Math.sin(p.z * 23 + Math.sin(p.y * 13) * 1.4 + p.x * 9)) < 0.07;
-  const b = bearBody({
+  const b = gomBody({
     fur: iron, furD: ironD, muzzle: 0x5a5c66, eye: molten, eyeEm: 1, mane: false, furLen: 0,
     bodyPaint: (_t, s, _c, p) => {
       if (seam(p) && s < 0.7) return molten;
@@ -1171,12 +1171,12 @@ function bulgasari(): Beast {
     ball(g, 0.07, -0.2, 0.0, 0.03, 0.02, 0.03, molten, 6);
     g.set({ em: 0 });
   });
-  const rig = bearRig((q: any) => {
+  const rig = gomRig((q: any) => {
     const t = q.node('trunk', q.nodes.head, 0, -0.04, 0.3);
     t.rotation.x = 0.2;
     q.node('trunk2', t, 0, -0.22, 0.08);
   });
-  const a = bearAnims(1.15);
+  const a = gomAnims(1.15);
   const trunkSw = (poses: Pose[], amp: number) => poses.map((p, i) => ({ 'trunk.rx': amp * Math.sin((i / poses.length) * Math.PI * 2), 'trunk2.rx': amp * 1.4 * Math.sin((i / poses.length) * Math.PI * 2 - 0.9), ...p }));
   const anims: Record<string, Anim> = {
     idle: anim(trunkSw(a.idle.poses, 8), 2.0, true),
@@ -1213,5 +1213,5 @@ function bulgasari(): Beast {
 }
 
 export const BEASTS: Record<string, () => Beast> = {
-  squirrel, raccoon: raccoonDog, boar, fox, wolf, dhole, bear, tiger, bat, gumiho, bulgasari,
+  daramjwi, neoguri, metdwaeji, yeou, neukdae, seungnyangi, bandalgom, horangi, bakjwi, gumiho, bulgasari,
 };

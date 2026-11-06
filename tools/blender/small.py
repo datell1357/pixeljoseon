@@ -24,7 +24,7 @@ def eye_hit(co, eyes, r):
     return min((co - e).length for e in eyes) < r
 
 
-if SP == 'squirrel':
+if SP == 'daramjwi':
     # ---------------- 다람쥐 ----------------
     b = B.Builder()
     b.sweep(pts([(-0.125, 0.1), (-0.095, 0.115), (-0.045, 0.126), (0.015, 0.126), (0.065, 0.12), (0.1, 0.13)]),

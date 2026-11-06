@@ -567,19 +567,19 @@ function woods(): MapData {
   b.scatter(['fern', 'fern', 'mush_cluster', 'bush'], 130, inside, 0.9);
 
   // 몬스터: 마을에서 멀어질수록 강해진다
-  b.spawn('mushroom', 14, 28, 5, 5, 1, 9);
-  b.spawn('mushroom', 13, 45, 5, 5, 1, 9);
-  b.spawn('mushroom', 24, 44, 5, 5, 2, 10);
-  b.spawn('mushroom', 24, 28, 5, 5, 2, 10);
+  b.spawn('daramjwi', 14, 28, 5, 5, 1, 9);
+  b.spawn('daramjwi', 13, 45, 5, 5, 1, 9);
+  b.spawn('daramjwi', 24, 44, 5, 5, 2, 10);
+  b.spawn('daramjwi', 24, 28, 5, 5, 2, 10);
   // 다람쥐(서쪽 어귀) → 너구리(북쪽 늪가) → 멧돼지(남쪽 골짜기) 순으로 강해진다
-  b.spawn('wisp', 32, 16, 6, 4, 3, 13);
-  b.spawn('wisp', 44, 22, 6, 4, 3, 13);
-  b.spawn('wisp', 52, 18, 6, 4, 4, 13);
-  b.spawn('wisp', 58, 33, 5, 5, 4, 12, true);
-  b.spawn('boar', 34, 54, 6, 4, 5, 13);
-  b.spawn('boar', 45, 56, 6, 4, 5, 13);
-  b.spawn('boar', 26, 57, 5, 3, 6, 13);
-  b.spawn('boar', 56, 51, 5, 3, 7, 14, true);
+  b.spawn('neoguri', 32, 16, 6, 4, 3, 13);
+  b.spawn('neoguri', 44, 22, 6, 4, 3, 13);
+  b.spawn('neoguri', 52, 18, 6, 4, 4, 13);
+  b.spawn('neoguri', 58, 33, 5, 5, 4, 12, true);
+  b.spawn('metdwaeji', 34, 54, 6, 4, 5, 13);
+  b.spawn('metdwaeji', 45, 56, 6, 4, 5, 13);
+  b.spawn('metdwaeji', 26, 57, 5, 3, 6, 13);
+  b.spawn('metdwaeji', 56, 51, 5, 3, 7, 14, true);
   return b.finish({ tint: [0.86, 0.96, 0.88], dark: 0.42, bg: '#0a120c', music: 'forest', color: '#2e4f35' });
 }
 
@@ -630,10 +630,10 @@ function hollow(): MapData {
     const v = 4 + b.rand() * 48;
     if (isOpen(Math.floor(u), Math.floor(v)) && Math.hypot(u - 20, v - 11) > 6) b.prop(b.rand() < 0.5 ? 'fern' : 'mush_cluster', u, v);
   }
-  b.spawn('fox', 12, 37, 4, 5, 6, 0, true);
-  b.spawn('fox', 28, 28, 4, 4, 7, 0, true);
-  b.spawn('boar', 26, 24, 3, 2, 6, 0, true);
-  b.spawn('elder', 20, 10, 0, 1, 8, 0);
+  b.spawn('yeou', 12, 37, 4, 5, 6, 0, true);
+  b.spawn('yeou', 28, 28, 4, 4, 7, 0, true);
+  b.spawn('metdwaeji', 26, 24, 3, 2, 6, 0, true);
+  b.spawn('gumiho', 20, 10, 0, 1, 8, 0);
   return b.finish({ tint: [0.8, 0.94, 0.82], dark: 0.62, bg: '#05080a', music: 'dungeon', instance: true, color: '#26382b' });
 }
 
@@ -671,18 +671,18 @@ function ashfield(): MapData {
   b.scatter(['bone_pile', 'ember_vent', 'rubble'], 70, inside, 1.6);
   b.scatter(['broken_cart'], 5, inside, 12);
 
-  b.spawn('ashwolf', 30, 62, 6, 4, 9, 14, true);
-  b.spawn('ashwolf', 48, 60, 6, 4, 10, 14, true);
-  b.spawn('ashwolf', 24, 47, 6, 4, 10, 14, true);
-  b.spawn('emberbug', 44, 32, 5, 5, 10, 11, true);
-  b.spawn('emberbug', 58, 30, 5, 5, 11, 11, true);
-  b.spawn('golem', 36, 16, 6, 3, 12, 18);
-  b.spawn('golem', 52, 24, 6, 3, 13, 18);
-  b.spawn('cultist', 12, 26, 5, 3, 14, 15);
-  b.spawn('cultist', 14, 42, 5, 3, 14, 15);
-  b.spawn('cultist', 6, 33, 3, 2, 15, 15);
-  b.spawn('golem', 62, 18, 4, 2, 14, 18);
-  b.spawn('emberbug', 64, 12, 3, 5, 13, 11, true);
+  b.spawn('neukdae', 30, 62, 6, 4, 9, 14, true);
+  b.spawn('neukdae', 48, 60, 6, 4, 10, 14, true);
+  b.spawn('neukdae', 24, 47, 6, 4, 10, 14, true);
+  b.spawn('seungnyangi', 44, 32, 5, 5, 10, 11, true);
+  b.spawn('seungnyangi', 58, 30, 5, 5, 11, 11, true);
+  b.spawn('bandalgom', 36, 16, 6, 3, 12, 18);
+  b.spawn('bandalgom', 52, 24, 6, 3, 13, 18);
+  b.spawn('horangi', 12, 26, 5, 3, 14, 15);
+  b.spawn('horangi', 14, 42, 5, 3, 14, 15);
+  b.spawn('horangi', 6, 33, 3, 2, 15, 15);
+  b.spawn('bandalgom', 62, 18, 4, 2, 14, 18);
+  b.spawn('seungnyangi', 64, 12, 3, 5, 13, 11, true);
   return b.finish({ tint: [1, 0.86, 0.76], dark: 0.5, bg: '#120a08', music: 'ash', color: '#4d3f3a' });
 }
 
@@ -707,11 +707,11 @@ function furnace(): MapData {
     b.prop('torch', u, v);
     b.objects.push({ type: 'lantern', name: 't', u, v, r: 6 });
   }
-  b.spawn('shade', 28, 39, 4, 6, 15, 0, true);
-  b.spawn('golem', 37, 44, 3, 2, 15, 0, true);
-  b.spawn('cultist', 9, 33, 4, 4, 16, 0, true);
-  b.spawn('golem', 16, 28, 3, 2, 16, 0, true);
-  b.spawn('warden', 22, 10, 0, 1, 18, 0);
+  b.spawn('bakjwi', 28, 39, 4, 6, 15, 0, true);
+  b.spawn('bandalgom', 37, 44, 3, 2, 15, 0, true);
+  b.spawn('horangi', 9, 33, 4, 4, 16, 0, true);
+  b.spawn('bandalgom', 16, 28, 3, 2, 16, 0, true);
+  b.spawn('bulgasari', 22, 10, 0, 1, 18, 0);
   return b.finish({ tint: [1, 0.82, 0.72], dark: 0.66, bg: '#090504', music: 'dungeon', instance: true, color: '#3a2a26' });
 }
 

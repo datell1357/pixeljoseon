@@ -11,8 +11,8 @@ import { Stage3D } from './stage';
 type Entry = { id: string; name: string; group: string; scale: number; mon?: (typeof MONSTERS)[string]; note?: string };
 
 const SCRIPT: Record<string, string> = {
-  fox: 'canid.py', wolf: 'canid.py', dhole: 'canid.py', raccoon: 'canid.py', gumiho: 'canid.py',
-  tiger: 'big.py', bear: 'big.py', boar: 'big.py', bulgasari: 'big.py', squirrel: 'small.py', bat: 'small.py',
+  yeou: 'canid.py', neukdae: 'canid.py', seungnyangi: 'canid.py', neoguri: 'canid.py', gumiho: 'canid.py',
+  horangi: 'big.py', bandalgom: 'big.py', metdwaeji: 'big.py', bulgasari: 'big.py', daramjwi: 'small.py', bakjwi: 'small.py',
 };
 const AI_LABEL: Record<string, string> = { melee: '근접', charger: '돌진', swarm: '무리', boss: '보스', ranged: '원거리' };
 const ANIM_LABEL: Record<string, string> = {
