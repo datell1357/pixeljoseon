@@ -759,29 +759,54 @@ def loft_into(bm, grip, M, secs, n=4):
 
 
 WEAPONS = []
+# 장비 조각: 몸과 따로 내보내 게임에서 입은 장비대로 붙인다. 이름 g_<장비 id>, 빛나는 부분은 g_<id>__e
+GEAR = []
+
+
+def gear_piece(name, bm, bone, col):
+    o = make_obj(name, bm)
+    weight_all(o, bone)
+    paint(o, col)
+    GEAR.append(o)
+    return o
+
+
+def flat(c):
+    return lambda co, n, i: lin(c)
+
+
 if WHO == 'musa':
     grip, M, along = fist('r')
     blade = M.col[1]
-    bm = bmesh.new()
+    # 단계별 환도: (날 길이, 날 너비, 휨, 쇠 색, 코등이 색, 코등이 크기, 자루 색)
+    SWORDS = {
+        'hwando_1': (0.6, 0.032, 0.03, 0x7c7a76, 0x4a4640, 0.07, 0x4a3424),
+        'hwando_2': (0.72, 0.036, 0.05, 0xb8bcc4, 0xc9913e, 0.08, 0x3a2418),
+        'hwando_3': (0.8, 0.038, 0.06, 0x9fb4cc, 0xd2a24a, 0.095, 0x7a2a22),
+        'hwando_4': (0.9, 0.058, 0.07, 0x3a4250, 0xd2a24a, 0.11, 0x2a2a3a),
+    }
+    for gid, (L, W, CV, steel, guard, gs, hilt) in SWORDS.items():
+        bm = bmesh.new()
 
-    def loft(secs):
-        loft_into(bm, grip, M, secs)
+        def loft(secs):
+            loft_into(bm, grip, M, secs)
+        loft([(-0.13, 0.03, 0.034, 0), (0.05, 0.03, 0.034, 0)])
+        loft([(0.05, gs, gs + 0.005, 0), (0.065, gs, gs + 0.005, 0)])
+        ts = [i / 10 for i in range(11)]
+        loft([(0.065 + L * t, 0.008 * (1 - 0.4 * t), W * (1 - 0.35 * t ** 2) if t < 0.97 else 0.004, CV * t * t) for t in ts])
 
-    loft([(-0.13, 0.03, 0.034, 0), (0.05, 0.03, 0.034, 0)])                # 자루
-    loft([(0.05, 0.075, 0.08, 0), (0.065, 0.075, 0.08, 0)])                 # 코등이
-    L = 0.72
-    loft([(0.065 + L * t, 0.008 * (1 - 0.4 * t), 0.036 * (1 - 0.35 * t ** 2) if t < 0.97 else 0.004, 0.05 * t * t) for t in [i / 10 for i in range(11)]])
-    sword = make_obj('sword', bm)
-    weight_all(sword, 'hand_r')
-
-    def sword_col(co, n, i):
-        d = (co - grip).dot(blade)
-        if d < 0.049:
-            return lin(0x3a2418)
-        if d < 0.066:
-            return lin(0xc9913e)
-        return [x * (1.0 + 0.2 * max(0, n.z)) for x in lin(0xb8bcc4)]
-    paint(sword, sword_col)
+        def col(co, n, i, steel=steel, guard=guard, hilt=hilt):
+            d = (co - grip).dot(blade)
+            if d < 0.049:
+                return lin(hilt)
+            if d < 0.066:
+                return lin(guard)
+            return [x * (1.0 + 0.2 * max(0, n.z)) for x in lin(steel)]
+        gear_piece('g_' + gid, bm, 'hand_r', col)
+        # 날 끝선: 강화하면 빛난다
+        bm = bmesh.new()
+        loft_into(bm, grip, M, [(0.08 + L * t, 0.012 * (1 - 0.4 * t), 0.007, CV * t * t + W * (1 - 0.35 * t ** 2) / 2 - 0.002) for t in ts[:-1]])
+        gear_piece('g_' + gid + '__e', bm, 'hand_r', flat(0x8ad8ff if gid == 'hwando_4' else 0xe8eef4))
 
     a0, am = bone_frame('lowerarm_l')
     a1 = bone_tail('lowerarm_l')
@@ -804,64 +829,111 @@ if WHO == 'musa':
             return lin(0xc9913e)
         if r > 0.225:
             return lin(0x6a5038)
-        # 태극 비슷한 두 색 대신 붉은 판에 쇠 띠
         if abs(r - 0.15) < 0.012:
             return lin(0x6a5038)
         return [x * grain(co, 0.6, 120) for x in lin(0x8a2c28)]
     paint(shield, shield_col)
-    WEAPONS = [sword, shield]
+    WEAPONS = [shield]
 
 if WHO == 'dosa':
-    # 초롱대: 주먹을 꿰뚫는 긴 지팡이, 꼭대기에 초롱
     grip, M, along = fist('r')
-    bm = bmesh.new()
-    loft_into(bm, grip, M, [(-0.62, 0.026, 0.026, 0), (1.05, 0.022, 0.022, 0)], n=8)
-    loft_into(bm, grip, M, [(1.02, 0.03, 0.03, 0), (1.06, 0.03, 0.03, 0), (1.1, 0.012, 0.012, 0.04), (1.12, 0.012, 0.012, 0.08)], n=6)
-    top = grip + M @ Vector((0, 1.06, 0.1))
-    bmesh.ops.create_cone(bm, cap_ends=True, segments=8, radius1=0.055, radius2=0.055, depth=0.12, matrix=Matrix.Translation(top + Vector((0, 0, -0.1))))
-    bmesh.ops.create_cone(bm, cap_ends=True, segments=8, radius1=0.07, radius2=0.02, depth=0.04, matrix=Matrix.Translation(top + Vector((0, 0, -0.02))))
-    staff = make_obj('staff', bm)
-    weight_all(staff, 'hand_r')
-    LANTERN = top + Vector((0, 0, -0.1))
+    UP = Vector((0, 0, 1))
+    # 지팡이 막대: 주먹을 꿰뚫어 위로. top = 꼭대기 높이(손 기준 축 위치)
+    for gid in ('chorongdae_1', 'chorongdae_2', 'chorongdae_3', 'chorongdae_4'):
+        bm = bmesh.new()
+        top = grip + M @ Vector((0, 1.06, 0.1))
+        LANT = top + Vector((0, 0, -0.1))
+        if gid == 'chorongdae_1':
+            # 등잔 지팡이: 가는 나무 막대 끝에 작은 등잔 접시
+            loft_into(bm, grip, M, [(-0.6, 0.022, 0.022, 0), (1.04, 0.018, 0.018, 0)], n=6)
+            bmesh.ops.create_cone(bm, cap_ends=True, segments=8, radius1=0.02, radius2=0.05, depth=0.03, matrix=Matrix.Translation(grip + M @ Vector((0, 1.05, 0))))
+            wood, cap = 0x6a4a30, 0x5a5048
+            em = [(grip + M @ Vector((0, 1.08, 0)), 0.018, 0.04)]
+        elif gid == 'chorongdae_2':
+            loft_into(bm, grip, M, [(-0.62, 0.026, 0.026, 0), (1.05, 0.022, 0.022, 0)], n=8)
+            loft_into(bm, grip, M, [(1.02, 0.03, 0.03, 0), (1.06, 0.03, 0.03, 0), (1.1, 0.012, 0.012, 0.04), (1.12, 0.012, 0.012, 0.08)], n=6)
+            bmesh.ops.create_cone(bm, cap_ends=True, segments=8, radius1=0.07, radius2=0.02, depth=0.04, matrix=Matrix.Translation(top + Vector((0, 0, -0.02))))
+            bmesh.ops.create_cone(bm, cap_ends=True, segments=8, radius1=0.05, radius2=0.05, depth=0.02, matrix=Matrix.Translation(top + Vector((0, 0, -0.17))))
+            wood, cap = 0x5a3a26, 0x8a2f35
+            em = [(LANT, 0.052, 0.1)]
+        elif gid == 'chorongdae_3':
+            # 천년목 가지: 굵고 구불구불한 가지, 꼭대기에 세 갈래와 푸른 구슬
+            secs = [(-0.6 + 1.66 * k / 12, 0.04 - 0.012 * k / 12, 0.04 - 0.012 * k / 12, 0.025 * math.sin(k * 1.7)) for k in range(13)]
+            loft_into(bm, grip, M, secs, n=7)
+            for a in (0, 2.1, 4.2):
+                d_ = Vector((math.cos(a) * 0.06, 0, 0.13))
+                loft_into(bm, grip, M, [(1.04, 0.018, 0.018, 0), (1.04 + d_.z, 0.006, 0.006, d_.x)], n=5)
+            wood, cap = 0x4a3420, 0x4a3420
+            em = [(grip + M @ Vector((0, 1.1, 0)), 0.04, 0.0)]
+        else:
+            # 꺼지지 않는 청사초롱: 푸른 비단 몸에 붉은 띠, 금빛 장식
+            loft_into(bm, grip, M, [(-0.62, 0.028, 0.028, 0), (1.05, 0.024, 0.024, 0)], n=8)
+            loft_into(bm, grip, M, [(1.02, 0.034, 0.034, 0), (1.06, 0.034, 0.034, 0), (1.1, 0.014, 0.014, 0.04), (1.13, 0.014, 0.014, 0.09)], n=6)
+            bmesh.ops.create_cone(bm, cap_ends=True, segments=10, radius1=0.085, radius2=0.025, depth=0.045, matrix=Matrix.Translation(top + Vector((0, 0, -0.01))))
+            bmesh.ops.create_cone(bm, cap_ends=True, segments=10, radius1=0.06, radius2=0.06, depth=0.025, matrix=Matrix.Translation(top + Vector((0, 0, -0.2))))
+            wood, cap = 0x3a2a22, 0xd2a24a
+            em = [(LANT + Vector((0, 0, -0.01)), 0.066, 0.13)]
 
-    def staff_col(co, n, i):
-        if (co - LANTERN).length < 0.075 and abs(co.z - LANTERN.z) < 0.055:
-            # 한지 초롱: 붉은 갓에 노란 불빛
-            return lin(0xf2c06a) if abs(co.z - LANTERN.z) < 0.045 else lin(0x8a2f35)
-        if co.z > LANTERN.z + 0.05:
-            return lin(0x8a2f35)
-        return [x * grain(co, 0.8, 200) for x in lin(0x5a3a26)]
-    paint(staff, staff_col)
-    WEAPONS = [staff]
+        def col(co, n, i, wood=wood, cap=cap, top=top):
+            if co.z > top.z - 0.06 or co.z < top.z - 0.15 and co.z > top.z - 0.22 and (co - top).xy.length > 0.035:
+                return lin(cap)
+            return [x * grain(co, 0.8, 200) for x in lin(wood)]
+        gear_piece('g_' + gid, bm, 'hand_r', col)
+        bm = bmesh.new()
+        for c_, r_, h_ in em:
+            if h_ > 0:
+                bmesh.ops.create_cone(bm, cap_ends=True, segments=10, radius1=r_, radius2=r_, depth=h_, matrix=Matrix.Translation(c_))
+            else:
+                bmesh.ops.create_uvsphere(bm, u_segments=10, v_segments=6, radius=r_, matrix=Matrix.Translation(c_))
+        glow = {'chorongdae_1': 0xffc870, 'chorongdae_2': 0xf2c06a, 'chorongdae_3': 0x9ff0d8, 'chorongdae_4': 0xa8c8ff}[gid]
+        if gid == 'chorongdae_4':
+            L4 = em[0][0]
+
+            def col4(co, n, i):
+                return lin(0xd8402e) if abs(co.z - L4.z) > 0.045 else lin(glow)
+            gear_piece('g_' + gid + '__e', bm, 'hand_r', col4)
+        else:
+            gear_piece('g_' + gid + '__e', bm, 'hand_r', flat(glow))
 
 if WHO == 'gungsa':
-    # 각궁(왼손): 줌통에서 두 고자로 뻗고, 고자는 사수 쪽으로 휜다. 시위는 두 끝을 곧게 잇는다
     grip, M, along = fist('l')
-    bm = bmesh.new()
-    back = -1.0  # 손바닥 쪽(M 셋째 열)과 사수 쪽의 관계는 미리보기로 맞춘다
-    secs_up, secs_dn = [], []
-    for k in range(13):
-        u = k / 12
-        bend = -0.13 * u ** 1.6 + (0.035 * ((u - 0.82) / 0.18) ** 2 if u > 0.82 else 0)
-        w = 0.03 * (1 - 0.55 * u)
-        secs_up.append((0.05 + 0.55 * u, 0.018, w, bend))
-        secs_dn.append((-0.05 - 0.55 * u, 0.018, w, bend))
-    loft_into(bm, grip, M, [(-0.06, 0.03, 0.04, 0), (0.06, 0.03, 0.04, 0)], n=6)
-    loft_into(bm, grip, M, secs_up, n=4)
-    loft_into(bm, grip, M, secs_dn, n=4)
-    tip_u = grip + M @ Vector((0, secs_up[-1][0], secs_up[-1][3]))
-    tip_d = grip + M @ Vector((0, secs_dn[-1][0], secs_dn[-1][3]))
-    loft_into(bm, grip, M, [(secs_dn[-1][0], 0.004, 0.004, secs_dn[-1][3] - 0.004), (secs_up[-1][0], 0.004, 0.004, secs_up[-1][3] - 0.004)], n=4)
-    bow = make_obj('bow', bm)
-    weight_all(bow, 'hand_l')
-    BOW_G = grip
+    # 단계별 활: (휨, 끝 휨, 너비, 바깥 색, 안쪽 색, 줌통 색)
+    BOWS = {
+        'gakgung_1': (-0.07, 0.0, 0.028, 0x9a7a52, 0x9a7a52, 0x5a4030),
+        'gakgung_2': (-0.13, 0.035, 0.03, 0x3a2a1e, 0xb8925a, 0x6a2c24),
+        'gakgung_3': (-0.14, 0.04, 0.032, 0x2c3a24, 0xb8925a, 0x3a5a2c),
+        'gakgung_4': (-0.15, 0.045, 0.034, 0xe8d8a8, 0xb89a5a, 0xd2a24a),
+    }
+    for gid, (BEND, TIP, BW, outc, inc, gc) in BOWS.items():
+        bm = bmesh.new()
+        secs_up, secs_dn = [], []
+        for k in range(13):
+            u = k / 12
+            bend = BEND * u ** 1.6 + (TIP * ((u - 0.82) / 0.18) ** 2 if u > 0.82 else 0)
+            w = BW * (1 - 0.55 * u)
+            secs_up.append((0.05 + 0.55 * u, 0.018, w, bend))
+            secs_dn.append((-0.05 - 0.55 * u, 0.018, w, bend))
+        loft_into(bm, grip, M, [(-0.06, 0.03, 0.04, 0), (0.06, 0.03, 0.04, 0)], n=6)
+        loft_into(bm, grip, M, secs_up, n=4)
+        loft_into(bm, grip, M, secs_dn, n=4)
+        if gid == 'gakgung_3':
+            # 덩굴: 활채를 감는 고리
+            for s_ in (secs_up, secs_dn):
+                for k in (3, 6, 9):
+                    y_, _, w_, b_ = s_[k]
+                    loft_into(bm, grip, M, [(y_ - 0.012, 0.03, w_ + 0.014, b_), (y_ + 0.012, 0.03, w_ + 0.014, b_)], n=6)
 
-    def bow_col(co, n, i):
-        d = (co - BOW_G).length
-        if d < 0.065:
-            return lin(0x6a2c24)
-        return [x * grain(co, 0.6, 160) for x in lin(0x3a2a1e)] if n.dot(M.col[2]) > 0 else [x * grain(co, 0.6, 160) for x in lin(0xb8925a)]
-    paint(bow, bow_col)
+        def col(co, n, i, outc=outc, inc=inc, gc=gc):
+            if (co - grip).length < 0.065:
+                return lin(gc)
+            if gid == 'gakgung_3' and n.dot(M.col[2]) <= 0 and (co - grip).length > 0.15:
+                return lin(0x4f7a3a) if math.sin((co - grip).length * 90) > 0.3 else lin(inc)
+            return [x * grain(co, 0.6, 160) for x in lin(outc)] if n.dot(M.col[2]) > 0 else [x * grain(co, 0.6, 160) for x in lin(inc)]
+        gear_piece('g_' + gid, bm, 'hand_l', col)
+        # 시위: 강화하면 빛난다
+        bm = bmesh.new()
+        loft_into(bm, grip, M, [(secs_dn[-1][0], 0.005, 0.005, secs_dn[-1][3] - 0.004), (secs_up[-1][0], 0.005, 0.005, secs_up[-1][3] - 0.004)], n=4)
+        gear_piece('g_' + gid + '__e', bm, 'hand_l', flat(0xfff0c8 if gid == 'gakgung_4' else 0xe8e2d4))
 
     # 화살통: 오른 어깨 뒤에서 왼 허리로 비스듬히
     bm = bmesh.new()
@@ -881,10 +953,10 @@ if WHO == 'gungsa':
 
     def quiver_col(co, n, i):
         if (co - QV_TOP).dot(d.normalized()) > -0.01:
-            return lin(0xe8e2d4)  # 깃
+            return lin(0xe8e2d4)
         return [x * grain(co, 0.8, 200) for x in lin(0x5a3a26)]
     paint(quiver, quiver_col)
-    WEAPONS = [bow, quiver]
+    WEAPONS = [quiver]
 
 # ---------------- 마을 사람 소지품 ----------------
 IT = LOOK.get('item')
@@ -961,8 +1033,16 @@ for o in WEAPONS:
     for pl in o.data.polygons:
         pl.use_smooth = True
 
-ALL = PARTS + WEAPONS
-preview(WHO + '_armed', ALL, 2.0, Vector((0, 0, 0.9)), yaws=(0, 40))
+for o in GEAR:
+    for pl in o.data.polygons:
+        pl.use_smooth = True
+
+ALL = PARTS + WEAPONS + GEAR
+# 미리보기: 단계마다 무기를 바꿔 쥔 모습
+_tiers = sorted({o.name.split('__')[0] for o in GEAR})
+for gname in _tiers or [None]:
+    shown = PARTS + WEAPONS + [o for o in GEAR if o.name.split('__')[0] == gname]
+    preview(WHO + '_armed' + ('' if gname is None else '_' + gname[2:]), shown, 2.0, Vector((0, 0, 0.9)), yaws=(0, 40))
 
 # ---------------- 저폴리 + 질감 굽기 ----------------
 # 부위마다 따로 줄이고, 한 장에 UV를 모은 뒤 부위끼리만 굽는다(겹친 옷끼리 색이 새지 않게)
@@ -979,7 +1059,7 @@ for i, o in enumerate(ALL):
     lo.name = o.name + '_lo'
     B.link(lo)
     tris = sum(len(p.vertices) - 2 for p in lo.data.polygons)
-    goal = BUDGET.get(o.name, 400)
+    goal = BUDGET.get(o.name, (90 if o.name.endswith('__e') else 300) if o.name.startswith('g_') else 400)
     if tris > goal:
         md = lo.modifiers.new('dc', 'DECIMATE')
         md.ratio = goal / tris
@@ -1042,8 +1122,10 @@ bk.max_ray_distance = 0.04
 bk.margin = 2
 bk.use_clear = False
 by_name = {o.name: o for o in ALL}
+pc_src = {}
 for pc in pieces:
     src = by_name[pc.data.materials[0].name[5:]]
+    pc_src[pc.name] = src.name
     pc.data.materials.clear()
     pc.data.materials.append(lm)
     B.select_only(src, pc)
@@ -1052,20 +1134,31 @@ img.filepath_raw = os.path.join(OUT, WHO + '_tex.png')
 img.file_format = 'PNG'
 img.save()
 img.pack()
-B.select_only(*pieces)
+# 몸은 하나로 합치고, 장비 조각은 따로 둔다(게임에서 입은 것만 골라 붙인다)
+body_pieces = [pc for pc in pieces if not pc_src[pc.name].startswith('g_')]
+gear_pieces = [(pc, pc_src[pc.name]) for pc in pieces if pc_src[pc.name].startswith('g_')]
+B.select_only(*body_pieces)
 bpy.ops.object.join()
 low = bpy.context.view_layer.objects.active
 low.name = WHO
-for g in list(low.vertex_groups):
-    if g.name not in BONES:
-        low.vertex_groups.remove(g)
-for md in list(low.modifiers):
-    low.modifiers.remove(md)
-low.parent = rig
-low.matrix_parent_inverse = rig.matrix_world.inverted()
-amd = low.modifiers.new('arm', 'ARMATURE')
-amd.object = rig
-print('final tris', sum(len(p.vertices) - 2 for p in low.data.polygons), 'verts', len(low.data.vertices))
+OUTS = [low]
+for o in GEAR:
+    o.name = o.name + '_hi'
+for pc, nm in gear_pieces:
+    pc.name = nm
+    pc.data.name = nm
+    OUTS.append(pc)
+for o in OUTS:
+    for g in list(o.vertex_groups):
+        if g.name not in BONES:
+            o.vertex_groups.remove(g)
+    for md in list(o.modifiers):
+        o.modifiers.remove(md)
+    o.parent = rig
+    o.matrix_parent_inverse = rig.matrix_world.inverted()
+    amd = o.modifiers.new('arm', 'ARMATURE')
+    amd.object = rig
+print('final tris', sum(len(p.vertices) - 2 for p in low.data.polygons), 'verts', len(low.data.vertices), 'gear', len(OUTS) - 1)
 
 # ---------------- 동작 ----------------
 X_, Y_, Z_ = Vector((1, 0, 0)), Vector((0, 1, 0)), Vector((0, 0, 1))
@@ -1333,4 +1426,26 @@ class R:
     obj = rig
 
 
-B.export(low, R, os.path.join(OUT, f'{WHO}.glb' if NPC else f'pc_{WHO}.glb'))
+def export_all(objs, rig_obj, path):
+    for o in list(scene.objects):
+        if o not in objs and o is not rig_obj:
+            bpy.data.objects.remove(o)
+    rig_obj.animation_data.action = bpy.data.actions['idle']
+    B.select_only(*objs, rig_obj)
+    bpy.ops.export_scene.gltf(
+        filepath=path, export_format='GLB', use_selection=True,
+        export_animations=True, export_animation_mode='ACTIONS', export_force_sampling=True,
+        export_def_bones=True, export_optimize_animation_size=True, export_frame_step=2,
+        export_yup=True, export_apply=False, export_skins=True, export_morph=False,
+    )
+    import json, struct
+    with open(path, 'rb') as fh:
+        fh.read(12)
+        ln, _ = struct.unpack('<II', fh.read(8))
+        gj = json.loads(fh.read(ln))
+    if not gj.get('skins') or not any('skin' in nd for nd in gj.get('nodes', [])):
+        raise RuntimeError(f'스킨 없이 내보내짐: {path}')
+    print('exported', path, os.path.getsize(path), 'meshes', len(gj.get('meshes', [])), 'skins', len(gj['skins']))
+
+
+export_all(OUTS, rig, os.path.join(OUT, f'{WHO}.glb' if NPC else f'pc_{WHO}.glb'))

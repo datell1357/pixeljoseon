@@ -465,7 +465,7 @@ export class GameRoom extends Room {
     });
     // 시각 점검용. LANTERN_DEV=1로 띄운 서버에서만 켜진다.
     if (process.env.LANTERN_DEV === '1') {
-      this.on<{ level?: number; tp?: [number, number]; goto?: string; arrive?: string; full?: boolean; hurt?: number; floor?: number; killAll?: boolean; gold?: number; item?: [string, number]; kill?: boolean }>('dev', (p, m) => {
+      this.on<{ level?: number; tp?: [number, number]; goto?: string; arrive?: string; full?: boolean; hurt?: number; floor?: number; killAll?: boolean; gold?: number; item?: [string, number]; kill?: boolean; wear?: [string, number, number] }>('dev', (p, m) => {
         if (m.killAll) for (const x of [...this.mons.values()]) if (x.st !== 'dead' && x.st !== 'spawn') this.killMon(x, p);
         if (m.kill) this.killPlayer(p);
         if (m.gold) {
@@ -474,6 +474,14 @@ export class GameRoom extends Room {
         }
         if (m.item) {
           C.addStack(p.char, m.item[0], m.item[1]);
+          p.meDirty = true;
+        }
+        // 장비 외형 점검: [장비 id, 희귀도, 강화]를 바로 입힌다
+        if (m.wear && GEAR[m.wear[0]]) {
+          const g = rollGear(m.wear[0], m.wear[1] as Rarity);
+          g.plus = m.wear[2];
+          p.char.equip[GEAR[m.wear[0]].slot] = g;
+          this.refreshStats(p);
           p.meDirty = true;
         }
         if (m.level) {

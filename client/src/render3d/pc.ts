@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { gungsaAnims, dosaAnims, musaAnims } from '@bake/humans.js';
 import { parseGearKey, type Slot, type WornPiece } from '@shared/items';
 import { Geo, mix, tone, v3, type Hex } from './geo';
-import { skinnedAsset } from './skinned';
+import { skinnedAsset, skinnedWithGear, type GearPick } from './skinned';
 import { Body, DIMS, SKINS, addChain, arms, bangs, belt, bonnet, finish, fineRings, gat, hairCap, head, headband, legs, pauldrons, pelvis, ponytail, skirtPanels, topknot, torso, torsoFront, torsoRings, type Build, type CharAsset } from './chars';
 
 type Worn = Partial<Record<Slot, WornPiece>>;
@@ -1170,6 +1170,21 @@ function trim() {
   }
 }
 
+const rgb = (c: Hex): [number, number, number] => [((c >> 16) & 255) / 255, ((c >> 8) & 255) / 255, (c & 255) / 255];
+
+/** 블렌더 모델에 붙일 장비 조각. 무기 몸체와 빛나는 끝선(날·초롱·시위)으로 나뉜다 */
+function gearPicks(worn: Worn): GearPick[] {
+  const out: GearPick[] = [];
+  const w = worn.weapon;
+  if (w) {
+    out.push({ name: `g_${w.base}` });
+    // 끝선: 희귀도 색으로 물들고, 강화·희귀도가 높거나 마지막 단계면 빛난다
+    const glow = Math.max(trimGlow(w), w.tier >= 4 ? 0.55 : 0);
+    out.push({ name: `g_${w.base}__e`, tint: w.rarity ? rgb(RARE[w.rarity]) : undefined, glow: glow || undefined });
+  }
+  return out;
+}
+
 /** 주소에 ?human=old를 붙이면 블렌더 사람 모델 대신 예전 코드 모델을 쓴다 */
 const OLD_HUMAN = typeof location !== 'undefined' && new URLSearchParams(location.search).get('human') === 'old';
 
@@ -1177,10 +1192,10 @@ const OLD_HUMAN = typeof location !== 'undefined' && new URLSearchParams(locatio
 export function pcAsset(id: string, old = false): CharAsset | null {
   const m = /^pc_(musa|dosa|gungsa)_([abc])(?:#(.*))?$/.exec(id);
   if (!m) return null;
-  // 블렌더 사람 모델(시제품: 무사 한 벌). 아직 모습·장비별 외형은 없다
-  if (!old && !OLD_HUMAN) {
-    const sk = skinnedAsset(`pc_${m[1]}`);
-    if (sk) return sk;
+  // 블렌더 사람 모델: 입은 무기 조각을 몸에 붙인다. 모습(a·b·c)과 방어구 외형은 아직 한 벌
+  if (!old && !OLD_HUMAN && skinnedAsset(`pc_${m[1]}`)) {
+    const worn = parseGearKey(m[3] ?? STARTER[m[1] as Cls]);
+    return skinnedWithGear(`pc_${m[1]}`, gearPicks(worn));
   }
   const hit = cache.get(id);
   if (hit) {
