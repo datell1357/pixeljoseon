@@ -42,11 +42,14 @@ export function skinnedAsset(id: string): CharAsset | null {
   return loaded.get(id) ?? null;
 }
 
-/** 몸 메시. 장비 조각(이름 g_…)은 따로 다룬다 */
+/** 조각 메시: 장비(g_…)와 벗겨질 수 있는 기본 차림(d_…). 몸과 따로 다룬다 */
+const isPart = (name: string) => name.startsWith('g_') || name.startsWith('d_');
+
+/** 몸 메시 */
 function findSkinned(root: THREE.Object3D) {
   let m: THREE.SkinnedMesh | null = null;
   root.traverse((o) => {
-    if (!m && (o as THREE.SkinnedMesh).isSkinnedMesh && !o.name.startsWith('g_')) m = o as THREE.SkinnedMesh;
+    if (!m && (o as THREE.SkinnedMesh).isSkinnedMesh && !isPart(o.name)) m = o as THREE.SkinnedMesh;
   });
   if (!m) throw new Error('스킨드 메시 없음');
   return m as THREE.SkinnedMesh;
@@ -118,12 +121,12 @@ function build(id: string, scene: THREE.Object3D, clips: THREE.AnimationClip[]):
     anims[name] = { frames: Math.round(c.duration * 24), dur: c.duration, loop, poses: [{}] };
   }
   const bindIndex = src.skeleton.bones.map((b) => b.name);
-  // 장비 조각: 몸과 같은 뼈 번호·좌표로 맞춰 둔다. 붙일 때 몸 형상과 합친다
+  // 조각: 몸과 같은 뼈 번호·좌표로 맞춰 둔다. 붙일 때 몸 형상과 합친다
   const gear = new Map<string, THREE.BufferGeometry>();
   const toBody = src.bindMatrixInverse.clone();
   scene.traverse((o) => {
     const m = o as THREE.SkinnedMesh;
-    if (!m.isSkinnedMesh || !m.name.startsWith('g_')) return;
+    if (!m.isSkinnedMesh || !isPart(m.name)) return;
     const g = plainGeo(m.geometry);
     const remap = m.skeleton.bones.map((b) => Math.max(0, bindIndex.indexOf(b.name)));
     const idx = g.getAttribute('skinIndex');
@@ -131,8 +134,9 @@ function build(id: string, scene: THREE.Object3D, clips: THREE.AnimationClip[]):
     g.applyMatrix4(toBody.clone().multiply(m.bindMatrix));
     const cnt = g.getAttribute('position').count;
     const ax = new Float32Array(cnt * 4);
-    // 외곽선 부위 번호: 몸과 다른 번호라 무기 둘레에 선이 생긴다
-    for (let i = 0; i < cnt; i++) ax[i * 4 + 3] = 18 / 255;
+    // 외곽선 부위 번호: 장비는 몸과 다른 번호라 둘레에 선이 생긴다. 기본 차림은 몸(머리 15·발 12)과 같게
+    const pt = m.name.startsWith('d_') ? (m.name === 'd_boots' ? 12 : 15) : 18;
+    for (let i = 0; i < cnt; i++) ax[i * 4 + 3] = pt / 255;
     g.setAttribute('aux', new THREE.BufferAttribute(ax, 4));
     g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(cnt * 3).fill(1), 3));
     gear.set(m.name, g);

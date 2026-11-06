@@ -271,6 +271,9 @@ NECK_Y = bone_head('neck_01').y
 def shell(name, sel, amt, smooth_n=0, smooth_f=0.5):
     """sel(정점 번호) → 복사할지, amt(정점 번호, 좌표) → 법선 방향 거리(음수면 살 속으로)"""
     o = dup(body, name)
+    # 몸을 숨긴 뒤에 지으면 숨김을 물려받아 합치기·굽기에서 빠진다
+    o.hide_viewport = False
+    o.hide_render = False
     keep_faces(o, lambda vs: all(IS_BODY[i] for i in vs) and all(sel(i) for i in vs))
     # 복사 뒤 정점 번호가 바뀌므로 원래 몸 정점을 가까운 점으로 되찾는다
     src = [bkd.find(o.matrix_world @ v.co)[1] for v in o.data.vertices]
@@ -958,6 +961,224 @@ if WHO == 'gungsa':
     paint(quiver, quiver_col)
     WEAPONS = [quiver]
 
+# ---------------- 방어구 조각: 투구·갑옷·신발 ----------------
+# 몸을 복사해 지은 조각은 몸의 뼈 가중치를 물려받는다. 빛나는 테두리는 g_<id>__e
+def gear_obj(o, col):
+    # 몸(숨김)을 복사해 지은 조각은 숨김 상태를 물려받으므로 다시 보이게 한다
+    o.hide_viewport = False
+    o.hide_render = False
+    paint(o, col)
+    GEAR.append(o)
+    return o
+
+
+def boot_hull(name, height, off):
+    bm = bmesh.new()
+    for sd in ('l', 'r'):
+        pts_ = [V[i] for i in range(len(V)) if IS_BODY[i] and (DOM[i] in ('foot_' + sd, 'ball_' + sd) or (DOM[i] == 'calf_' + sd and V[i].z < Z_ANKLE + height))]
+        cen = sum(pts_, Vector()) / len(pts_)
+        vs = [bm.verts.new(p + (p - Vector((cen.x, cen.y, p.z))).normalized() * off + Vector((0, 0, 0.002 if p.z > 0.02 else 0.0))) for p in pts_]
+        bmesh.ops.convex_hull(bm, input=vs)
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context='VERTS')
+    bmesh.ops.delete(bm, geom=[f for f in bm.faces if f.normal.z > 0.9 and f.calc_center_median().z > Z_ANKLE + 0.08], context='FACES')
+    bmesh.ops.triangulate(bm, faces=bm.faces)
+    bmesh.ops.subdivide_edges(bm, edges=[e for e in bm.edges if e.calc_length() > 0.03], cuts=1, use_grid_fill=True)
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    o = B.link(bpy.data.objects.new(name, me))
+    weight_from_body(o)
+    return o
+
+
+def boot_rim(name, height, off):
+    """신발 목 둘레 띠"""
+    pts = []
+    bm = bmesh.new()
+    for sd in ('l', 'r'):
+        ring = [V[i] for i in range(len(V)) if IS_BODY[i] and DOM[i] == 'calf_' + sd and abs(V[i].z - (Z_ANKLE + height - 0.012)) < 0.012]
+        if not ring:
+            continue
+        cen = sum(ring, Vector()) / len(ring)
+        r = max((p - cen).xy.length for p in ring) + off + 0.004
+        bmesh.ops.create_cone(bm, cap_ends=False, segments=16, radius1=r, radius2=r, depth=0.018, matrix=Matrix.Translation(Vector((cen.x, cen.y, Z_ANKLE + height - 0.012))))
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    o = B.link(bpy.data.objects.new(name, me))
+    solidify(o, 0.004)
+    weight_from_body(o)
+    return o
+
+
+if not NPC:
+    # --- 투구: 머리 모양을 따라 씌운 바가지, 단계가 오르면 드림(목가리개)과 정수리 장식 ---
+    def cut_z(p):
+        return brow_z + 0.012 - max(0.0, p.y - HEAD_C.y) * 0.55
+
+    def helm_shell(name, amt):
+        return shell(name, lambda i: DOM[i] == 'head' and V[i].z > cut_z(V[i]) - 0.02,
+                     lambda i, co: amt * sstep(cut_z(V[i]) - 0.004, cut_z(V[i]) + 0.006, V[i].z) - 0.004 * (1 - sstep(cut_z(V[i]) - 0.004, cut_z(V[i]) + 0.006, V[i].z)),
+                     smooth_n=3)
+
+    def helm_rim(name, amt):
+        return shell(name, lambda i: DOM[i] == 'head' and abs(V[i].z - cut_z(V[i])) < 0.03,
+                     lambda i, co: (amt + 0.006) * sstep(0.014, 0.008, abs(V[i].z - cut_z(V[i]))) - 0.004 * (1 - sstep(0.014, 0.008, abs(V[i].z - cut_z(V[i])))),
+                     smooth_n=2)
+
+    def neck_guard(name, flare, low):
+        """드림: 투구 테두리 뒤쪽 반 바퀴에서 목덜미·어깨로 퍼져 내려오는 가리개"""
+        hp = [V[i] for i in range(len(V)) if IS_BODY[i] and DOM[i] == 'head' and abs(V[i].z - (brow_z + 0.01)) < 0.012]
+        cx = sum((p.x for p in hp), 0.0) / len(hp)
+        cy = sum((p.y for p in hp), 0.0) / len(hp)
+        rx = max(abs(p.x - cx) for p in hp) + 0.04
+        ry = max(abs(p.y - cy) for p in hp) + 0.04
+        bm = bmesh.new()
+        rows = []
+        n = 6
+        segs = 18
+        for r in range(n):
+            t = r / (n - 1)
+            z = brow_z + 0.01 - (brow_z + 0.01 - (Z_NECK - low)) * t
+            k = 1 + flare * t
+            row = []
+            for s_ in range(segs + 1):
+                a = math.radians(-115 + 230 * s_ / segs)
+                # 뒤(+y)를 중심으로 양옆까지
+                row.append(bm.verts.new((cx + math.sin(a) * rx * k, cy + math.cos(a) * ry * k, z)))
+            rows.append(row)
+        for r in range(n - 1):
+            for s_ in range(segs):
+                bm.faces.new((rows[r][s_], rows[r][s_ + 1], rows[r + 1][s_ + 1], rows[r + 1][s_]))
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        o = make_obj(name, bm)
+        solidify(o, 0.006)
+        weight_all(o, 'head')
+        return o
+
+    crown = Vector((0, HEAD_C.y + 0.012, TOP + 0.03))
+    # 1단계 가죽 벙거지: 둥근 모자와 좁은 챙
+    o = helm_shell('g_tugu_1', 0.026)
+    bm = bmesh.new()
+    bmesh.ops.create_cone(bm, cap_ends=True, segments=32, radius1=0.155, radius2=0.14, depth=0.008,
+                          matrix=Matrix.Translation(Vector((0, HEAD_C.y + 0.01, brow_z + 0.02))) @ Matrix.Rotation(math.radians(-8), 4, 'X'))
+    brim = make_obj('tugu_1_brim', bm)
+    weight_all(brim, 'head')
+    B.select_only(o, brim)
+    bpy.ops.object.join()
+    o = bpy.context.view_layer.objects.active
+    o.name = 'g_tugu_1'
+    gear_obj(o, lambda co, n, i: [x * grain(co, 0.8, 160) for x in lin(0x5a3e28)])
+    gear_obj(helm_rim('g_tugu_1__e', 0.026), flat(0xe8d8b8))
+    # 2단계 철 투구: 쇠 바가지, 정수리 꼭지, 가죽 드림
+    for gid, iron, flap, top_col in (('tugu_2', 0x7a7e86, 0x5a3e28, 0xc9913e), ('tugu_3', 0x2c2c32, 0x2c2c32, 0xd2a24a)):
+        o = helm_shell('g_' + gid, 0.034)
+        ng = neck_guard(gid + '_ng', 0.25 if gid == 'tugu_2' else 0.45, 0.0 if gid == 'tugu_2' else 0.05)
+        bm = bmesh.new()
+        tall = 0.07 if gid == 'tugu_2' else 0.11
+        bmesh.ops.create_cone(bm, cap_ends=True, segments=10, radius1=0.016, radius2=0.004, depth=tall, matrix=Matrix.Translation(crown + Vector((0, 0, tall / 2))))
+        bmesh.ops.create_cone(bm, cap_ends=True, segments=14, radius1=0.04, radius2=0.018, depth=0.025, matrix=Matrix.Translation(crown))
+        if gid == 'tugu_3':
+            # 붉은 상모
+            bmesh.ops.create_uvsphere(bm, u_segments=12, v_segments=8, radius=0.045, matrix=Matrix.Translation(crown + Vector((0, 0.015, tall + 0.02))) @ Matrix.Diagonal((1, 1, 0.8, 1)))
+        spike = make_obj(gid + '_spike', bm)
+        weight_all(spike, 'head')
+        B.select_only(o, ng, spike)
+        bpy.ops.object.join()
+        o = bpy.context.view_layer.objects.active
+        o.name = 'g_' + gid
+        CROWN_Z = crown.z
+
+        def hcol(co, n, i, iron=iron, flap=flap, top_col=top_col, gid=gid):
+            if co.z > CROWN_Z - 0.01 and (co - crown).xy.length < 0.05:
+                if gid == 'tugu_3' and co.z > CROWN_Z + 0.09:
+                    return lin(0xb02a24)
+                return lin(top_col)
+            if co.z < cut_z(co) - 0.005:
+                # 드림: 쇠 비늘 줄
+                k = 0.8 + 0.2 * (math.sin(co.z * 260) > 0)
+                return [x * k for x in lin(flap)]
+            return [x * (1.0 + 0.25 * max(0, n.z)) for x in lin(iron)]
+        gear_obj(o, hcol)
+        gear_obj(helm_rim('g_' + gid + '__e', 0.034), flat(0xf0e0b0))
+
+    # --- 갑옷: 2단계 쇄자갑(사슬), 3단계 흑철 찰갑(미늘과 어깨 가리개). 1단계 누비 철릭은 기본 옷 ---
+    SHOULDER_Z = bone_head('upperarm_l').z
+
+    def armor_sel(i, arm_len):
+        d = DOM[i]
+        z = V[i].z
+        if d in TORSO:
+            return belt_z - 0.06 < z < Z_NECK + 0.05
+        if d in ('upperarm_l', 'upperarm_r'):
+            return z > SHOULDER_Z - arm_len
+        return False
+
+    def armor_amt(amt, arm_len, low):
+        def f(i, co):
+            p = V[i]
+            k = sstep(-0.004, 0.004, collar_line(p, 0.03) - p.z) * sstep(belt_z - low - 0.005, belt_z - low + 0.01, p.z)
+            if DOM[i] in ('upperarm_l', 'upperarm_r'):
+                k *= sstep(SHOULDER_Z - arm_len - 0.005, SHOULDER_Z - arm_len + 0.015, p.z)
+            return amt * k - 0.006 * (1 - k)
+        return f
+
+    def hem_band(name, amt, low):
+        zc = belt_z - low + 0.012
+        return shell(name, lambda i: DOM[i] in TORSO and abs(V[i].z - zc) < 0.03,
+                     lambda i, co: (amt + 0.006) * sstep(0.014, 0.009, abs(V[i].z - zc)) - 0.006 * (1 - sstep(0.014, 0.009, abs(V[i].z - zc))),
+                     smooth_n=3)
+
+    ch = shell('g_gabot_2', lambda i: armor_sel(i, 0.12), armor_amt(0.03, 0.1, 0.03), smooth_n=8)
+
+    def chain_col(co, n, i):
+        k = 0.72 + 0.28 * abs(math.sin(co.x * 420) * math.sin(co.z * 420))
+        return [x * k * (1.0 + 0.2 * max(0, n.z)) for x in lin(0x8a8e96)]
+    gear_obj(ch, chain_col)
+    gear_obj(hem_band('g_gabot_2__e', 0.03, 0.03), flat(0xd8c8a0))
+
+    la = shell('g_gabot_3', lambda i: armor_sel(i, 0.05), armor_amt(0.042, 0.04, 0.05), smooth_n=8)
+    # 어깨 가리개: 어깨에서 위팔 반까지 넓게 덮는다
+    pd = shell('gabot_3_pd', lambda i: DOM[i] in ('upperarm_l', 'upperarm_r', 'clavicle_l', 'clavicle_r') and V[i].z > SHOULDER_Z - 0.16 and abs(V[i].x) > 0.12,
+               lambda i, co: (0.05 + 0.03 * sstep(SHOULDER_Z, SHOULDER_Z - 0.15, V[i].z)) * sstep(SHOULDER_Z - 0.165, SHOULDER_Z - 0.15, V[i].z) - 0.006 * (1 - sstep(SHOULDER_Z - 0.165, SHOULDER_Z - 0.15, V[i].z)),
+               smooth_n=4)
+    B.select_only(la, pd)
+    bpy.ops.object.join()
+    la = bpy.context.view_layer.objects.active
+    la.name = 'g_gabot_3'
+
+    def lam_col(co, n, i):
+        # 미늘: 굵은 가로 줄(정점 간격보다 넓게 그려야 얼룩지지 않는다)
+        row = (co.z * 14) % 1.0
+        if row < 0.16:
+            return lin(0x6a1c18)
+        return [x * (0.85 + 0.35 * row) * (1.0 + 0.2 * max(0, n.z)) for x in lin(0x34343c)]
+    gear_obj(la, lam_col)
+    gear_obj(hem_band('g_gabot_3__e', 0.042, 0.05), flat(0xf0d890))
+
+    # --- 신발: 1단계 짚신(흰 버선), 2단계 가죽 목화, 3단계 축지 목화 ---
+    def straw_col(co, n, i):
+        if co.z > Z_ANKLE - 0.03:
+            return lin(0xece6d6)
+        return [x * (1 + 0.2 * math.sin(math.atan2(co.x, co.y) * 40 + co.z * 300)) for x in lin(0xc4a464)]
+    gear_obj(boot_hull('g_sin_1', 0.13, 0.009), straw_col)
+    gear_obj(boot_rim('g_sin_1__e', 0.13, 0.009), flat(0xe0d4b8))
+    gear_obj(boot_hull('g_sin_2', 0.2, 0.012), lambda co, n, i: [x * grain(co, 0.8, 160) for x in lin(0x6a4630)])
+    gear_obj(boot_rim('g_sin_2__e', 0.2, 0.012), flat(0xd8c0a0))
+
+    def boot3_col(co, n, i):
+        return [x * grain(co, 0.6, 160) for x in lin(0x1c1c22)]
+    gear_obj(boot_hull('g_sin_3', 0.26, 0.013), boot3_col)
+    gear_obj(boot_rim('g_sin_3__e', 0.26, 0.013), flat(0xb8d8ff))
+
+    # 투구·신발을 입으면 빠지는 기본 조각
+    for o_, nm in ((band, 'd_band'), (gat, 'd_gat'), (topknot, 'd_topknot'), (boots, 'd_boots')):
+        if o_:
+            o_.name = nm
+    # 조각을 짓느라 몸을 다시 썼다. 몸은 계속 숨긴다
+    body.hide_viewport = True
+    body.hide_render = True
+
 # ---------------- 마을 사람 소지품 ----------------
 IT = LOOK.get('item')
 if IT:
@@ -1038,11 +1259,21 @@ for o in GEAR:
         pl.use_smooth = True
 
 ALL = PARTS + WEAPONS + GEAR
-# 미리보기: 단계마다 무기를 바꿔 쥔 모습
-_tiers = sorted({o.name.split('__')[0] for o in GEAR})
-for gname in _tiers or [None]:
-    shown = PARTS + WEAPONS + [o for o in GEAR if o.name.split('__')[0] == gname]
-    preview(WHO + '_armed' + ('' if gname is None else '_' + gname[2:]), shown, 2.0, Vector((0, 0, 0.9)), yaws=(0, 40))
+# 미리보기: 단계마다 무기·투구·갑옷·신발을 갖춰 입은 모습
+ARMORS = ('tugu', 'gabot', 'sin')
+for k in ([1, 2, 3, 4] if GEAR else [None]):
+    if k is None:
+        preview(WHO + '_armed', ALL, 2.0, Vector((0, 0, 0.9)), yaws=(0, 40))
+        continue
+    want = lambda b: (b.startswith(ARMORS) and b.endswith('_%d' % min(k, 3)) and not (b.startswith('gabot') and k == 1)) or (not b.startswith(ARMORS) and b.endswith('_%d' % k))
+    picked = [o for o in GEAR if want(o.name[2:].split('__')[0])]
+    drop = set()
+    if any(o.name.startswith('g_tugu') for o in picked):
+        drop |= {'d_band', 'd_gat', 'd_topknot'}
+    if any(o.name.startswith('g_sin') for o in picked):
+        drop |= {'d_boots'}
+    shown = [o for o in PARTS + WEAPONS if o.name not in drop] + picked
+    preview(WHO + '_set%d' % k, shown, 2.0, Vector((0, 0, 0.9)), yaws=(0, 40))
 
 # ---------------- 저폴리 + 질감 굽기 ----------------
 # 부위마다 따로 줄이고, 한 장에 UV를 모은 뒤 부위끼리만 굽는다(겹친 옷끼리 색이 새지 않게)
@@ -1051,7 +1282,7 @@ BUDGET = dict(skin=3600, eyes=240, shirt=1500, coat=1100, skirt=1300, belt=260, 
               hat=300, beard=500, item=300, pack=300)
 if LOOK.get('bare'):
     BUDGET['skin'] = 5200
-TEX = 512
+TEX = 512 if NPC else 1024
 lows = []
 for i, o in enumerate(ALL):
     lo = o.copy()
@@ -1059,7 +1290,8 @@ for i, o in enumerate(ALL):
     lo.name = o.name + '_lo'
     B.link(lo)
     tris = sum(len(p.vertices) - 2 for p in lo.data.polygons)
-    goal = BUDGET.get(o.name, (90 if o.name.endswith('__e') else 300) if o.name.startswith('g_') else 400)
+    nm_ = o.name[2:] if o.name.startswith('d_') else o.name
+    goal = BUDGET.get(nm_, (120 if o.name.endswith('__e') else 1000 if o.name.startswith('g_gabot') else 500 if o.name.startswith(('g_tugu', 'g_sin')) else 300) if o.name.startswith('g_') else 400)
     if tris > goal:
         md = lo.modifiers.new('dc', 'DECIMATE')
         md.ratio = goal / tris
@@ -1135,15 +1367,17 @@ img.file_format = 'PNG'
 img.save()
 img.pack()
 # 몸은 하나로 합치고, 장비 조각은 따로 둔다(게임에서 입은 것만 골라 붙인다)
-body_pieces = [pc for pc in pieces if not pc_src[pc.name].startswith('g_')]
-gear_pieces = [(pc, pc_src[pc.name]) for pc in pieces if pc_src[pc.name].startswith('g_')]
+SEP = ('g_', 'd_')
+body_pieces = [pc for pc in pieces if not pc_src[pc.name].startswith(SEP)]
+gear_pieces = [(pc, pc_src[pc.name]) for pc in pieces if pc_src[pc.name].startswith(SEP)]
 B.select_only(*body_pieces)
 bpy.ops.object.join()
 low = bpy.context.view_layer.objects.active
 low.name = WHO
 OUTS = [low]
-for o in GEAR:
-    o.name = o.name + '_hi'
+for o in ALL:
+    if o.name.startswith(SEP):
+        o.name = o.name + '_hi'
 for pc, nm in gear_pieces:
     pc.name = nm
     pc.data.name = nm

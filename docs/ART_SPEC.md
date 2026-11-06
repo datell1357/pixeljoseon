@@ -33,7 +33,7 @@
 
 ## 블렌더 짐승 (스킨드 모델)
 
-사람 인물도 블렌더 스킨드 모델로 바꾸는 중이다. 직업마다 한 벌(`client/public/models/pc_musa.glb`·`pc_dosa.glb`·`pc_gungsa.glb`)과 마을 사람 다섯(`npc_elder`·`npc_merchant`·`npc_smith`·`npc_guard`·`npc_keeper`.glb)이 있고, 무기는 몸과 따로 `g_<장비 id>`(몸체)와 `g_<장비 id>__e`(빛나는 끝선: 칼날·초롱·시위) 조각으로 같은 파일·같은 텍스처에 들어 있고, 게임이 입은 무기 조각만 몸과 합쳐 형상 하나로 그린다. 끝선은 희귀도 색으로 물들고 강화·희귀도·마지막 단계에서 빛난다. 모습(a·b·c)과 방어구 외형은 아직 직업마다 한 벌이다. 무사는 쾌자·환도·둥근 방패, 도사는 흰 도포·갓·초롱대, 궁사는 동달이·가죽 조끼·각궁·화살통이다. 주소에 `?human=old`를 붙이면 예전 코드 모델로 본다.
+사람 인물도 블렌더 스킨드 모델로 바꾸는 중이다. 직업마다 한 벌(`client/public/models/pc_musa.glb`·`pc_dosa.glb`·`pc_gungsa.glb`)과 마을 사람 다섯(`npc_elder`·`npc_merchant`·`npc_smith`·`npc_guard`·`npc_keeper`.glb)이 있고, 장비는 몸과 따로 `g_<장비 id>`(몸체)와 `g_<장비 id>__e`(빛나는 끝선·테두리) 조각으로 같은 파일·같은 텍스처(1024)에 들어 있다. 무기 4단계, 투구·신발 3단계, 갑옷 2·3단계(1단계 누비 철릭은 기본 옷)가 있다. 머리띠·갓·상투(`d_band`·`d_gat`·`d_topknot`)는 투구를, 기본 신발(`d_boots`)은 신발을 입으면 빠진다. 게임은 입은 조각만 몸과 합쳐 형상 하나로 그리고, 끝선은 희귀도 색으로 물들며 강화·희귀도·마지막 단계에서 빛난다. 모습(a·b·c)은 아직 직업마다 한 벌이다. 무사는 쾌자·환도·둥근 방패, 도사는 흰 도포·갓·초롱대, 궁사는 동달이·가죽 조끼·각궁·화살통이다. 주소에 `?human=old`를 붙이면 예전 코드 모델로 본다.
 
 - 만드는 법: `Blender -b --factory-startup --addons bl_ext.user_default.mpfb -P tools/blender/human.py -- <musa|dosa|gungsa|npc_elder|npc_merchant|npc_smith|npc_guard|npc_keeper> <출력 폴더>`. 마을 사람은 서기·걷기 동작만 있고, 담우는 흰 수염·갓·지팡이, 보따는 패랭이·치마·등짐, 철구는 맨팔·가죽 앞치마·망치, 하진은 전립·철릭·창, 유림은 쪽머리·치마·열쇠 꾸러미다. 블렌더 확장 MPFB(블렌더용 MakeHuman, extensions.blender.org)가 설치돼 있어야 한다. MPFB의 기본 몸·체형값·뼈대 자료는 CC0이다.
   1. MPFB로 7등신 몸(동양인, 남성, 근육 0.68)과 게임용 뼈대(`game_engine`, 뼈 53개)·가중치를 만든다.

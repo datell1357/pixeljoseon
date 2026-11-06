@@ -1172,16 +1172,26 @@ function trim() {
 
 const rgb = (c: Hex): [number, number, number] => [((c >> 16) & 255) / 255, ((c >> 8) & 255) / 255, (c & 255) / 255];
 
-/** 블렌더 모델에 붙일 장비 조각. 무기 몸체와 빛나는 끝선(날·초롱·시위)으로 나뉜다 */
+/** 끝선(빛나는 테두리): 희귀도 색으로 물들고, 강화·희귀도가 높거나 마지막 단계면 빛난다 */
+function edgePick(w: WornPiece, last: number): GearPick {
+  const glow = Math.max(trimGlow(w), w.tier >= last ? 0.55 : 0);
+  return { name: `g_${w.base}__e`, tint: w.rarity ? rgb(RARE[w.rarity]) : undefined, glow: glow || undefined };
+}
+
+/**
+ * 블렌더 모델에 붙일 조각.
+ * 기본 조각(d_…): 머리띠·갓·상투는 투구를, 기본 신발은 신발을 입으면 빠진다.
+ * 장비 조각(g_…): 무기 4단계, 투구·신발 3단계, 갑옷은 2·3단계만(1단계 누비 철릭은 기본 옷).
+ */
 function gearPicks(worn: Worn): GearPick[] {
   const out: GearPick[] = [];
+  if (!worn.helm) out.push({ name: 'd_band' }, { name: 'd_gat' }, { name: 'd_topknot' });
+  if (!worn.boots) out.push({ name: 'd_boots' });
   const w = worn.weapon;
-  if (w) {
-    out.push({ name: `g_${w.base}` });
-    // 끝선: 희귀도 색으로 물들고, 강화·희귀도가 높거나 마지막 단계면 빛난다
-    const glow = Math.max(trimGlow(w), w.tier >= 4 ? 0.55 : 0);
-    out.push({ name: `g_${w.base}__e`, tint: w.rarity ? rgb(RARE[w.rarity]) : undefined, glow: glow || undefined });
-  }
+  if (w) out.push({ name: `g_${w.base}` }, edgePick(w, 4));
+  for (const p of [worn.helm, worn.boots]) if (p) out.push({ name: `g_${p.base}` }, edgePick(p, 3));
+  const a = worn.armor;
+  if (a && a.tier >= 2) out.push({ name: `g_${a.base}` }, edgePick(a, 3));
   return out;
 }
 
@@ -1192,7 +1202,7 @@ const OLD_HUMAN = typeof location !== 'undefined' && new URLSearchParams(locatio
 export function pcAsset(id: string, old = false): CharAsset | null {
   const m = /^pc_(musa|dosa|gungsa)_([abc])(?:#(.*))?$/.exec(id);
   if (!m) return null;
-  // 블렌더 사람 모델: 입은 무기 조각을 몸에 붙인다. 모습(a·b·c)과 방어구 외형은 아직 한 벌
+  // 블렌더 사람 모델: 입은 장비 조각을 몸에 붙인다. 모습(a·b·c)은 아직 한 벌
   if (!old && !OLD_HUMAN && skinnedAsset(`pc_${m[1]}`)) {
     const worn = parseGearKey(m[3] ?? STARTER[m[1] as Cls]);
     return skinnedWithGear(`pc_${m[1]}`, gearPicks(worn));
