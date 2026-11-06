@@ -1,4 +1,6 @@
 @import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
+@import '@fontsource/gowun-batang/korean-400.css';
+@import '@fontsource/gowun-batang/korean-700.css';
 
 @font-face {
   font-family: Galmuri11;
@@ -40,6 +42,18 @@
   --s6: 48px;
   --pixel: Galmuri11, 'Pretendard Variable', system-ui, sans-serif;
   --body: 'Pretendard Variable', system-ui, sans-serif;
+  /* 조선풍 HUD: 옻칠 나무, 놋쇠, 한지, 단청 오방색 */
+  --serif: 'Gowun Batang', 'Pretendard Variable', serif;
+  --brass: #c9a24a;
+  --brass2: #f0d58a;
+  --hanji: #efe6d0;
+  --hanji-dim: #b8a98a;
+  --ink2: #2a2018;
+  --dancheong: linear-gradient(90deg, #2f6f73 0 20%, #efe6d0 20% 24%, #b23a2a 24% 44%, #d9a63a 44% 56%, #b23a2a 56% 76%, #efe6d0 76% 80%, #2f6f73 80%);
+  --corners: linear-gradient(var(--brass), var(--brass)) 0 0 / 8px 2px no-repeat, linear-gradient(var(--brass), var(--brass)) 0 0 / 2px 8px no-repeat,
+    linear-gradient(var(--brass), var(--brass)) 100% 0 / 8px 2px no-repeat, linear-gradient(var(--brass), var(--brass)) 100% 0 / 2px 8px no-repeat,
+    linear-gradient(var(--brass), var(--brass)) 0 100% / 8px 2px no-repeat, linear-gradient(var(--brass), var(--brass)) 0 100% / 2px 8px no-repeat,
+    linear-gradient(var(--brass), var(--brass)) 100% 100% / 8px 2px no-repeat, linear-gradient(var(--brass), var(--brass)) 100% 100% / 2px 8px no-repeat;
 }
 
 * {
@@ -573,6 +587,7 @@ input[type='password'] {
 .hud {
   position: fixed;
   inset: 0;
+  font-family: var(--body);
 }
 
 .vignette {
@@ -612,47 +627,53 @@ input[type='password'] {
 }
 
 .vitals {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: var(--s1);
-  background: rgba(14, 12, 22, 0.78);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  padding: var(--s2) var(--s1) var(--s1);
 }
 
 .vname {
   display: flex;
   align-items: center;
   gap: var(--s1);
-  font-size: 13px;
+  font-family: var(--serif);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--hanji);
 }
 
 .vname .lv {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 24px;
-  height: 24px;
-  padding: 0 4px;
-  background: var(--gold);
+  width: 32px;
+  height: 32px;
+  background: radial-gradient(circle at 40% 35%, #f6dc8e, #c69a3c 55%, #7d5a1c);
   color: #2a1a06;
-  border-radius: 4px;
-  font-size: 12px;
+  border: 1px solid #4a3410;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 3px rgba(255, 236, 170, 0.35), 0 1px 0 #000;
+  font-family: var(--body);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .vname small {
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--brass2);
+  font-size: 12px;
+  font-weight: 400;
   margin-left: auto;
 }
 
 .bar {
   position: relative;
   height: 16px;
-  background: #1b1726;
+  background: #120c08;
   border: 1px solid #000;
-  border-radius: 2px;
+  border-radius: 1px;
+  box-shadow: 0 0 0 1px rgba(201, 162, 74, 0.35);
   overflow: hidden;
 }
 
@@ -665,20 +686,21 @@ input[type='password'] {
 .bar span {
   position: relative;
   display: block;
-  font-size: 10px;
+  font-size: 11px;
+  font-weight: 600;
   line-height: 14px;
   text-align: center;
   text-shadow: 0 1px 0 #000, 1px 0 0 #000, -1px 0 0 #000, 0 -1px 0 #000;
 }
 
 .bar.hp i {
-  background: linear-gradient(180deg, #ea6252, #b8332a);
+  background: linear-gradient(180deg, #e0634a, #a8301f 60%, #7a1e14);
 }
 .bar.mp i {
-  background: linear-gradient(180deg, #5da2f0, #2f6cc4);
+  background: linear-gradient(180deg, #4f8fb8, #245a86 60%, #173d60);
 }
 .bar.boss i {
-  background: linear-gradient(180deg, #e0523a, #8c1f1e);
+  background: linear-gradient(180deg, #d4503a, #8e2418 60%, #5c140e);
 }
 .bar.thin {
   height: 8px;
@@ -710,11 +732,9 @@ input[type='password'] {
 }
 
 .pmember {
+  position: relative;
   padding: var(--s1);
-  background: rgba(14, 12, 22, 0.72);
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .pmember.off {
@@ -728,7 +748,7 @@ input[type='password'] {
 }
 
 .pname b {
-  color: var(--gold2);
+  color: var(--brass2);
 }
 
 .hudtc {
@@ -744,33 +764,33 @@ input[type='password'] {
 }
 
 .bossbar {
+  position: relative;
   width: 100%;
-  padding: var(--s1);
-  background: rgba(14, 12, 22, 0.8);
-  border: 1px solid #6a2a28;
-  border-radius: 4px;
+  padding: var(--s2) var(--s2) var(--s1);
 }
 
 .bosshead {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
   margin-bottom: 4px;
-  font-size: 13px;
-  color: #ffc0a8;
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 700;
+  color: #f3c9a8;
 }
 
 .floorinfo {
+  position: relative;
   display: flex;
   gap: var(--s2);
   padding: var(--s1) var(--s2);
-  background: rgba(14, 12, 22, 0.8);
-  border: 1px solid #54407a;
-  border-radius: 4px;
-  font-size: 13px;
+  font-family: var(--serif);
+  font-size: 14px;
 }
 
 .floorinfo b {
-  color: #cdb4ff;
+  color: var(--brass2);
 }
 
 .toasts {
@@ -781,22 +801,20 @@ input[type='password'] {
 }
 
 .toast {
+  position: relative;
   padding: 8px var(--s2);
-  background: rgba(14, 12, 22, 0.9);
-  border: 1px solid var(--line2);
-  border-radius: 4px;
   font-size: 13px;
   animation: pop 0.16s ease-out;
 }
 
 .toast.good {
-  border-color: #4f8a5c;
-  color: #b8f0c0;
+  border-color: #1f4a44;
+  color: #bfe8d8;
 }
 
 .toast.warn {
-  border-color: #8a4a3e;
-  color: #ffc0a8;
+  border-color: #5c1a12;
+  color: #ffc9b0;
 }
 
 @keyframes pop {
@@ -822,24 +840,31 @@ input[type='password'] {
 }
 
 .minimap {
-  background: rgba(14, 12, 22, 0.82);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  overflow: hidden;
+  position: relative;
+  padding: 0 4px 4px;
 }
 
 .maptitle {
-  padding: 4px var(--s1);
-  font-size: 12px;
-  color: var(--gold2);
+  height: 32px;
+  margin: 0 -4px 4px;
+  padding: 8px var(--s1) 0;
+  font-family: var(--serif);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 24px;
+  color: var(--brass2);
   text-align: center;
-  border-bottom: 1px solid var(--line);
+  letter-spacing: 0.08em;
+  background: var(--dancheong) top / 100% 4px no-repeat, linear-gradient(180deg, #3a2516, #22150c);
+  border-bottom: 1px solid #0c0806;
 }
 
 .minimap canvas {
   display: block;
   image-rendering: pixelated;
   cursor: pointer;
+  border: 1px solid #0c0806;
+  box-shadow: 0 0 0 1px rgba(201, 162, 74, 0.45);
 }
 
 .tracker {
@@ -850,24 +875,29 @@ input[type='password'] {
 }
 
 .tq {
+  position: relative;
   display: flex;
   flex-direction: column;
-  padding: 4px var(--s1);
-  background: rgba(14, 12, 22, 0.62);
-  border-left: 2px solid var(--gold);
-  font-size: 11px;
+  padding: 8px var(--s1) 8px var(--s2);
+  background: linear-gradient(180deg, rgba(240, 230, 204, 0.94), rgba(222, 208, 176, 0.94));
+  color: var(--ink2);
+  border-radius: 1px;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35), inset 0 0 12px rgba(150, 120, 70, 0.25);
+  font-size: 12px;
 }
 
 .tq b {
-  color: var(--gold2);
+  font-family: var(--serif);
+  font-size: 13px;
+  color: #7a2214;
 }
 
 .tq.done {
-  border-color: var(--good);
+  background: linear-gradient(180deg, rgba(226, 236, 220, 0.94), rgba(200, 218, 196, 0.94));
 }
 
 .tq.done span {
-  color: var(--good);
+  color: #1f5a3a;
 }
 
 .lootfeed {
@@ -908,8 +938,9 @@ input[type='password'] {
 }
 
 .chat.open .chatlog {
-  background: rgba(14, 12, 22, 0.7);
-  border-radius: 4px;
+  background: rgba(26, 18, 12, 0.8);
+  border-radius: 1px;
+  box-shadow: inset 0 0 0 1px rgba(201, 162, 74, 0.3);
 }
 
 .chatlog p {
@@ -918,7 +949,7 @@ input[type='password'] {
 
 .chatlog b {
   margin-right: var(--s1);
-  color: var(--gold2);
+  color: var(--brass2);
 }
 
 .c-party b {
@@ -937,9 +968,10 @@ input[type='password'] {
 .chtab {
   width: 56px;
   height: 40px;
-  background: var(--panel2);
-  border: 1px solid var(--line2);
-  border-radius: 4px;
+  background: linear-gradient(180deg, #3a2516, #22150c);
+  border: 1px solid #0c0806;
+  border-radius: 1px;
+  box-shadow: inset 0 0 0 1px rgba(201, 162, 74, 0.45);
   font-size: 12px;
 }
 
@@ -947,10 +979,11 @@ input[type='password'] {
   align-self: flex-start;
   height: 24px;
   padding: 0 var(--s1);
-  background: rgba(14, 12, 22, 0.6);
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  color: var(--muted);
+  background: rgba(26, 18, 12, 0.7);
+  border: 1px solid #0c0806;
+  border-radius: 1px;
+  box-shadow: inset 0 0 0 1px rgba(201, 162, 74, 0.3);
+  color: var(--hanji-dim);
   font-size: 11px;
 }
 
@@ -966,28 +999,25 @@ input[type='password'] {
 }
 
 .promptbox {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--s1);
   height: 32px;
   padding: 0 var(--s2);
-  background: rgba(14, 12, 22, 0.88);
-  border: 1px solid var(--gold);
-  border-radius: 4px;
-  font-size: 12px;
+  font-family: var(--serif);
+  font-size: 13px;
 }
 
 .promptbox kbd {
-  color: var(--gold2);
+  color: var(--brass2);
 }
 
 .actionbar {
+  position: relative;
   display: flex;
   gap: var(--s2);
-  padding: var(--s1);
-  background: rgba(14, 12, 22, 0.78);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  padding: var(--s2) var(--s1) var(--s1);
 }
 
 .abgroup {
@@ -1003,15 +1033,13 @@ input[type='password'] {
   align-items: center;
   justify-content: center;
   padding: 0;
-  background: #17141f;
-  border: 1px solid var(--line2);
-  border-radius: 4px;
+  background: radial-gradient(circle at 50% 40%, #2a1c12, #140d08);
+  border: 1px solid #070504;
+  border-radius: 1px;
+  box-shadow: inset 0 0 0 1px rgba(201, 162, 74, 0.5);
   overflow: hidden;
 }
 
-.skill:hover {
-  border-color: var(--gold);
-}
 
 .skill.locked .icon {
   filter: grayscale(1) brightness(0.45);
@@ -1024,10 +1052,19 @@ input[type='password'] {
 .skill kbd {
   position: absolute;
   left: 2px;
-  top: 0;
+  top: 2px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 2px;
+  background: #9e2a1c;
+  color: #f8e6c4;
+  border-radius: 1px;
+  box-shadow: inset 0 0 0 1px rgba(255, 210, 170, 0.35);
+  font-family: var(--body);
   font-size: 9px;
-  color: var(--text);
-  text-shadow: 0 1px 0 #000, 1px 0 0 #000, -1px 0 0 #000;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
 }
 
 .skill .count {
@@ -1077,13 +1114,14 @@ input[type='password'] {
   right: 0;
   bottom: 0;
   height: 8px;
-  background: rgba(10, 8, 18, 0.9);
+  background: #140d08;
+  border-top: 1px solid rgba(201, 162, 74, 0.55);
 }
 
 .expbar i {
   position: absolute;
   inset: 0 auto 0 0;
-  background: linear-gradient(90deg, #b98a2c, #f2c14e);
+  background: linear-gradient(90deg, #8a6420, #d9a63a 70%, #f0d58a);
   transition: width 0.2s;
 }
 
@@ -1091,8 +1129,9 @@ input[type='password'] {
   position: absolute;
   right: var(--s1);
   bottom: 8px;
-  font-size: 10px;
-  color: var(--muted);
+  font-size: 11px;
+  color: var(--brass2);
+  text-shadow: 0 1px 0 #000;
 }
 
 .hudbr {
@@ -1115,17 +1154,16 @@ input[type='password'] {
   justify-content: space-between;
   height: 32px;
   padding: 0 var(--s1);
-  background: rgba(14, 12, 22, 0.8);
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  font-size: 12px;
+  background: linear-gradient(180deg, #3a2516, #22150c);
+  border: 1px solid #0c0806;
+  border-radius: 1px;
+  box-shadow: inset 0 0 0 1px rgba(201, 162, 74, 0.4), 0 2px 0 rgba(0, 0, 0, 0.4);
+  font-family: var(--serif);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--hanji);
 }
 
-.menubtn:hover,
-.menubtn.on {
-  border-color: var(--gold);
-  color: var(--gold2);
-}
 
 .dotnew {
   position: absolute;
@@ -1138,13 +1176,12 @@ input[type='password'] {
 }
 
 .leavebtn {
+  position: relative;
   align-self: flex-start;
   height: 32px;
   padding: 0 var(--s2);
-  background: rgba(14, 12, 22, 0.82);
-  border: 1px solid var(--line2);
-  border-radius: 4px;
-  font-size: 12px;
+  font-family: var(--serif);
+  font-size: 13px;
 }
 
 .bigtext {
@@ -1213,6 +1250,127 @@ input[type='password'] {
   font-family: Galmuri14, var(--pixel);
   font-size: 40px;
   color: #ff9a86;
+}
+
+
+/* 조선풍 판: 옻칠한 나무판, 놋쇠 테, 모서리 장식. 위에 단청 띠를 두르는 판도 있다 */
+.vitals,
+.pmember,
+.bossbar,
+.floorinfo,
+.toast,
+.minimap,
+.promptbox,
+.actionbar,
+.leavebtn {
+  background: linear-gradient(180deg, rgba(48, 32, 20, 0.92), rgba(24, 16, 10, 0.92));
+  border: 1px solid #0c0806;
+  border-radius: 1px;
+  box-shadow: inset 0 0 0 1px rgba(201, 162, 74, 0.45), 0 2px 0 rgba(0, 0, 0, 0.4);
+  color: var(--hanji);
+}
+
+.vitals::before,
+.bossbar::before,
+.actionbar::before {
+  content: '';
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  top: 1px;
+  height: 4px;
+  background: var(--dancheong);
+  pointer-events: none;
+}
+
+.vitals::after,
+.bossbar::after,
+.actionbar::after,
+.minimap::after,
+.pmember::after,
+.floorinfo::after,
+.promptbox::after,
+.tq::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  background: var(--corners);
+  pointer-events: none;
+}
+
+.tq::after {
+  background: linear-gradient(#9e2a1c, #9e2a1c) 4px 8px / 2px calc(100% - 16px) no-repeat;
+}
+
+.skill:hover,
+.menubtn:hover,
+.menubtn.on {
+  box-shadow: inset 0 0 0 1px var(--brass2), 0 0 8px rgba(240, 213, 138, 0.35);
+}
+
+.menubtn:hover,
+.menubtn.on {
+  color: var(--brass2);
+}
+
+.menubtn kbd {
+  font-family: var(--body);
+  color: var(--hanji-dim);
+}
+
+/* 게임 중 창(가방·장비 등)도 HUD와 같은 재질로 맞춘다. 시작 화면은 그대로 둔다 */
+.hud {
+  --panel: rgba(30, 20, 13, 0.97);
+  --panel2: rgba(52, 35, 22, 0.9);
+  --line: #4a3420;
+  --line2: #7a5a32;
+  --muted: var(--hanji-dim);
+  --text: var(--hanji);
+}
+
+.hud .panel {
+  background: linear-gradient(180deg, rgba(48, 32, 20, 0.97), rgba(24, 16, 10, 0.97));
+  border-color: #0c0806;
+  border-radius: 1px;
+  box-shadow: inset 0 0 0 1px rgba(201, 162, 74, 0.45), 0 8px 32px rgba(0, 0, 0, 0.55);
+}
+
+.hud .win::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--corners);
+  pointer-events: none;
+}
+
+.hud .winhead {
+  padding-top: 4px;
+  background: var(--dancheong) top / 100% 4px no-repeat, linear-gradient(180deg, #3a2516, #22150c);
+}
+
+.hud .winhead h2 {
+  font-family: var(--serif);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--brass2);
+  letter-spacing: 0.04em;
+}
+
+.hud .btn {
+  border-radius: 1px;
+}
+
+.hud .slot {
+  background: radial-gradient(circle at 50% 40%, #2a1c12, #140d08);
+  border-color: #070504;
+  border-radius: 1px;
+  box-shadow: inset 0 0 0 1px rgba(201, 162, 74, 0.3);
+}
+
+.hud input[type='text'],
+.hud input:not([type]) {
+  background: #140d08;
+  border-radius: 1px;
 }
 
 /* ─── 창 ───────────────── */
