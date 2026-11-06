@@ -5,6 +5,7 @@ import type { Room } from '@colyseus/sdk';
 import { CLASSES, SKILLS, type AttackStep, type ClassDef, type SkillDef } from '@shared/classes';
 import { blocked, dirFromVec, dist, normalize, PX_H, PX_U, PX_V, slideMove, toUV, toX, toY } from '@shared/core';
 import type { MapData, MapObject } from '@shared/mapdata';
+import { pcSheet } from '@shared/items';
 import { MONSTERS } from '@shared/monsters';
 import { NPCS, QUEST_BY_ID, QUESTS, npcMark, questAvailable, questComplete } from '@shared/quests';
 import { sfx } from '../audio';
@@ -221,8 +222,7 @@ export class WorldScene extends Phaser.Scene {
     const self = s.players.get(this.sid);
     const clsId = (self?.cls ?? me.value?.cls ?? 'warrior') as keyof typeof CLASSES;
     this.cls = CLASSES[clsId];
-    const look = ['a', 'b', 'c'][self?.look ?? 0] ?? 'a';
-    this.me = new Actor(this, `pc_${clsId}_${look}`, self?.u ?? map.w / 2, self?.v ?? map.h / 2);
+    this.me = new Actor(this, pcSheet(clsId, self?.look ?? 0, self?.gear), self?.u ?? map.w / 2, self?.v ?? map.h / 2);
     this.me.setLabel(self?.name ?? '', '#ffe7a8');
     this.snapCamera();
 
@@ -285,7 +285,7 @@ export class WorldScene extends Phaser.Scene {
         ring.setScale(px, (px * PX_V) / PX_U).setAlpha(0.6);
         const glow = this.add.image(x, y - 10, 'glow').setBlendMode(Phaser.BlendModes.ADD).setTint(o.instance ? 0xb58aff : 0xffc96a).setScale(0.9, 0.7).setAlpha(0.35).setDepth(DEPTH.LIGHT);
         const t = this.add
-          .text(x, y - 40, o.label ?? '', { fontFamily: 'Galmuri11', fontSize: '11px', color: '#ffe7a8', stroke: '#0b0a12', strokeThickness: 2 })
+          .text(x, y - 1.2 * PX_H, o.label ?? '', { fontFamily: 'Galmuri11', fontSize: '11px', color: '#ffe7a8', stroke: '#0b0a12', strokeThickness: 2 })
           .setOrigin(0.5, 1)
           .setDepth(DEPTH.TEXT);
         this.doorViews.push({ o, ring, glow, t });
@@ -402,8 +402,8 @@ export class WorldScene extends Phaser.Scene {
   private npcAtPointer(p: Phaser.Input.Pointer): string | null {
     for (const [id, { a, o }] of this.npcs) {
       const dx = p.worldX - a.screenX();
-      const dy = p.worldY - (a.screenY() - 22);
-      if (Math.abs(dx) < 16 && Math.abs(dy) < 28) {
+      const dy = p.worldY - (a.screenY() - 0.66 * PX_H);
+      if (Math.abs(dx) < 22 && Math.abs(dy) < 44) {
         if (dist(this.me.u, this.me.v, o.u, o.v) <= (o.r ?? 2.6)) return id;
         toast('더 가까이 가세요', 'info', 1200);
         return null;
@@ -557,7 +557,7 @@ export class WorldScene extends Phaser.Scene {
     }
     if (!this.canAct() || this.pState === 'cast' || cooldownLeft(id) > 0) return;
     if (vitals.value.mp < sk.mp) {
-      toast('마나가 모자라요', 'warn', 1200);
+      toast('기력이 모자라요', 'warn', 1200);
       sfx('deny');
       return;
     }
@@ -688,6 +688,7 @@ export class WorldScene extends Phaser.Scene {
     const a = this.me;
     const self = state.players.get(this.sid);
     if (!self) return;
+    a.setSheet(pcSheet(self.cls, self.look ?? 0, self.gear));
     const wasDead = this.dead;
     this.dead = self.dead;
     if (this.dead && !wasDead) {
@@ -861,7 +862,7 @@ export class WorldScene extends Phaser.Scene {
     if (self.fx & 6) {
       if (Math.random() < dt * 22) {
         const color = self.fx & 2 ? 0xffb65c : 0xc8ff8a;
-        this.fx.part({ tex: 'px', x: a.screenX() + (Math.random() - 0.5) * 22, y: a.screenY() - Math.random() * 36, vy: -30, life: 0.55, s0: 0.7, s1: 0.1, color });
+        this.fx.part({ tex: 'px', x: a.screenX() + (Math.random() - 0.5) * 22, y: a.screenY() - Math.random() * 1.1 * PX_H, vy: -30, life: 0.55, s0: 0.7, s1: 0.1, color });
       }
     }
   }
@@ -916,13 +917,13 @@ export class WorldScene extends Phaser.Scene {
       seen.add(sid);
       let v = this.others.get(sid);
       if (!v) {
-        const look = ['a', 'b', 'c'][p.look ?? 0] ?? 'a';
-        const a = new Actor(this, `pc_${p.cls}_${look}`, p.u, p.v);
+        const a = new Actor(this, pcSheet(p.cls, p.look ?? 0, p.gear), p.u, p.v);
         a.setLabel(p.name);
         v = { a, overrideUntil: 0 };
         this.others.set(sid, v);
       }
       const a = v.a;
+      a.setSheet(pcSheet(p.cls, p.look ?? 0, p.gear));
       a.tu = p.u;
       a.tv = p.v;
       const d = dist(a.u, a.v, a.tu, a.tv);
@@ -1067,7 +1068,7 @@ export class WorldScene extends Phaser.Scene {
         const x = toX(p.u, p.v);
         const y = toY(p.u, p.v);
         const mesh = getStage().addProp('portal_arch', p.u, p.v);
-        const glow = this.add.image(x, y - 22, 'glow').setBlendMode(Phaser.BlendModes.ADD).setTint(p.kind === 'exit' ? 0xffd98a : 0xb58aff).setScale(0.8, 1).setDepth(DEPTH.LIGHT);
+        const glow = this.add.image(x, y - 0.66 * PX_H, 'glow').setBlendMode(Phaser.BlendModes.ADD).setTint(p.kind === 'exit' ? 0xffd98a : 0xb58aff).setScale(0.8, 1).setDepth(DEPTH.LIGHT);
         const label = this.add
           .text(x, y - 3.4 * PX_H, p.label, { fontFamily: 'Galmuri11', fontSize: '11px', color: '#ffe7a8', stroke: '#0b0a12', strokeThickness: 2 })
           .setOrigin(0.5, 1)

@@ -1,9 +1,9 @@
 // 좌표, 방향, 충돌 등 서버와 클라이언트가 함께 쓰는 기본 도구
 
-/** 화면 비율: 땅 1칸이 가로 40px, 세로 22px, 높이 1유닛이 33.4px. 카메라는 정면에서 약 33도 내려다본다. */
-export const PX_U = 40;
-export const PX_V = 22;
-export const PX_H = 33.4;
+/** 화면 비율: 땅 1칸이 가로 50px, 세로 27.5px, 높이 1유닛이 41.75px. 카메라는 정면에서 약 33도 내려다본다. */
+export const PX_U = 50;
+export const PX_V = 27.5;
+export const PX_H = 41.75;
 
 export const toX = (u: number, _v: number) => u * PX_U;
 export const toY = (_u: number, v: number) => v * PX_V;

@@ -53,6 +53,8 @@ export interface MapData {
   objects: MapObject[];
   spawns: SpawnGroup[];
   solid: SolidGrid;
+  /** 다리 위 걷는 구역 [u0, v0, u1, v1]. 긴 쪽이 건너는 방향이다 */
+  bridges?: [number, number, number, number][];
   /** 화면 전체 색조 */
   tint: [number, number, number];
   /** 어두운 정도 0~1 (등불 빛이 살아난다) */

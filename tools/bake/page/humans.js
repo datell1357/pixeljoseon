@@ -44,7 +44,7 @@ export function fallBack(deg, pz, py) {
 // ---------- 전사 ----------
 const W_STANCE = {
   hy: -0.012, Fz: 0.05, Gz: -0.06, Fx: 0.012, Gx: -0.012, Ga: 8, Fa: 6,
-  Ra: -58, Rr: 0.33, Ry: 0.46, Wy: -16, Wp: 22,
+  Ra: -62, Rr: 0.33, Ry: 0.48, Wy: -34, Wp: 62,
   La: 62, Lr: 0.3, Ly: 0.5, Vy: 42, Vp: 0,
   cry: 4, c1: 10, c2: 8,
 };

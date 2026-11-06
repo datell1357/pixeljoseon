@@ -149,6 +149,19 @@ export class Geo {
   }
 
   /** 모서리를 깎은 상자. 깎인 면이 빛을 받아 윤곽이 산다 */
+  /** 법선이 center에서 바깥으로 퍼지는 사각형. 머리카락처럼 둥글게 빛을 받는 면에 쓴다 */
+  quadS(a: THREE.Vector3, b: THREE.Vector3, c: THREE.Vector3, d: THREE.Vector3, col: Hex, center: THREE.Vector3) {
+    const k = rgb(col);
+    const n = (p: THREE.Vector3) => p.clone().sub(center).normalize();
+    this.vtx(a, n(a), k);
+    this.vtx(b, n(b), k);
+    this.vtx(c, n(c), k);
+    this.vtx(a, n(a), k);
+    this.vtx(c, n(c), k);
+    this.vtx(d, n(d), k);
+    return this;
+  }
+
   box(cx: number, cy: number, cz: number, w: number, h: number, d: number, col: Hex, bevel = 0) {
     const x = w / 2;
     const y = h / 2;
@@ -304,6 +317,108 @@ export class Geo {
           this.vtx(a, na, k);
           this.vtx(c, nc, k);
           this.vtx(d, nd, k);
+        }
+      }
+    }
+    return this;
+  }
+
+  /**
+   * 격자 표면. P[i][j]에서 i는 길이 방향, j는 둘레 방향(닫힌 고리).
+   * 정점마다 색을 따로 칠하고 법선은 이웃 정점에서 구해 매끈하게 빛을 받는다.
+   * 감는 방향은 법선과 맞춰 자동으로 고른다.
+   */
+  surface(
+    P: THREE.Vector3[][],
+    col: (i: number, j: number) => Hex,
+    opt: { capA?: boolean; capB?: boolean; fur?: { k: number; chance: number; dir: number; seed: number; mask?: (i: number, j: number) => boolean } } = {},
+  ) {
+    const n = P.length;
+    const m = P[0].length;
+    const cen = P.map((r) => r.reduce((a, p) => a.add(p), v3()).divideScalar(m));
+    const N: THREE.Vector3[][] = [];
+    const du = v3();
+    const dv = v3();
+    for (let i = 0; i < n; i++) {
+      const row: THREE.Vector3[] = [];
+      for (let j = 0; j < m; j++) {
+        du.copy(P[Math.min(n - 1, i + 1)][j]).sub(P[Math.max(0, i - 1)][j]);
+        dv.copy(P[i][(j + 1) % m]).sub(P[i][(j - 1 + m) % m]);
+        const q = v3().crossVectors(du, dv);
+        // 고리가 한 점으로 모이면 중심에서 바깥을 향하게
+        const out = P[i][j].clone().sub(cen[i]);
+        if (q.lengthSq() < 1e-12) q.copy(out.lengthSq() > 1e-12 ? out : du);
+        if (out.lengthSq() > 1e-12 && q.dot(out) < 0) q.negate();
+        row.push(q.normalize());
+      }
+      N.push(row);
+    }
+    const K = P.map((r, i) => r.map((_, j) => rgb(col(i, j))));
+    const put = (i: number, j: number) => this.vtx(P[i][j], N[i][j], K[i][j]);
+    const T = v3();
+    for (let i = 0; i < n - 1; i++) {
+      for (let j = 0; j < m; j++) {
+        const j2 = (j + 1) % m;
+        // 삼각형 면 법선이 정점 법선과 같은 쪽을 보게 감는다
+        du.copy(P[i + 1][j]).sub(P[i][j]);
+        dv.copy(P[i][j2]).sub(P[i][j]);
+        T.crossVectors(du, dv);
+        const avg = v3().add(N[i][j]).add(N[i + 1][j]).add(N[i][j2]);
+        if (T.dot(avg) >= 0) {
+          put(i, j); put(i + 1, j); put(i + 1, j2);
+          put(i, j); put(i + 1, j2); put(i, j2);
+        } else {
+          put(i, j); put(i, j2); put(i + 1, j2);
+          put(i, j); put(i + 1, j2); put(i + 1, j);
+        }
+      }
+    }
+    // 마개는 이웃 고리 반대쪽(바깥)을 본다
+    const cap = (i: number, nb: number) => {
+      const o = cen[i];
+      const nn = o.clone().sub(cen[nb]);
+      if (nn.lengthSq() < 1e-12) return;
+      nn.normalize();
+      for (let j = 0; j < m; j++) {
+        const a = P[i][j];
+        const b = P[i][(j + 1) % m];
+        T.crossVectors(du.copy(a).sub(o), dv.copy(b).sub(o));
+        const c = K[i][j];
+        if (T.dot(nn) >= 0) { this.vtx(o, nn, c); this.vtx(a, nn, c); this.vtx(b, nn, c); }
+        else { this.vtx(o, nn, c); this.vtx(b, nn, c); this.vtx(a, nn, c); }
+      }
+    };
+    if (opt.capA && n > 1) cap(0, 1);
+    if (opt.capB && n > 1) cap(n - 1, n - 2);
+    // 털끝: 표면에서 비스듬히 뒤로 누운 작은 삼각형. 몸과 같은 법선으로 빛을 받아 외곽선만 털처럼 부서진다
+    const fur = opt.fur;
+    if (fur) {
+      const r = rng(fur.seed);
+      const back = v3();
+      const side = v3();
+      for (let i = 1; i < n - 1; i++) {
+        for (let j = 0; j < m; j++) {
+          if (r() > fur.chance || (fur.mask && !fur.mask(i, j))) continue;
+          const p = P[i][j];
+          const nn = N[i][j];
+          const rad = p.distanceTo(cen[i]);
+          const len = rad * fur.k * (0.7 + r() * 0.6);
+          if (len < 1e-4) continue;
+          back.copy(P[i + fur.dir][j]).sub(P[i - fur.dir][j]);
+          back.addScaledVector(nn, -back.dot(nn));
+          if (back.lengthSq() < 1e-12) continue;
+          back.normalize();
+          side.crossVectors(nn, back).normalize().multiplyScalar(len * (0.28 + r() * 0.14));
+          // 둘레 방향으로 조금씩 엇갈려 줄지어 보이지 않게
+          const o = p.clone().addScaledVector(nn, -len * 0.2).addScaledVector(side, (r() - 0.5) * 1.6);
+          const tip = o.clone().addScaledVector(nn, len * (0.45 + r() * 0.3)).addScaledVector(back, len);
+          const [cr, cg, cb] = K[i][j];
+          const root: [number, number, number] = [cr * 0.86, cg * 0.86, cb * 0.86];
+          const t = 1.04 + r() * 0.1;
+          const end: [number, number, number] = [Math.min(1, cr * t), Math.min(1, cg * t), Math.min(1, cb * t)];
+          this.vtx(o.clone().sub(side), nn, root);
+          this.vtx(o.clone().add(side), nn, root);
+          this.vtx(tip, nn, end);
         }
       }
     }

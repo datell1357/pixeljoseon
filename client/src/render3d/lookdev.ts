@@ -26,7 +26,7 @@ const api = {
     for (const a of api.actors) {
       const an = a.v.asset.anims[a.anim] ?? a.v.asset.anims.idle;
       a.p += dt / an.dur;
-      a.v.update(dt, a.anim, a.p, a.u, stage.terrain?.heightAt(a.u, a.w) ?? 0, a.w, a.dir, a.s);
+      a.v.update(dt, a.anim, a.p, a.u, stage.terrain?.groundAt(a.u, a.w) ?? 0, a.w, a.dir, a.s);
     }
   },
   size(w: number, h: number, k: number) {

@@ -5,7 +5,7 @@ import type { MapData } from '@shared/mapdata';
 import type { ActorView } from './actor3d';
 import { atmosphereOf, type Atmos } from './atmos';
 import { setLeafDensity } from './geo';
-import { clearPropCache, propGeometry, propVariants, PROP_LIGHTS, propSpin } from './props';
+import { clearPropCache, propGeometry, propOnWater, propVariants, PROP_LIGHTS, propSpin } from './props';
 import {
   BLUR_FRAG,
   BRIGHT_FRAG,
@@ -24,8 +24,8 @@ import { TerrainData } from './terrain';
 
 const CHUNK = 12;
 const SHADOW_SIZE = 3072;
-const SHADOW_SPAN = 58;
-export const PORTRAIT = 96;
+const SHADOW_SPAN = 50;
+export const PORTRAIT = 128;
 const COS_E = PX_H / PX_U;
 const SIN_E = PX_V / PX_U;
 export const CAM_DIR = new THREE.Vector3(0, SIN_E, COS_E).normalize();
@@ -56,7 +56,7 @@ export function uberMaterial(opts: { cut?: boolean; side?: THREE.Side; bones?: T
     defines: opts.bones ? { USE_BONES: 1 } : {},
     vertexShader: UBER_VERT,
     fragmentShader: UBER_FRAG,
-    uniforms: { ...shared, uAlpha: { value: 1 }, uFlash: { value: new THREE.Vector4(0, 0, 0, 0) }, uCut: { value: opts.cut ? 1 : 0 }, uBoneTex: { value: opts.bones ?? null } },
+    uniforms: { ...shared, uAlpha: { value: 1 }, uFlash: { value: new THREE.Vector4(0, 0, 0, 0) }, uCut: { value: opts.cut ? 1 : 0 }, uBoneTex: { value: opts.bones ?? null }, uFur: { value: 0 } },
     blending: THREE.NoBlending,
     side: opts.side ?? THREE.DoubleSide,
   });
@@ -363,7 +363,7 @@ export class Stage3D {
         const a = spin ? ((hv >>> 8) % 628) / 100 : 0;
         const k = spin ? 0.88 + (((hv >>> 18) % 100) / 100) * 0.3 : 1;
         q.setFromAxisAngle(up, a);
-        p.set(u, t.heightAt(u, v), v);
+        p.set(u, propOnWater(g.id) ? 0 : t.heightAt(u, v), v);
         s.set(k, k, k);
         mesh.setMatrixAt(i, mx.compose(p, q, s));
       });
@@ -390,7 +390,7 @@ export class Stage3D {
     }
   }
 
-  /** 게임 중에 생기고 없어지는 소품 (균열 문 등) */
+  /** 게임 중에 생기고 없어지는 소품 (저승길 문 등) */
   addProp(id: string, u: number, v: number) {
     const m = new THREE.Mesh(propGeometry(id, 0), this.statics);
     m.position.set(u, this.terrain?.heightAt(u, v) ?? 0, v);

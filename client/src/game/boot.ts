@@ -85,16 +85,24 @@ class TitleScene extends Phaser.Scene {
     const t = time * 0.001;
     // 광장 둘레를 천천히 맴돈다
     const s = getStage();
-    s.setView(Math.round((30 + Math.sin(t * 0.07) * 5) * PX_U), Math.round((30 - 1 + Math.cos(t * 0.05) * 4) * PX_V));
+    s.setView(Math.round((44 + Math.sin(t * 0.07) * 6) * PX_U), Math.round((27 + Math.cos(t * 0.05) * 3) * PX_V));
     s.render(Math.min(0.05, deltaMs / 1000));
   }
 }
 
-/** 화면 픽셀 하나를 몇 칸으로 키울지. 세로 540칸 안팎이 보이도록 고른다. */
+/**
+ * 그림 한 칸을 화면 픽셀 몇 개로 키울지. 세로 540칸 안팎이 보이도록 고른다.
+ * 레티나에서는 장치 픽셀의 정수배가 되도록 1.5배도 쓴다. 그래야 칸 크기가 고르다.
+ */
 export function pixelScale(): number {
   const z = settings.value.zoom;
   if (z > 0) return z;
-  return Math.max(1, Math.min(4, Math.round(window.innerHeight / 540)));
+  const dpr = window.devicePixelRatio || 1;
+  const device = Math.max(1, Math.round((window.innerHeight * dpr) / 540));
+  const k = device / dpr;
+  // 720·768줄 모니터는 그대로 두면 인물이 너무 작게 보인다
+  if (k < 1.25 && window.innerHeight >= 640) return 1.5;
+  return Math.min(4, k);
 }
 
 export function applyScale() {

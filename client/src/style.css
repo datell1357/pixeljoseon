@@ -1276,8 +1276,14 @@ input[type='password'] {
 
 .equipwin {
   left: var(--s2);
-  top: 120px;
+  top: 72px;
   width: 288px;
+}
+
+.equipwho {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
 }
 
 .skillwin {

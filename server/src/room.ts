@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CLASSES, SKILLS, expToNext, mitigate, skillMult, type AttackStep, type BaseStats, type ProjSpec, type SkillDef } from '../../shared/classes';
 import { blocked, clamp, dirFromVec, dist, isSolid, lineClear, normalize, slideMove } from '../../shared/core';
-import { CONSUMABLES, GEAR, RIFT_STOCK, SHOP_STOCK, dropPool, rollGear, rollRarity, type Rarity } from '../../shared/items';
+import { CONSUMABLES, GEAR, RIFT_STOCK, SHOP_STOCK, dropPool, gearKey, rollGear, rollRarity, type Rarity } from '../../shared/items';
 import { PERSISTENT_MAPS, type MapData, type SpawnGroup } from '../../shared/mapdata';
 import { DESIGN_LEVEL, MONSTERS, riftScale, type MonAttack, type MonDef } from '../../shared/monsters';
 import { NPCS, QUEST_BY_ID } from '../../shared/quests';
@@ -214,6 +214,7 @@ export class GameRoom extends Room {
     s.name = char.name;
     s.cls = char.cls;
     s.look = char.look;
+    s.gear = gearKey(char.equip);
     s.u = u;
     s.v = v;
     s.dir = 0;
@@ -374,7 +375,7 @@ export class GameRoom extends Room {
       if (!this.nearNpc(p, m.npc)) return;
       const stock = RIFT_STOCK[m.i];
       if (!stock) return;
-      if (C.countItem(p.char, 'rift_token') < stock.tokens) return this.toast(p, '균열 토큰이 모자라요', 'warn');
+      if (C.countItem(p.char, 'rift_token') < stock.tokens) return this.toast(p, '저승 엽전이 모자라요', 'warn');
       if (C.freeSlots(p.char) < 1) return this.toast(p, '가방이 가득 찼어요', 'warn');
       C.removeItem(p.char, 'rift_token', stock.tokens);
       C.addGear(p.char, rollGear(stock.base, stock.rarity));
@@ -526,6 +527,7 @@ export class GameRoom extends Room {
     p.s.maxHp = p.stats.maxHp;
     p.s.maxMp = p.stats.maxMp;
     p.s.level = p.char.level;
+    p.s.gear = gearKey(p.char.equip);
     if (p.s.hp > p.s.maxHp) p.s.hp = p.s.maxHp;
     if (p.s.mp > p.s.maxMp) p.s.mp = p.s.maxMp;
     p.meDirty = true;
@@ -536,6 +538,7 @@ export class GameRoom extends Room {
     p.client.send('me', {
       name: c.name,
       cls: c.cls,
+      look: c.look,
       level: c.level,
       exp: c.exp,
       expNext: expToNext(c.level),
@@ -1119,7 +1122,7 @@ export class GameRoom extends Room {
     if (!rt) return;
     if (rt.gold) {
       p.char.gold += rt.gold;
-      this.toastLoot(p, `${rt.gold} 골드`, 0);
+      this.toastLoot(p, `${rt.gold}냥`, 0);
     } else if (rt.gear) {
       if (!C.addGear(p.char, rt.gear)) return this.bagFull(p);
       this.toastLoot(p, l.label, l.rarity);
@@ -1766,7 +1769,7 @@ export class GameRoom extends Room {
     l.rarity = d.gear?.rarity ?? 0;
     if (d.gold) {
       l.icon = 'gold';
-      l.label = `${d.gold} 골드`;
+      l.label = `${d.gold}냥`;
     } else if (d.gear) {
       const b = GEAR[d.gear.base];
       l.icon = b.icon;
@@ -2027,7 +2030,7 @@ export class GameRoom extends Room {
     });
   }
 
-  // ─── 균열 ─────────────────────────────────────────
+  // ─── 저승길 ─────────────────────────────────────────
 
   private startFloor(n: number) {
     this.floor = n;
@@ -2065,7 +2068,7 @@ export class GameRoom extends Room {
         const bossMul = boss === 'warden' ? Math.min(1, level / 18) * 0.5 : Math.max(0.5, Math.min(1, level / 8)) * 0.55;
         this.spawnMon(boss, 17, 13, Math.max(level, DESIGN_LEVEL[boss] - 6), { ...opts, hpMul: opts.hpMul * bossMul, rift: true });
       } else {
-        const pool = n < 4 ? ['mushroom', 'boar', 'wisp'] : n < 9 ? ['ashwolf', 'wisp', 'shade', 'emberbug'] : ['golem', 'cultist', 'shade', 'ashwolf', 'emberbug'];
+        const pool = n < 4 ? ['mushroom', 'wisp', 'boar'] : n < 9 ? ['fox', 'boar', 'ashwolf', 'emberbug'] : ['golem', 'cultist', 'shade', 'ashwolf', 'emberbug'];
         const count = Math.min(14, 4 + Math.floor(n * 0.7));
         for (let i = 0; i < count; i++) {
           const a = Math.random() * Math.PI * 2;
@@ -2107,7 +2110,7 @@ export class GameRoom extends Room {
       const tokens = (n % 5 === 0 ? 4 : 0) + (n % 3 === 0 ? 1 : 0);
       if (tokens) {
         C.addStack(p.char, 'rift_token', tokens);
-        this.toast(p, `균열 토큰 ${tokens}개를 얻었어요`, 'good');
+        this.toast(p, `저승 엽전 ${tokens}개를 얻었어요`, 'good');
       }
       p.s.hp = Math.min(p.s.maxHp, p.s.hp + Math.round(p.s.maxHp * 0.3));
       p.s.mp = Math.min(p.s.maxMp, p.s.mp + Math.round(p.s.maxMp * 0.4));

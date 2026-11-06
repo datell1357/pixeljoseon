@@ -184,7 +184,7 @@ export function buy(c: CharData, id: string, n = 1): Result {
   if (stack) {
     const cost = stack.price * n;
     if (stack.price <= 0) return { ok: false, msg: '살 수 없어요' };
-    if (c.gold < cost) return { ok: false, msg: '골드가 모자라요' };
+    if (c.gold < cost) return { ok: false, msg: '돈이 모자라요' };
     const left = addStack(c, id, n);
     const bought = n - left;
     if (bought <= 0) return { ok: false, msg: '가방이 가득 찼어요' };
@@ -193,7 +193,7 @@ export function buy(c: CharData, id: string, n = 1): Result {
   }
   const g = GEAR[id];
   if (!g) return { ok: false, msg: '없는 물건이에요' };
-  if (c.gold < g.price) return { ok: false, msg: '골드가 모자라요' };
+  if (c.gold < g.price) return { ok: false, msg: '돈이 모자라요' };
   if (!addGear(c, rollGear(id, 0))) return { ok: false, msg: '가방이 가득 찼어요' };
   c.gold -= g.price;
   return { ok: true };
@@ -220,7 +220,7 @@ export function enhance(c: CharData, where: 'bag' | Slot, i: number, rand: () =>
   if (!g) return { ok: false, msg: '강화할 장비를 고르세요' };
   if (g.plus >= MAX_PLUS) return { ok: false, msg: '더 강화할 수 없어요' };
   const cost = enhanceCost(g);
-  if (c.gold < cost.gold) return { ok: false, msg: '골드가 모자라요' };
+  if (c.gold < cost.gold) return { ok: false, msg: '돈이 모자라요' };
   if (countItem(c, 'ember_shard') < cost.shards) return { ok: false, msg: '등불 조각이 모자라요' };
   c.gold -= cost.gold;
   removeItem(c, 'ember_shard', cost.shards);
@@ -275,7 +275,7 @@ export function skillUp(c: CharData, id: string): Result {
 export function resetSkills(c: CharData): Result {
   const cost = c.level * 20;
   if (spentPoints(c) === 0) return { ok: false, msg: '찍은 스킬이 없어요' };
-  if (c.gold < cost) return { ok: false, msg: `${cost} 골드가 필요해요` };
+  if (c.gold < cost) return { ok: false, msg: `${cost} 냥이 필요해요` };
   c.gold -= cost;
   c.skills = {};
   return { ok: true };

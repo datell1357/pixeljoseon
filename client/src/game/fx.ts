@@ -75,7 +75,7 @@ const PROJ_STYLE: Record<string, { tex: string; color: number; scale: number; gl
   orb: { tex: 'orb', color: 0xffd98a, scale: 0.55, glow: 0.42, glowColor: 0xffaa44, trail: 0xffb65c },
   orb_big: { tex: 'orb', color: 0xfff0c0, scale: 0.85, glow: 0.7, glowColor: 0xff9a3c, trail: 0xffb65c },
   fireball: { tex: 'orb', color: 0xfff0c0, scale: 1, glow: 0.95, glowColor: 0xff6a22, trail: 0xff7a2c },
-  wisp: { tex: 'orb', color: 0xcaff9a, scale: 0.6, glow: 0.5, glowColor: 0x6bdc5a, trail: 0x7ee06a },
+  wisp: { tex: 'orb', color: 0xd8f0ff, scale: 0.6, glow: 0.5, glowColor: 0x6ab8ff, trail: 0x9fd0ff },
   chain: { tex: 'orb', color: 0xbcd8ff, scale: 0.65, glow: 0.55, glowColor: 0x4a86ff, trail: 0x6aa0ff },
 };
 

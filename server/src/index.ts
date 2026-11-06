@@ -7,6 +7,7 @@ import { createServer } from 'node:http';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CLASS_IDS, type ClassId } from '../../shared/classes';
+import { gearKey } from '../../shared/items';
 import { newChar } from './char';
 import * as db from './db';
 import * as hub from './hub';
@@ -58,7 +59,7 @@ app.delete('/api/account', (req, res) => {
   res.json({ ok: true });
 });
 
-const charSummary = (c: ReturnType<typeof db.listChars>[number]) => ({ id: c.id, name: c.name, cls: c.cls, look: c.look, level: c.level, map: c.map });
+const charSummary = (c: ReturnType<typeof db.listChars>[number]) => ({ id: c.id, name: c.name, cls: c.cls, look: c.look, level: c.level, map: c.map, gear: gearKey(c.equip) });
 
 app.get('/api/chars', (req, res) => {
   const a = authed(req);

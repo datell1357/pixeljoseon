@@ -2,12 +2,13 @@
 import * as THREE from 'three';
 import { monsterAsset } from './monsters3d';
 import { humanAsset, retarget, type BuiltRig, type CharAsset, type Chain, type Panel } from './chars';
+import { pcAsset } from './pc';
 import { uberMaterial } from './stage';
 
 const D2R = Math.PI / 180;
 
 export function assetOf(id: string): CharAsset | null {
-  return humanAsset(id) ?? monsterAsset(id);
+  return pcAsset(id) ?? humanAsset(id) ?? monsterAsset(id);
 }
 
 function lerpPose(a: Record<string, number>, b: Record<string, number>, t: number) {
@@ -21,6 +22,13 @@ function lerpPose(a: Record<string, number>, b: Record<string, number>, t: numbe
 }
 
 const tmpM = new THREE.Matrix4();
+
+function boneTexture(data: Float32Array, n: number) {
+  const tex = new THREE.DataTexture(data, 4, n, THREE.RGBAFormat, THREE.FloatType);
+  tex.minFilter = tex.magFilter = THREE.NearestFilter;
+  tex.needsUpdate = true;
+  return tex;
+}
 
 export class ActorView {
   asset: CharAsset;
@@ -40,21 +48,46 @@ export class ActorView {
   vz = 0;
   sway = Math.random() * 10;
 
-  constructor(id: string, parent: THREE.Object3D) {
+  constructor(
+    public id: string,
+    parent: THREE.Object3D,
+  ) {
     const a = assetOf(id);
     if (!a) throw new Error(`모델 없음: ${id}`);
     this.asset = a;
+    a.refs = (a.refs ?? 0) + 1;
     this.built = a.rigFactory();
     this.root = this.built.rig.root;
     const n = Math.max(1, this.built.bones.length);
     this.data = new Float32Array(4 * 4 * n);
-    this.tex = new THREE.DataTexture(this.data, 4, n, THREE.RGBAFormat, THREE.FloatType);
-    this.tex.minFilter = this.tex.magFilter = THREE.NearestFilter;
-    this.tex.needsUpdate = true;
+    this.tex = boneTexture(this.data, n);
     this.mat = uberMaterial({ bones: this.tex });
+    this.mat.uniforms.uFur.value = a.fur ?? 0;
     this.mesh = new THREE.Mesh(a.geometry, this.mat);
     this.mesh.frustumCulled = false;
     parent.add(this.mesh);
+  }
+
+  /** 장비를 바꿔 입는다. 위치와 방향은 그대로 두고 몸만 바꾼다 */
+  setSheet(id: string) {
+    if (id === this.id) return;
+    const a = assetOf(id);
+    if (!a) return;
+    a.refs = (a.refs ?? 0) + 1;
+    this.asset.refs = (this.asset.refs ?? 1) - 1;
+    this.id = id;
+    this.asset = a;
+    this.mat.uniforms.uFur.value = a.fur ?? 0;
+    this.built = a.rigFactory();
+    this.root = this.built.rig.root;
+    const n = Math.max(1, this.built.bones.length);
+    if (n !== this.tex.image.height) {
+      this.tex.dispose();
+      this.data = new Float32Array(4 * 4 * n);
+      this.tex = boneTexture(this.data, n);
+      this.mat.uniforms.uBoneTex.value = this.tex;
+    }
+    this.mesh.geometry = a.geometry;
   }
 
   setFlash(r: number, g: number, b: number, a: number) {
@@ -148,14 +181,14 @@ export class ActorView {
         };
         const pushL = push(fL.x - hx, fL.z - hz, tL.x - hx, 1);
         const pushR = push(fR.x - hx, fR.z - hz, tR.x - hx, -1);
-        const legOut = Math.max(pushL, pushR, 0) * 2.3;
+        const legOut = Math.max(pushL, pushR, 0) * 1.1;
         const drag = -(vl * sa + vf * ca) * 0.085;
         const breeze = Math.sin(this.time * 1.7 + q.a * 2 + this.sway) * 0.022;
         const target = Math.max(q.flare * 0.5, q.flare + legOut + drag + breeze);
         const acc = (target - q.ang) * 170 - q.vel * 19;
         q.vel += acc * step;
         q.ang += q.vel * step;
-        q.ang = Math.max(-0.12, Math.min(1.25, q.ang));
+        q.ang = Math.max(-0.12, Math.min(0.72, q.ang));
         const tgt2 = -q.ang * 0.34 + q.vel * 0.05 + drag * 0.5;
         const acc2 = (tgt2 - q.ang2) * 120 - q.vel2 * 13;
         q.vel2 += acc2 * step;
@@ -200,6 +233,7 @@ export class ActorView {
   }
 
   dispose() {
+    this.asset.refs = (this.asset.refs ?? 1) - 1;
     this.mesh.parent?.remove(this.mesh);
     this.mat.dispose();
     this.tex.dispose();

@@ -23,6 +23,8 @@ export const PROP_LIGHTS: Record<string, { x: number; y: number; z: number; r: n
   tavern: { x: 0, y: 1, z: 2.3, r: 4, col: 0xffb060, k: 0.8 },
   house_a: { x: 0, y: 1, z: 1.8, r: 2.8, col: 0xffb060, k: 0.65 },
   house_c: { x: 0, y: 1, z: 1.8, r: 2.8, col: 0xffb060, k: 0.65 },
+  hall: { x: 0, y: 1.2, z: 2.1, r: 4.4, col: 0xffb060, k: 0.8 },
+  pavilion: { x: 0, y: 1.5, z: 1.15, r: 3.2, col: 0xffb060, k: 0.7 },
 };
 
 // ─── 건물 조각 ─────────────────────────────────
@@ -1096,15 +1098,19 @@ function wallBlock(col: Hex, seed: number, top: Hex) {
 }
 
 function pillar() {
+  // 네모나게 다듬은 돌기둥. 위에 나무 받침을 얹는다
   const g = new Geo();
   g.groundAO = [0, 0.3, 0.3];
-  const c = 0x6f6e78;
+  const c = 0x77747a;
   g.set({ id: 280 });
-  g.box(0, 0.12, 0, 0.56, 0.24, 0.56, tone(c, 0.9), 0.03);
+  g.box(0, 0.1, 0, 0.62, 0.2, 0.62, tone(c, 0.86), 0.04);
   g.set({ id: 281 });
-  g.loft([[0, 0.24, 0, 0.2, 0.2], [0, 2.24, 0, 0.17, 0.17]], (_i, s) => (s % 2 ? c : tone(c, 0.9)), 8);
+  g.box(0, 1.22, 0, 0.34, 2.04, 0.34, c, 0.05);
+  g.box(0, 0.32, 0, 0.42, 0.24, 0.42, tone(c, 0.94), 0.03);
   g.set({ id: 282 });
-  g.box(0, 2.34, 0, 0.5, 0.2, 0.5, tone(c, 1.05), 0.03);
+  g.box(0, 2.32, 0, 0.5, 0.16, 0.5, WOOD_D, 0.02);
+  g.box(0, 2.46, 0, 0.66, 0.12, 0.3, WOOD, 0.02);
+  g.box(0, 2.46, 0, 0.3, 0.12, 0.66, WOOD, 0.02);
   return g;
 }
 
@@ -1357,6 +1363,430 @@ function mossTree(large: boolean, variant: number) {
   return g;
 }
 
+// ─── 새 마을의 표지물 ─────────────────────────
+
+/** 종가: 마을에서 가장 큰 기와집 */
+function hall() {
+  const g = new Geo();
+  g.groundAO = [0, 0.6, 0.22];
+  plinth(g, 6.0, 3.3, 0.5, 71);
+  hanokBody(g, 5.4, 2.6, 0.5, 1.2, 7, { door: 3, seed: 72 });
+  porch(g, 5.2, 1.4, 0.49);
+  tiledRoof(g, 5.4, 2.6, 1.7, 1.24, { over: 0.56, seed: 73 });
+  hangingLantern(g, -1.5, 1.62, 1.52, 0.8);
+  hangingLantern(g, 1.5, 1.62, 1.52, 0.8);
+  return g;
+}
+
+/** 솟을대문: 가운데 지붕이 높은 문. 문은 열려 있어 지나간다 */
+function tallGate() {
+  const g = new Geo();
+  g.groundAO = [0, 0.4, 0.22];
+  for (const s of [-1, 1]) {
+    g.move(s * 1.56, 0, 0, () => {
+      plinth(g, 1.5, 1.24, 0.12, 80 + s);
+      hanokBody(g, 1.3, 1.04, 0.12, 1.02, 1, { paper: false, seed: 82 + s });
+      tiledRoof(g, 1.3, 1.04, 1.14, 0.56, { over: 0.26, seed: 84 + s });
+    });
+  }
+  g.set({ id: 86 });
+  for (const x of [-0.78, 0.78]) {
+    for (const z of [-0.42, 0.42]) g.tube([v3(x, 0, z), v3(x, 1.8, z)], 0.075, (_i, c) => (c % 2 ? WOOD : WOOD_L), 6);
+  }
+  g.box(0, 1.76, 0.42, 1.68, 0.14, 0.14, WOOD_D, 0.01);
+  g.box(0, 1.76, -0.42, 1.68, 0.14, 0.14, WOOD_D, 0.01);
+  // 안쪽으로 열린 문짝
+  g.set({ id: 87 });
+  for (const s of [-1, 1]) {
+    g.at(new THREE.Matrix4().makeTranslation(s * 0.74, 0, -0.34).multiply(new THREE.Matrix4().makeRotationY(s * 1.25)), () => {
+      g.box(-s * 0.36, 0.86, 0, 0.72, 1.62, 0.05, WOOD_L, 0.006);
+      for (const y of [0.4, 0.86, 1.32]) g.box(-s * 0.36, y, 0.03, 0.68, 0.05, 0.016, WOOD_D);
+    });
+  }
+  tiledRoof(g, 1.76, 1.16, 1.84, 0.74, { over: 0.36, seed: 88 });
+  return g;
+}
+
+/** 정자: 개방된 마루와 기둥, 네모 지붕 */
+function pavilion() {
+  const g = new Geo();
+  g.groundAO = [0, 0.5, 0.22];
+  plinth(g, 2.9, 2.9, 0.3, 91);
+  g.set({ id: 92 });
+  for (const x of [-1.15, 0, 1.15]) {
+    for (const z of [-1.15, 0, 1.15]) {
+      if (x === 0 && z === 0) continue;
+      g.tube([v3(x, 0.3, z), v3(x, 1.86, z)], 0.075, (_i, c) => (c % 2 ? WOOD : WOOD_L), 6);
+    }
+  }
+  // 마루
+  g.set({ id: 93 });
+  for (let i = 0; i < 10; i++) g.box(-1.08 + i * 0.24, 0.6, 0, 0.228, 0.05, 2.4, i % 3 === 0 ? 0x8d5d38 : 0x7a4f30, 0.006);
+  // 난간
+  g.set({ id: 94 });
+  for (const [x0, z0, x1, z1] of [[-1.15, 1.15, -0.5, 1.15], [0.5, 1.15, 1.15, 1.15], [-1.15, -1.15, 1.15, -1.15], [-1.15, -1.15, -1.15, 1.15], [1.15, -1.15, 1.15, 1.15]] as const) {
+    g.tube([v3(x0, 0.94, z0), v3(x1, 0.94, z1)], 0.03, WOOD_L, 4);
+    const n = Math.round(Math.hypot(x1 - x0, z1 - z0) / 0.2);
+    for (let i = 0; i <= n; i++) g.box(x0 + ((x1 - x0) * i) / n, 0.78, z0 + ((z1 - z0) * i) / n, 0.026, 0.3, 0.026, WOOD_D);
+  }
+  // 도리와 지붕
+  g.set({ id: 95 });
+  for (const z of [-1.15, 1.15]) g.box(0, 1.84, z, 2.5, 0.12, 0.12, WOOD_D, 0.01);
+  for (const x of [-1.15, 1.15]) g.box(x, 1.84, 0, 0.12, 0.12, 2.5, WOOD_D, 0.01);
+  tiledRoof(g, 2.5, 2.5, 1.9, 1.04, { over: 0.56, seed: 96 });
+  hangingLantern(g, 0, 1.54, 1.15, 0.8);
+  return g;
+}
+
+/** 당산나무: 돌을 둘러 쌓은 마을의 큰 나무. 금줄과 오색 천이 걸려 있다 */
+function dangsan() {
+  const g = new Geo();
+  g.groundAO = [0, 0.6, 0.28];
+  const r = rng(101);
+  const R = 1.34;
+  // 돌 둘레
+  for (let i = 0; i < 26; i++) {
+    const a = (i / 26) * 6.283;
+    g.set({ id: 102 + (i % 4) });
+    g.rock(Math.cos(a) * R, 0.14, Math.sin(a) * R * 0.94, 0.2, 0.17, 0.17, mix(STONE, r() > 0.5 ? STONE_D : 0xb0a28e, r()), i + 3, 0.16, 0);
+    if (i % 2 === 0) g.rock(Math.cos(a + 0.12) * (R - 0.05), 0.36, Math.sin(a + 0.12) * (R - 0.05) * 0.94, 0.17, 0.13, 0.14, mix(STONE, 0x7c7874, r()), i + 40, 0.16, 0);
+  }
+  g.set({ id: 106 });
+  g.loft([[0, 0.02, 0, R, R * 0.94], [0, 0.42, 0, R - 0.14, (R - 0.14) * 0.94]], 0x5a4632, 16);
+  // 굵은 줄기와 뿌리
+  const bark = (_i: number, s: number) => (s % 2 ? 0x4c3426 : 0x5c4230);
+  g.set({ id: 107 });
+  g.tube([v3(0, 0.2, 0), v3(0.06, 1.2, 0.02), v3(-0.05, 2.3, -0.02), v3(0.08, 3.3, 0)], [0.62, 0.48, 0.38, 0.24], bark, 9);
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * 6.283 + 0.4;
+    g.tube([v3(Math.cos(a) * 0.3, 0.72, Math.sin(a) * 0.3), v3(Math.cos(a) * 0.78, 0.44, Math.sin(a) * 0.78)], [0.2, 0.06], bark, 5);
+  }
+  // 금줄
+  g.set({ id: 108 });
+  const rope: THREE.Vector3[] = [];
+  for (let i = 0; i <= 16; i++) {
+    const a = (i / 16) * 6.283;
+    rope.push(v3(Math.cos(a) * 0.6, 1.34 + Math.sin(a * 3) * 0.02, Math.sin(a) * 0.6));
+  }
+  g.tube(rope, 0.034, (_i, s) => (s % 2 ? THATCH : THATCH_D), 4);
+  // 늘어뜨린 흰 종이와 오색 천
+  const cloth = [0xe8e2d0, 0xb5302a, 0xe8e2d0, 0xd2a24a, 0xe8e2d0, 0x2c4a6e, 0xe8e2d0, 0x3e6a44];
+  g.set({ id: 109, wind: 0.5 });
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * 6.283 + 0.26;
+    const c = cloth[i % cloth.length];
+    const long = c === 0xe8e2d0 ? 0.24 : 0.5;
+    g.box(Math.cos(a) * 0.62, 1.34 - long / 2, Math.sin(a) * 0.62, 0.07, long, 0.012, c);
+  }
+  g.set({ wind: 0 });
+  // 큰 가지와 잎
+  const set = LEAF_SETS[1];
+  const set2 = LEAF_SETS[2];
+  const blobs: [number, number, number, number, number][] = [[0, 4.9, 0, 2.4, 1.5]];
+  for (let i = 0; i < 9; i++) {
+    const a = (i / 9) * 6.283 + r();
+    const d = 2.0 + r() * 0.5;
+    blobs.push([Math.cos(a) * d, 3.5 + r() * 1.0, Math.sin(a) * d * 0.9, 1.2 + r() * 0.34, 0.9 + r() * 0.24]);
+  }
+  blobs.forEach(([x, y, z, rr, ry], i) => {
+    g.set({ id: 120 + (i % 8) });
+    g.tube([v3(0.05, 2.7, 0), v3(x * 0.55, y - 0.54, z * 0.55), v3(x, y - 0.1, z)], [0.2, 0.11, 0.03], bark, 5);
+    g.set({ id: 130 + (i % 8), wind: 0.5 });
+    g.leaves(x, y, z, rr, ry, rr, Math.round(70 * rr * rr + 40), i % 3 === 2 ? set2 : set, 700 + i, 0.3);
+    g.set({ wind: 0 });
+  });
+  return g;
+}
+
+/** 장승: 부릅뜬 눈과 큰 이빨 */
+function jangseung(v: number) {
+  const g = new Geo();
+  g.groundAO = [0, 0.4, 0.25];
+  const wood = v % 2 ? 0x7a6448 : 0x6b5238;
+  g.set({ id: 140 });
+  g.tube([v3(0, 0, 0), v3(0.01, 1.2, 0), v3(-0.01, 2.22, 0)], [0.24, 0.21, 0.2], (_i, s) => (s % 2 ? wood : tone(wood, 1.18)), 8);
+  // 관모
+  g.set({ id: 141 });
+  g.loft([[0, 2.14, 0, 0.26, 0.26], [0, 2.22, 0, 0.27, 0.27], [0, 2.46, 0, 0.17, 0.17], [0, 2.54, 0, 0.03, 0.03]], v % 2 ? 0x2c2a30 : 0x8a2f35, 8);
+  // 눈과 코, 이빨
+  g.set({ id: 142 });
+  for (const s of [-1, 1]) {
+    g.box(s * 0.09, 1.86, 0.2, 0.11, 0.09, 0.03, 0xe8e2d0);
+    g.box(s * 0.09, 1.86, 0.216, 0.05, 0.05, 0.02, 0x1a1414);
+    g.box(s * 0.09, 1.97, 0.2, 0.15, 0.03, 0.03, 0x1a1414);
+    g.box(s * 0.052, 1.34, 0.2, 0.04, 0.09, 0.03, 0xe8e2d0);
+  }
+  g.box(0, 1.66, 0.22, 0.09, 0.2, 0.05, tone(wood, 0.8));
+  g.box(0, 1.42, 0.2, 0.3, 0.05, 0.02, 0x1a1414);
+  // 세로로 판 글자 대신 붉은 줄
+  g.set({ id: 143 });
+  g.box(0, 0.76, 0.21, 0.05, 0.84, 0.012, 0xa8302c);
+  return g;
+}
+
+/** 솟대: 긴 장대 끝에 나무 새 */
+function sotdae(v: number) {
+  const g = new Geo();
+  g.groundAO = [0, 0.3, 0.2];
+  const r = rng(v * 7 + 5);
+  const n = 3;
+  for (let i = 0; i < n; i++) {
+    const x = (i - 1) * 0.16 + (r() - 0.5) * 0.04;
+    const z = (r() - 0.5) * 0.14;
+    const h = 2.5 + r() * 0.7;
+    g.set({ id: 150 + i });
+    g.tube([v3(x, 0, z), v3(x + (r() - 0.5) * 0.08, h, z)], [0.038, 0.02], 0x6b5238, 4);
+    g.set({ id: 153 + i });
+    const a = r() * 6.28;
+    g.at(new THREE.Matrix4().makeTranslation(x, h, z).multiply(new THREE.Matrix4().makeRotationY(a)), () => {
+      g.rock(0, 0.05, 0, 0.11, 0.05, 0.05, 0x5c4634, i + 2, 0.1, 0);
+      g.box(0.13, 0.08, 0, 0.1, 0.022, 0.022, 0x5c4634);
+      g.box(0.19, 0.08, 0, 0.05, 0.012, 0.03, 0xc9913e);
+      g.box(-0.12, 0.09, 0, 0.1, 0.012, 0.05, 0x5c4634);
+    });
+  }
+  // 돌 받침
+  g.set({ id: 156 });
+  g.rock(0, 0.1, 0, 0.32, 0.12, 0.22, STONE, 3, 0.2, 0);
+  return g;
+}
+
+/** 허수아비: 십자 막대에 낡은 옷과 삿갓 */
+function scarecrow(v: number) {
+  const g = new Geo();
+  g.groundAO = [0, 0.3, 0.2];
+  const cloth = [0x8a4a3a, 0x4e6a6e, 0x8a7a4a][v % 3];
+  g.set({ id: 160 });
+  g.tube([v3(0, 0, 0), v3(0, 1.72, 0)], 0.035, 0x6b5238, 4);
+  g.tube([v3(-0.62, 1.24, 0), v3(0.62, 1.26, 0)], 0.028, 0x6b5238, 4);
+  g.set({ id: 161, wind: 0.3 });
+  g.loft([[0, 0.72, 0, 0.26, 0.15], [0, 0.96, 0, 0.2, 0.13], [0, 1.3, 0, 0.17, 0.11], [0, 1.38, 0, 0.09, 0.08]], (_i, s) => (s % 2 ? cloth : tone(cloth, 0.84)), 8);
+  for (const s of [-1, 1]) g.box(s * 0.36, 1.16, 0, 0.36, 0.12, 0.08, tone(cloth, 0.9));
+  g.set({ id: 162, wind: 0.5 });
+  for (const s of [-1, 1]) for (let i = 0; i < 3; i++) g.box(s * (0.54 + i * 0.03), 1.1 - i * 0.04, (i - 1) * 0.03, 0.03, 0.2, 0.015, THATCH);
+  g.set({ id: 163 });
+  g.rock(0, 1.52, 0, 0.13, 0.13, 0.12, THATCH, 7, 0.14, 0);
+  g.set({ id: 164 });
+  g.loft([[0, 1.6, 0, 0.3, 0.3], [0, 1.78, 0, 0.1, 0.1], [0, 1.86, 0, 0.01, 0.01]], (_i, s) => (s % 2 ? THATCH_D : THATCH), 10);
+  return g;
+}
+
+/** 홍살문: 붉은 기둥과 살. 저승길로 가는 길목을 표시한다 */
+function hongsal() {
+  const g = new Geo();
+  g.groundAO = [0, 0.3, 0.2];
+  const red = 0xa42e2c;
+  g.set({ id: 170 });
+  for (const s of [-1, 1]) {
+    g.tube([v3(s * 1.5, 0, 0), v3(s * 1.5, 3.1, 0)], 0.1, (_i, c) => (c % 2 ? red : tone(red, 0.84)), 6);
+    g.set({ id: 171 });
+    g.rock(s * 1.5, 0.14, 0, 0.24, 0.17, 0.24, STONE, 3, 0.1, 0);
+    g.set({ id: 170 });
+  }
+  g.box(0, 2.74, 0, 3.2, 0.14, 0.14, red, 0.012);
+  g.box(0, 2.3, 0, 3.08, 0.1, 0.1, red, 0.012);
+  // 위로 뻗은 살
+  g.set({ id: 172 });
+  for (let i = 0; i < 13; i++) {
+    const x = -1.32 + (i * 2.64) / 12;
+    const mid = Math.abs(i - 6) < 0.5;
+    g.box(x, 2.68 + (mid ? 0.32 : 0.14), 0, 0.04, mid ? 0.8 : 0.52, 0.04, red);
+  }
+  // 가운데 삼지창 끝
+  g.set({ id: 173, spec: 0.6 });
+  g.box(0, 3.46, 0, 0.32, 0.03, 0.03, 0x2a2628);
+  for (const x of [-0.15, 0, 0.15]) g.box(x, 3.54, 0, 0.03, 0.16, 0.03, 0x2a2628);
+  g.set({ spec: 0 });
+  return g;
+}
+
+/** 장독대: 돌 단 위의 옹기들 */
+function jars() {
+  const g = new Geo();
+  g.groundAO = [0, 0.3, 0.25];
+  g.set({ id: 174 });
+  g.box(0, 0.08, 0, 1.62, 0.16, 1.14, STONE_D, 0.02);
+  const r = rng(13);
+  for (let i = 0; i < 7; i++) {
+    const row = i < 3 ? 0 : 1;
+    const k = i < 3 ? i - 1 : i - 4.5;
+    jar(g, k * 0.46 + (r() - 0.5) * 0.04, 0.16, row ? 0.26 : -0.26, row ? 0.82 : 1.22, 176 + i * 2);
+  }
+  return g;
+}
+
+/** 감나무: 잎은 듬성하고 주황 감이 잔뜩 달렸다 */
+function persimmon(variant: number) {
+  const g = new Geo();
+  g.groundAO = [0, 0.5, 0.25];
+  const r = rng(variant * 41 + 29);
+  const bark = (_i: number, s: number) => (s % 2 ? 0x3e2c24 : 0x4c3628);
+  g.set({ id: 190 });
+  const top = v3((r() - 0.5) * 0.3, 1.5, (r() - 0.5) * 0.2);
+  g.tube([v3(0, -0.1, 0), v3(0.03, 0.7, 0), top], [0.17, 0.13, 0.07], bark, 6);
+  const tips: THREE.Vector3[] = [];
+  for (let i = 0; i < 7; i++) {
+    const a = (i / 7) * 6.283 + r();
+    const d = 0.78 + r() * 0.5;
+    const tip = v3(top.x + Math.cos(a) * d, 2.0 + r() * 0.74, top.z + Math.sin(a) * d * 0.9);
+    tips.push(tip);
+    g.set({ id: 191 + i });
+    g.tube([top, v3((top.x + tip.x) / 2, tip.y - 0.3, (top.z + tip.z) / 2), tip], [0.06, 0.035, 0.01], bark, 4);
+    g.set({ id: 200 + i, wind: 0.55 });
+    g.leaves(tip.x, tip.y, tip.z, 0.46, 0.34, 0.46, 18, [0xb0693a, 0x8e6a34, 0xc08a3c], variant * 7 + i, 0.2);
+    g.set({ wind: 0 });
+  }
+  // 감
+  g.set({ id: 210, spec: 0.5 });
+  for (let i = 0; i < 26; i++) {
+    const t = tips[i % tips.length];
+    const c = i % 3 === 0 ? 0xf08a28 : 0xe87a22;
+    g.rock(t.x + (r() - 0.5) * 0.76, t.y - 0.1 + (r() - 0.5) * 0.46, t.z + (r() - 0.5) * 0.76, 0.06, 0.056, 0.06, c, i + 2, 0.04, 0);
+  }
+  g.set({ spec: 0 });
+  return g;
+}
+
+/** 돌다리: 완만하게 솟은 상판과 낮은 돌 난간 */
+function stoneBridge(dir: 'u' | 'v') {
+  const g = new Geo();
+  const r = rng(219);
+  const L = 5.2;
+  const W = 2.8;
+  const draw = () => {
+    const n = 13;
+    for (let i = 0; i < n; i++) {
+      const t = (i + 0.5) / n;
+      const x = -L / 2 + L * t;
+      const y = 0.06 + 0.22 * Math.sin(Math.PI * t);
+      const seg = L / n;
+      // 몸통: 물속까지 내려간다
+      g.set({ id: 220 });
+      g.box(x, y - 0.42, 0, seg, 0.64, W, STONE_D);
+      // 상판 돌
+      for (let k = 0; k < 4; k++) {
+        const z = -W / 2 + 0.22 + ((W - 0.44) * (k + 0.5)) / 4;
+        g.set({ id: 221 + ((i + k) % 3) });
+        g.box(x, y - 0.03, z, seg - 0.014, 0.08, (W - 0.44) / 4 - 0.014, mix(STONE, r() > 0.5 ? 0xad9f8c : STONE_D, r() * 0.6), 0.008);
+      }
+      // 난간
+      for (const s of [-1, 1]) {
+        g.set({ id: 224 + (i % 2) });
+        g.box(x, y + 0.14, s * (W / 2 - 0.11), seg - 0.006, 0.3, 0.2, mix(STONE, 0x7c7874, r()), 0.01);
+      }
+    }
+    // 난간 끝 기둥
+    g.set({ id: 226 });
+    for (const sx of [-1, 1]) {
+      for (const s of [-1, 1]) {
+        g.box(sx * (L / 2 - 0.1), 0.34, s * (W / 2 - 0.11), 0.26, 0.68, 0.26, STONE, 0.02);
+        g.rock(sx * (L / 2 - 0.1), 0.74, s * (W / 2 - 0.11), 0.13, 0.08, 0.13, 0xb0a28e, 5, 0.1, 0);
+      }
+    }
+  };
+  if (dir === 'u') draw();
+  else g.rotY(Math.PI / 2, draw);
+  return g;
+}
+
+/** 널다리: 나무 판자를 걸친 작은 다리 */
+function plankBridge(dir: 'u' | 'v') {
+  const g = new Geo();
+  const r = rng(231);
+  const L = 5.2;
+  const W = 1.9;
+  const draw = () => {
+    const n = 22;
+    for (let i = 0; i < n; i++) {
+      const t = (i + 0.5) / n;
+      const x = -L / 2 + L * t;
+      const y = 0.06 + 0.22 * Math.sin(Math.PI * t);
+      g.set({ id: 232 + (i % 2) });
+      g.box(x, y - 0.03, (r() - 0.5) * 0.06, L / n - 0.016, 0.06, W, mix(WOOD_L, WOOD, r()), 0.006);
+    }
+    g.set({ id: 234 });
+    for (const s of [-1, 1]) {
+      g.box(0, -0.06, s * (W / 2 - 0.2), L, 0.1, 0.12, WOOD_D);
+      for (const t of [0.04, 0.3, 0.7, 0.96]) {
+        const x = -L / 2 + L * t;
+        const y = 0.06 + 0.22 * Math.sin(Math.PI * t);
+        g.tube([v3(x, -0.7, s * (W / 2 - 0.02)), v3(x, y + 0.42, s * (W / 2 - 0.02))], 0.045, WOOD_D, 4);
+      }
+      const rail: THREE.Vector3[] = [];
+      for (let i = 0; i <= 8; i++) {
+        const t = i / 8;
+        rail.push(v3(-L / 2 + L * t, 0.4 + 0.22 * Math.sin(Math.PI * t), s * (W / 2 - 0.02)));
+      }
+      g.tube(rail, 0.024, WOOD_L, 4);
+    }
+  };
+  if (dir === 'u') draw();
+  else g.rotY(Math.PI / 2, draw);
+  return g;
+}
+
+/** 삼층 석탑 */
+function stonePagoda(seed: number) {
+  const g = new Geo();
+  g.groundAO = [0, 0.4, 0.28];
+  const r = rng(seed + 900);
+  const c = mix(0x8e8a82, 0x6f7a60, r() * 0.3);
+  g.set({ id: 290 });
+  g.box(0, 0.14, 0, 1.1, 0.28, 1.1, tone(c, 0.86), 0.03);
+  g.box(0, 0.42, 0, 0.9, 0.28, 0.9, tone(c, 0.94), 0.03);
+  let y = 0.56;
+  for (let i = 0; i < 3; i++) {
+    const w = 0.56 - i * 0.12;
+    const h = i === 0 ? 0.46 : 0.22;
+    g.set({ id: 291 + i * 2 });
+    g.box(0, y + h / 2, 0, w, h, w, c, 0.02);
+    y += h;
+    // 지붕돌: 얇은 판에 귀가 살짝 들린다
+    g.set({ id: 292 + i * 2 });
+    const rw = w + 0.42;
+    g.box(0, y + 0.05, 0, rw, 0.1, rw, tone(c, 1.06), 0.02);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) g.box((sx * rw) / 2, y + 0.11, (sz * rw) / 2, 0.12, 0.05, 0.12, tone(c, 1.1));
+    g.box(0, y + 0.13, 0, rw - 0.16, 0.06, rw - 0.16, tone(c, 0.96), 0.02);
+    y += 0.16;
+  }
+  g.set({ id: 298 });
+  g.tube([v3(0, y, 0), v3(0, y + 0.42, 0)], [0.06, 0.03], tone(c, 0.9), 6);
+  // 이끼
+  g.set({ id: 0, wind: 0.05 });
+  g.leaves(0.3, 0.32, 0.3, 0.2, 0.12, 0.2, 30, [0x5d7a3a, 0x70903f], 11 + seed, 0.09);
+  g.set({ wind: 0 });
+  return g;
+}
+
+/** 서낭당: 돌을 쌓은 무더기와 오색 천을 매단 나뭇가지 */
+function seonang() {
+  const g = new Geo();
+  g.groundAO = [0, 0.5, 0.28];
+  const r = rng(77);
+  for (let i = 0; i < 46; i++) {
+    const t = i / 46;
+    const a = i * 2.4;
+    const rad = (1 - t) * 0.9;
+    g.set({ id: 300 + (i % 4) });
+    g.rock(Math.cos(a) * rad, 0.1 + t * 1.05, Math.sin(a) * rad * 0.9, 0.16 - t * 0.06, 0.12, 0.14, mix(STONE, r() > 0.5 ? STONE_D : 0xb0a28e, r()), i + 5, 0.2, 0);
+  }
+  g.set({ id: 305 });
+  g.tube([v3(0.2, 0.6, -0.1), v3(0.24, 1.6, -0.12), v3(0.1, 2.5, -0.1)], [0.07, 0.05, 0.02], 0x4c3426, 5);
+  for (const [x, y, z] of [[0.18, 1.9, -0.1], [0.5, 2.2, 0.1], [-0.2, 2.1, -0.2]] as const) g.tube([v3(0.22, y - 0.3, -0.1), v3(x, y, z)], [0.03, 0.01], 0x4c3426, 4);
+  // 금줄과 오색 천
+  g.set({ id: 306 });
+  g.tube([v3(-0.7, 0.56, 0.4), v3(0, 0.66, 0.66), v3(0.7, 0.56, 0.4)], 0.03, THATCH, 4);
+  const cloth = [0xb5302a, 0xe8e2d0, 0xd2a24a, 0x2c4a6e, 0x3e6a44];
+  g.set({ id: 307, wind: 0.6 });
+  for (let i = 0; i < 10; i++) {
+    const x = (r() - 0.5) * 0.7;
+    const y = 1.6 + r() * 0.8;
+    g.box(0.22 + x, y - 0.18, -0.1 + (r() - 0.5) * 0.4, 0.06, 0.36, 0.012, cloth[i % cloth.length]);
+  }
+  g.set({ wind: 0 });
+  return g;
+}
+
 // ─── 목록 ─────────────────────────────────
 
 const BUILD: Record<string, (v: number) => Geo> = {
@@ -1410,14 +1840,32 @@ const BUILD: Record<string, (v: number) => Geo> = {
   ember_vent: vent,
   statue,
   waystone,
+  hall,
+  gate_tall: tallGate,
+  pavilion,
+  dangsan,
+  jangseung,
+  sotdae,
+  scarecrow,
+  hongsal,
+  jars,
+  stone_pagoda: stonePagoda,
+  seonang,
+  tree_persimmon: persimmon,
+  bridge_u: () => stoneBridge('u'),
+  bridge_v: () => stoneBridge('v'),
+  plank_u: () => plankBridge('u'),
+  plank_v: () => plankBridge('v'),
 };
 
-const VARIANTS: Record<string, number> = { tree_oak: 8, tree_pine: 4, tree_moss_l: 3, tree_moss_s: 3, tree_dead: 3, tree_moss_dead: 2, bush: 4, fern: 3, mush_cluster: 3, ruin_pillar: 3, wall_stone: 4, wall_ash: 4, fence_u: 3, fence_v: 3 };
+const VARIANTS: Record<string, number> = { stone_pagoda: 2, tree_persimmon: 3, jangseung: 2, sotdae: 2, scarecrow: 3, tree_oak: 8, tree_pine: 4, tree_moss_l: 3, tree_moss_s: 3, tree_dead: 3, tree_moss_dead: 2, bush: 4, fern: 3, mush_cluster: 3, ruin_pillar: 3, wall_stone: 4, wall_ash: 4, fence_u: 3, fence_v: 3 };
 
-const SPIN = new Set(['tree_oak', 'tree_pine', 'tree_moss_l', 'tree_moss_s', 'tree_dead', 'tree_moss_dead', 'bush', 'fern', 'mush_cluster', 'rock_s', 'rock_l', 'mossy_rock', 'ash_rock_s', 'ash_rock_l', 'stump', 'rubble', 'bone_pile', 'ember_vent', 'hay', 'barrel']);
+const SPIN = new Set(['tree_persimmon', 'tree_oak', 'tree_pine', 'tree_moss_l', 'tree_moss_s', 'tree_dead', 'tree_moss_dead', 'bush', 'fern', 'mush_cluster', 'rock_s', 'rock_l', 'mossy_rock', 'ash_rock_s', 'ash_rock_l', 'stump', 'rubble', 'bone_pile', 'ember_vent', 'hay', 'barrel']);
 
 export const propVariants = (id: string) => VARIANTS[id] ?? 1;
 export const propSpin = (id: string) => SPIN.has(id);
+/** 다리: 물 위에 걸리므로 땅 높이를 따르지 않는다 */
+export const propOnWater = (id: string) => /^(bridge|plank)_/.test(id);
 
 const cache = new Map<string, THREE.BufferGeometry>();
 
