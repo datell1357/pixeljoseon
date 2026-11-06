@@ -5,7 +5,7 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import type { BuiltRig, CharAsset } from './chars';
 
 /** 시트 이름 → 모델 파일. 여기 있는 짐승은 코드로 지은 모델 대신 이 모델을 쓴다 */
-const FILES: Record<string, string> = Object.fromEntries(['fox', 'wolf', 'dhole', 'raccoon', 'gumiho', 'tiger', 'bear', 'boar'].map((n) => [n, `/models/${n}.glb`]));
+const FILES: Record<string, string> = Object.fromEntries(['fox', 'wolf', 'dhole', 'raccoon', 'gumiho', 'tiger', 'bear', 'boar', 'squirrel', 'bat', 'bulgasari'].map((n) => [n, `/models/${n}.glb`]));
 /** 도트 느낌: 동작을 초당 이만큼으로 끊어 재생한다 */
 const STEP_FPS = 12;
 
@@ -134,6 +134,5 @@ function build(id: string, scene: THREE.Object3D, clips: THREE.AnimationClip[]):
   proto.rig.root.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(src);
   const height = Math.max(0.3, box.max.y);
-  void id;
-  return { geometry: geo, boneOrder: bindIndex, rigFactory, anims, retarget: false, height, baseScale: 2.05, fur: 0.45, map, skinned: true } as CharAsset;
+  return { geometry: geo, boneOrder: bindIndex, rigFactory, anims, retarget: false, height, baseScale: 2.05, fur: id === 'bulgasari' ? 0.2 : 0.45, map, skinned: true, emKey: id === 'bulgasari' } as CharAsset;
 }

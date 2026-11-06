@@ -164,6 +164,7 @@ uniform float uFur;
 #endif
 #ifdef USE_MAP
 uniform sampler2D uMap;
+uniform float uEmKey;
 #endif
 layout(location=0) out vec4 oC;
 layout(location=1) out vec4 oN;
@@ -214,6 +215,10 @@ void main(){
   vec3 c = lit(vCol*leafTone,n,vWorld,vAux.x,paint,sh,leaf?.78:0.);
 #endif
   float em = vAux.y;
+#ifdef USE_MAP
+  // 쇳물 색 텍셀은 스스로 빛난다 (불가사리)
+  if(uEmKey>0.){ vec3 dk = alb - vec3(1.,.478,.165); if(dot(dk,dk)<.03) em = max(em, 1.); }
+#endif
   if(em>0.) c = mix(c, alb*(1.+em*.12), min(1.,em*1.2));
   c = mix(c,uFlash.rgb,uFlash.a);
   oC = vec4(c, em);

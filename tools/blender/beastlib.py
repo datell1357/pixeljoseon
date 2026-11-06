@@ -97,6 +97,13 @@ class Builder:
             secs.append((rx * r, rz * r, rz * r))
         self.sweep(pts, secs, part, sub=2)
 
+    def poly(self, ring, part, ts=None):
+        """납작한 막: 점들을 한 면으로 잇는다 (박쥐 날개). 칠하기 표본도 남긴다"""
+        vs = [self.bm.verts.new(p) for p in ring]
+        self.bm.faces.new(vs)
+        for i, p in enumerate(ring):
+            self.samples.append((p.copy(), part, (ts[i] if ts else 0.5), 0.0))
+
     def to_object(self, name):
         me = bpy.data.meshes.new(name)
         self.bm.to_mesh(me)
@@ -274,7 +281,67 @@ class Rig:
     def skin(self, low):
         select_only(low, self.obj)
         bpy.ops.object.parent_set(type='ARMATURE_AUTO')
-        print('weights groups', len(low.vertex_groups))
+        # 자동 가중치(bone heat)는 메시에 따라 일부 또는 전부 실패한다. 가중치 없는 정점은 가장 가까운 뼈 마디에 붙인다
+        deform = [b for b in self.obj.data.bones if b.use_deform]
+        for b in deform:
+            if b.name not in low.vertex_groups:
+                low.vertex_groups.new(name=b.name)
+        mw = self.obj.matrix_world
+        segs = [(b.name, mw @ b.head_local, mw @ b.tail_local) for b in deform]
+
+        def dist(p, a, c):
+            ac = c - a
+            t = max(0.0, min(1.0, (p - a).dot(ac) / max(ac.length_squared, 1e-12)))
+            return (a + ac * t - p).length
+
+        lw = low.matrix_world
+        fixed = 0
+        for v in low.data.vertices:
+            if sum(g.weight for g in v.groups) > 1e-4:
+                continue
+            p = lw @ v.co
+            ds = sorted((dist(p, a, c), n) for n, a, c in segs)[:2]
+            w0 = 1.0 / max(ds[0][0], 1e-4) ** 2
+            w1 = 1.0 / max(ds[1][0], 1e-4) ** 2
+            low.vertex_groups[ds[0][1]].add([v.index], w0 / (w0 + w1), 'REPLACE')
+            low.vertex_groups[ds[1][1]].add([v.index], w1 / (w0 + w1), 'REPLACE')
+            fixed += 1
+        if fixed:
+            # 거리로 붙인 가중치는 경계가 딱딱하다. 이웃 정점끼리 펴서 관절이 부드럽게 구부러지게 한다
+            me = low.data
+            nv = len(me.vertices)
+            nb = [[] for _ in range(nv)]
+            for e in me.edges:
+                a0, a1 = e.vertices
+                nb[a0].append(a1)
+                nb[a1].append(a0)
+            W = [{g.group: g.weight for g in v.groups if g.weight > 1e-4} for v in me.vertices]
+            for _ in range(4):
+                W2 = []
+                for i in range(nv):
+                    acc = {k: w * 0.5 for k, w in W[i].items()}
+                    if nb[i]:
+                        k2 = 0.5 / len(nb[i])
+                        for j in nb[i]:
+                            for k, w in W[j].items():
+                                acc[k] = acc.get(k, 0.0) + w * k2
+                    tot = sum(acc.values()) or 1.0
+                    top = sorted(acc.items(), key=lambda kv: -kv[1])[:4]
+                    t4 = sum(w for _, w in top) or 1.0
+                    W2.append({k: w / t4 for k, w in top})
+                W = W2
+            groups = low.vertex_groups
+            for i in range(nv):
+                for g in list(me.vertices[i].groups):
+                    groups[g.group].remove([i])
+                for k, w in W[i].items():
+                    groups[k].add([i], w, 'REPLACE')
+        if not any(m.type == 'ARMATURE' for m in low.modifiers):
+            m = low.modifiers.new('arm', 'ARMATURE')
+            m.object = self.obj
+        if low.parent != self.obj:
+            low.parent = self.obj
+        print('weights groups', len(low.vertex_groups), 'filled', fixed, 'of', len(low.data.vertices))
 
     def pin(self, low, prefix, bone):
         """이름이 prefix로 시작하는 정점 그룹을 bone 하나에 온전히 붙인다 (불꽃 같은 장식)."""
@@ -396,6 +463,21 @@ def quad_anims(A, tails, o):
     for k in range(N + 1):
         t = k / N * math.tau
         feet = {}
+        if o.get('gait') == 'bound':
+            # 깡충: 뒷발로 차고 날아 앞발로 내려앉는다
+            f = k / N
+            air = math.sin(math.pi * f / 0.45) if f < 0.45 else 0.0
+            gather = math.sin(math.pi * (f - 0.45) / 0.55) if f >= 0.45 else 0.0
+            for n in ('ikF.L', 'ikF.R'):
+                feet[n] = (S * (air * 0.9 - gather * 0.5), LIFT * air * 0.6)
+            for n in ('ikH.L', 'ikH.R'):
+                feet[n] = (S * (-air * 0.8 + gather * 0.6), LIFT * air)
+            p = {'feet': feet, 'hipsL': (0, -S * 0.2 * air, o.get('hop', 0.03) * air - 0.006 * gather),
+                 'hips': [(X, -12 * air * (1 if f < 0.22 else -0.6) + 6 * gather)], 'head': [(X, 6 * air - 4 * gather)]}
+            p.update(tw(t, o.get('tailAmp', 6) * 1.5, 6))
+            p.update(ex('walk', k, t))
+            A.frame(k + 1, p)
+            continue
         if walk4:
             # 네 박자: 뒷발이 먼저, 같은 쪽 앞발이 뒤따른다
             for n, ph in (('ikH.L', 0), ('ikF.L', 0.25), ('ikH.R', 0.5), ('ikF.R', 0.75)):
@@ -462,7 +544,15 @@ def export(low, rig, path):
         export_def_bones=True, export_optimize_animation_size=True, export_frame_step=2,
         export_yup=True, export_apply=False, export_skins=True, export_morph=False,
     )
-    print('exported', path, os.path.getsize(path))
+    # 스킨이 실제로 실렸는지 확인한다 (없으면 게임이 예전 모델로 돌아간다)
+    import json, struct
+    with open(path, 'rb') as fh:
+        fh.read(12)
+        ln, _ = struct.unpack('<II', fh.read(8))
+        gj = json.loads(fh.read(ln))
+    if not gj.get('skins') or not any('skin' in nd for nd in gj.get('nodes', [])):
+        raise RuntimeError(f'스킨 없이 내보내짐: {path}')
+    print('exported', path, os.path.getsize(path), 'skins', len(gj['skins']))
 
 
 def preview(out, name, objs, scale=1.45, target=Vector((0, 0.08, 0.3))):

@@ -66,6 +66,7 @@ export class ActorView {
     this.tex = boneTexture(this.data, n);
     this.mat = uberMaterial({ bones: this.tex, skinned: a.skinned, map: a.map ?? null });
     this.mat.uniforms.uFur.value = a.fur ?? 0;
+    this.mat.uniforms.uEmKey.value = a.emKey ? 1 : 0;
     this.mesh = new THREE.Mesh(a.geometry, this.mat);
     this.mesh.frustumCulled = false;
     parent.add(this.mesh);
@@ -81,6 +82,7 @@ export class ActorView {
     this.id = id;
     this.asset = a;
     this.mat.uniforms.uFur.value = a.fur ?? 0;
+    this.mat.uniforms.uEmKey.value = a.emKey ? 1 : 0;
     this.built = a.rigFactory();
     this.root = this.built.rig.root;
     const n = Math.max(1, this.built.bones.length);

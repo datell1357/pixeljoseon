@@ -60,7 +60,7 @@ export function uberMaterial(opts: { cut?: boolean; side?: THREE.Side; bones?: T
     defines,
     vertexShader: UBER_VERT,
     fragmentShader: UBER_FRAG,
-    uniforms: { ...shared, uAlpha: { value: 1 }, uFlash: { value: new THREE.Vector4(0, 0, 0, 0) }, uCut: { value: opts.cut ? 1 : 0 }, uBoneTex: { value: opts.bones ?? null }, uFur: { value: 0 }, uMap: { value: opts.map ?? null } },
+    uniforms: { ...shared, uAlpha: { value: 1 }, uFlash: { value: new THREE.Vector4(0, 0, 0, 0) }, uCut: { value: opts.cut ? 1 : 0 }, uBoneTex: { value: opts.bones ?? null }, uFur: { value: 0 }, uMap: { value: opts.map ?? null }, uEmKey: { value: 0 } },
     blending: THREE.NoBlending,
     side: opts.side ?? THREE.DoubleSide,
   });
