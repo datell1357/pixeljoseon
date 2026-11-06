@@ -25,9 +25,9 @@ export type QuestGoal =
   | { type: 'rift'; floor: number; label: string };
 
 const classWeapon = (tier: number) => ({
-  musa: `sword_${tier}`,
-  dosa: `staff_${tier}`,
-  gungsa: `bow_${tier}`,
+  musa: `hwando_${tier}`,
+  dosa: `chorongdae_${tier}`,
+  gungsa: `gakgung_${tier}`,
 });
 
 export const QUESTS: QuestDef[] = [
@@ -36,15 +36,15 @@ export const QUESTS: QuestDef[] = [
     intro: '어서 오게. 초롱골에 온 걸 환영하네. 가을걷이 철인데 다람쥐들이 곳간 알곡을 죄다 털어 가고 있어. 동쪽 다리를 건너 솔모루 숲에서 다섯 마리만 쫓아 주게.',
     done: '벌써? 쓸 만한 사람이 왔구먼. 약소하지만 받아 두게.',
     goal: { type: 'kill', mon: 'daramjwi', n: 5, label: '다람쥐 쫓기' },
-    rewards: { exp: 90, gold: 40, items: [['potion_hp_s', 5]] },
+    rewards: { exp: 90, gold: 40, items: [['bohyeolhwan', 5]] },
     hint: '마을 동쪽 다리를 건너면 솔모루 숲이에요.', where: 'woods',
   },
   {
     id: 'q_merchant_tusk', title: '어금니 값', giver: 'npc_merchant', after: 'q_first_light', minLevel: 2,
     intro: '멧돼지 어금니는 한양 약재상에서 값을 잘 쳐 준다오. 셋만 구해 주면 후하게 드리지. 숲 남쪽 골짜기에 많소.',
     done: '좋은 물건이오! 약속한 대로 치렀소. 앞으로도 잘 부탁하오.',
-    goal: { type: 'collect', item: 'boar_tusk', n: 3, label: '멧돼지 어금니 모으기' },
-    rewards: { exp: 180, gold: 120, items: [['potion_mp_s', 5]] },
+    goal: { type: 'collect', item: 'eomni', n: 3, label: '멧돼지 어금니 모으기' },
+    rewards: { exp: 180, gold: 120, items: [['cheongsimhwan', 5]] },
     hint: '솔모루 숲의 멧돼지가 떨어뜨려요.', where: 'woods',
   },
   {
@@ -60,7 +60,7 @@ export const QUESTS: QuestDef[] = [
     intro: '요즘 숲에서 사람들이 홀려 길을 잃는다네. 숲 동쪽 끝 여우굴에 꼬리 아홉 달린 구미호가 산다는 소문이 있어. 혼자라면 약을 넉넉히 챙겨 가게.',
     done: '구미호를 물리쳤다니! 마을 사람들이 오늘은 발 뻗고 자겠구먼. 화전골로 가는 고갯길도 이제 열렸네.',
     goal: { type: 'kill', mon: 'gumiho', n: 1, label: '구미호 물리치기' },
-    rewards: { exp: 1100, gold: 500, items: [['ember_shard', 10], ['potion_hp_l', 3]] },
+    rewards: { exp: 1100, gold: 500, items: [['jeongcheol', 10], ['bohyeoltang', 3]] },
     hint: '솔모루 숲 동쪽 끝의 굴이에요.', where: 'hollow',
   },
   {
@@ -68,15 +68,15 @@ export const QUESTS: QuestDef[] = [
     intro: '숲 너머 화전골이 불탄 뒤로 늑대 떼가 내려온다는 보고다. 가서 열 마리만 줄이고 무사히 돌아와라.',
     done: '수고했다. 그런데 화전골 바위틈에서 범 발자국을 봤다니… 심상치 않군.',
     goal: { type: 'kill', mon: 'neukdae', n: 10, label: '늑대 잡기' },
-    rewards: { exp: 2200, gold: 600, items: [['potion_hp_l', 4], ['potion_mp_l', 2]] },
+    rewards: { exp: 2200, gold: 600, items: [['bohyeoltang', 4], ['jeonggitang', 2]] },
     hint: '솔모루 숲 북쪽 끝 고개를 넘으면 화전골이에요.', where: 'ashfield',
   },
   {
     id: 'q_keeper_core', title: '겨울나기', giver: 'npc_keeper', after: 'q_guard_field', minLevel: 11,
     intro: '곳간에 겨울 이불 감이 다 떨어졌어. 짐승 가죽 여섯이면 한겨울도 버텨. 화전골 늑대랑 곰이 지니고 다니지.',
     done: '이걸로 올겨울은 걱정 없겠어. 고마워. 곳간 한 칸 더 내어 줄게.',
-    goal: { type: 'collect', item: 'ash_core', n: 6, label: '짐승 가죽 모으기' },
-    rewards: { exp: 3200, gold: 900, items: [['ember_shard', 15]] },
+    goal: { type: 'collect', item: 'jimseung_gajuk', n: 6, label: '짐승 가죽 모으기' },
+    rewards: { exp: 3200, gold: 900, items: [['jeongcheol', 15]] },
     hint: '화전골의 늑대·승냥이·곰·범이 떨어뜨려요.', where: 'ashfield',
   },
   {
@@ -92,7 +92,7 @@ export const QUESTS: QuestDef[] = [
     intro: '옛 쇠부리터에서 쇠를 먹는 괴물 불가사리가 깨어났다네. 솥이며 농기구며 쇠붙이란 쇠붙이는 다 먹어 치우고 점점 커진다지. 패를 꾸려 가게. 그놈을 잠재우면 이 고을 등불이 다시 이어질 걸세.',
     done: '…돌아왔구먼. 저 멀리까지 등불이 켜지는 게 보이네. 고맙네.',
     goal: { type: 'kill', mon: 'bulgasari', n: 1, label: '불가사리 잠재우기' },
-    rewards: { exp: 16000, gold: 4000, items: [['ember_shard', 30]], gear: { base: classWeapon(4), rarity: 2 } },
+    rewards: { exp: 16000, gold: 4000, items: [['jeongcheol', 30]], gear: { base: classWeapon(4), rarity: 2 } },
     hint: '화전골 북동쪽 쇠부리터 입구예요.', where: 'furnace',
   },
   {
@@ -100,7 +100,7 @@ export const QUESTS: QuestDef[] = [
     intro: '마을 서쪽 홍살문 너머의 저승길은 끝이 없어. 스무 층까지 내려가 봐. 저승 엽전은 보부상이 장비로 바꿔 줄 거야.',
     done: '스무 층이라니… 정말 겁이 없는 사람이네.',
     goal: { type: 'rift', floor: 20, label: '저승길 20층 도달' },
-    rewards: { exp: 22000, gold: 8000, items: [['rift_token', 30]] },
+    rewards: { exp: 22000, gold: 8000, items: [['jeoseung_yeopjeon', 30]] },
     hint: '마을 서쪽 홍살문 너머 보랏빛 문으로 들어가요.', where: 'rift',
   },
 ];

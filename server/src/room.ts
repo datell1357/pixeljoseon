@@ -375,9 +375,9 @@ export class GameRoom extends Room {
       if (!this.nearNpc(p, m.npc)) return;
       const stock = RIFT_STOCK[m.i];
       if (!stock) return;
-      if (C.countItem(p.char, 'rift_token') < stock.tokens) return this.toast(p, '저승 엽전이 모자라요', 'warn');
+      if (C.countItem(p.char, 'jeoseung_yeopjeon') < stock.tokens) return this.toast(p, '저승 엽전이 모자라요', 'warn');
       if (C.freeSlots(p.char) < 1) return this.toast(p, '가방이 가득 찼어요', 'warn');
-      C.removeItem(p.char, 'rift_token', stock.tokens);
+      C.removeItem(p.char, 'jeoseung_yeopjeon', stock.tokens);
       C.addGear(p.char, rollGear(stock.base, stock.rarity));
       p.meDirty = true;
       p.client.send('sfx', { id: 'coin' });
@@ -1768,7 +1768,7 @@ export class GameRoom extends Room {
     l.gold = d.gold ?? 0;
     l.rarity = d.gear?.rarity ?? 0;
     if (d.gold) {
-      l.icon = 'gold';
+      l.icon = 'nyang';
       l.label = `${d.gold}냥`;
     } else if (d.gear) {
       const b = GEAR[d.gear.base];
@@ -1801,7 +1801,7 @@ export class GameRoom extends Room {
     for (const [item, chance] of def.drops ?? []) {
       if (Math.random() < chance) this.dropLoot(u, v, owner, { stack: [item, 1] });
     }
-    if (Math.random() < (def.boss ? 1 : 0.07)) this.dropLoot(u, v, owner, { stack: ['ember_shard', def.boss ? 8 : 1] });
+    if (Math.random() < (def.boss ? 1 : 0.07)) this.dropLoot(u, v, owner, { stack: ['jeongcheol', def.boss ? 8 : 1] });
     const gearRolls = def.boss ? 3 : Math.random() < 0.075 ? 1 : 0;
     for (let i = 0; i < gearRolls; i++) {
       const pool = dropPool(s.level, Math.random() < 0.7 ? by.char.cls : undefined);
@@ -1811,7 +1811,7 @@ export class GameRoom extends Room {
       this.dropLoot(u, v, owner, { gear: rollGear(base, rarity) });
     }
     if (Math.random() < (def.boss ? 0 : 0.05)) {
-      const id = s.level >= 8 ? (Math.random() < 0.5 ? 'potion_hp_l' : 'potion_mp_l') : Math.random() < 0.5 ? 'potion_hp_s' : 'potion_mp_s';
+      const id = s.level >= 8 ? (Math.random() < 0.5 ? 'bohyeoltang' : 'jeonggitang') : Math.random() < 0.5 ? 'bohyeolhwan' : 'cheongsimhwan';
       this.dropLoot(u, v, owner, { stack: [id, 1] });
     }
   }
@@ -2109,7 +2109,7 @@ export class GameRoom extends Room {
       p.char.gold += gold;
       const tokens = (n % 5 === 0 ? 4 : 0) + (n % 3 === 0 ? 1 : 0);
       if (tokens) {
-        C.addStack(p.char, 'rift_token', tokens);
+        C.addStack(p.char, 'jeoseung_yeopjeon', tokens);
         this.toast(p, `저승 엽전 ${tokens}개를 얻었어요`, 'good');
       }
       p.s.hp = Math.min(p.s.maxHp, p.s.hp + Math.round(p.s.maxHp * 0.3));

@@ -90,13 +90,13 @@ export const MONSTERS: Record<string, MonDef> = {
     id: 'daramjwi', name: '다람쥐', ai: 'melee', sheet: 'daramjwi',
     hp: 38, dmg: 6, def: 0, speed: 1.6, r: 0.26, exp: 16, gold: [2, 6], detect: 5, leash: 9, scale: 1,
     attacks: [hit({ id: 'galgi', windup: 0.35, recover: 0.4, cd: 1.4, r: 1.2, range: 1.0 })],
-    drops: [['moss_core', 0.14]],
+    drops: [['jimseung_teol', 0.14]],
   },
   neoguri: {
     id: 'neoguri', name: '너구리', ai: 'melee', sheet: 'neoguri',
     hp: 56, dmg: 9, def: 1, speed: 1.45, r: 0.3, exp: 24, gold: [3, 8], detect: 6, leash: 10, scale: 0.78,
     attacks: [hit({ id: 'mulgi', windup: 0.4, recover: 0.45, cd: 1.5, r: 1.3, range: 1.1 })],
-    drops: [['moss_core', 0.18]],
+    drops: [['jimseung_teol', 0.18]],
   },
   metdwaeji: {
     id: 'metdwaeji', name: '멧돼지', ai: 'charger', sheet: 'metdwaeji',
@@ -105,7 +105,7 @@ export const MONSTERS: Record<string, MonDef> = {
       hit({ id: 'eomni', windup: 0.4, r: 1.5, mult: 0.8 }),
       { id: 'doljin', anim: 'attack', windup: 0.75, recover: 0.8, cd: 5, mult: 1.5, shape: 'line', r: 6, width: 1, range: 6, minRange: 2.2, charge: 7.5 },
     ],
-    drops: [['boar_tusk', 0.2]],
+    drops: [['eomni', 0.2]],
   },
   yeou: {
     id: 'yeou', name: '여우', ai: 'melee', sheet: 'yeou',
@@ -114,7 +114,7 @@ export const MONSTERS: Record<string, MonDef> = {
       hit({ id: 'mulgi', windup: 0.3, recover: 0.35, cd: 1.25 }),
       { id: 'deopchigi', anim: 'attack', windup: 0.55, recover: 0.6, cd: 5, mult: 1.2, shape: 'line', r: 4, width: 0.9, range: 4, minRange: 1.8, charge: 6 },
     ],
-    drops: [['moss_core', 0.2]],
+    drops: [['jimseung_teol', 0.2]],
   },
   neukdae: {
     id: 'neukdae', name: '늑대', ai: 'charger', sheet: 'neukdae',
@@ -123,13 +123,13 @@ export const MONSTERS: Record<string, MonDef> = {
       hit({ id: 'mulgi', windup: 0.32, recover: 0.35, cd: 1.3 }),
       { id: 'deopchigi', anim: 'attack', windup: 0.6, recover: 0.7, cd: 5.5, mult: 1.4, shape: 'line', r: 5, width: 1, range: 5, minRange: 2, charge: 8.5 },
     ],
-    drops: [['ash_core', 0.1]],
+    drops: [['jimseung_gajuk', 0.1]],
   },
   seungnyangi: {
     id: 'seungnyangi', name: '승냥이', ai: 'swarm', sheet: 'seungnyangi',
     hp: 120, dmg: 34, def: 4, speed: 2.4, r: 0.3, exp: 70, gold: [6, 14], detect: 7, leash: 11, scale: 0.84,
     attacks: [hit({ id: 'kkamulgi', windup: 0.25, recover: 0.3, cd: 1.1, r: 1.3, range: 1.1, mult: 0.85 })],
-    drops: [['ash_core', 0.08]],
+    drops: [['jimseung_gajuk', 0.08]],
   },
   bandalgom: {
     id: 'bandalgom', name: '반달가슴곰', ai: 'melee', sheet: 'bandalgom', poise: true,
@@ -138,7 +138,7 @@ export const MONSTERS: Record<string, MonDef> = {
       hit({ id: 'appal', windup: 0.6, recover: 0.7, cd: 2, r: 1.9, range: 1.6, arc: 130 }),
       { id: 'naeryeochigi', anim: 'attack', windup: 0.95, recover: 0.9, cd: 7, mult: 1.5, shape: 'circle', r: 2.8, range: 2.4 },
     ],
-    drops: [['ash_core', 0.2]],
+    drops: [['jimseung_gajuk', 0.2]],
   },
   horangi: {
     id: 'horangi', name: '호랑이', ai: 'charger', sheet: 'horangi',
@@ -147,7 +147,7 @@ export const MONSTERS: Record<string, MonDef> = {
       hit({ id: 'balteop', windup: 0.36, recover: 0.4, cd: 1.4, r: 1.9, range: 1.6, arc: 120 }),
       { id: 'deopchigi', anim: 'attack', windup: 0.65, recover: 0.75, cd: 5, mult: 1.6, shape: 'line', r: 6, width: 1.3, range: 6, minRange: 2.2, charge: 9 },
     ],
-    drops: [['ash_core', 0.24]],
+    drops: [['jimseung_gajuk', 0.24]],
   },
   bakjwi: {
     id: 'bakjwi', name: '박쥐', ai: 'melee', sheet: 'bakjwi', flying: true,
@@ -168,7 +168,7 @@ export const MONSTERS: Record<string, MonDef> = {
       { at: 0.66, say: '사람 냄새가 나는구나…', summon: { kind: 'yeou', count: 4 } },
       { at: 0.33, say: '꼬리 아홉을 다 보여 주마!', speedMul: 1.25, summon: { kind: 'yeou', count: 3 } },
     ],
-    drops: [['moss_core', 1], ['moss_core', 1], ['moss_core', 0.6]],
+    drops: [['jimseung_teol', 1], ['jimseung_teol', 1], ['jimseung_teol', 0.6]],
   },
   bulgasari: {
     id: 'bulgasari', name: '불가사리', ai: 'boss', sheet: 'bulgasari', boss: true, poise: true,
@@ -185,7 +185,7 @@ export const MONSTERS: Record<string, MonDef> = {
       { at: 0.7, say: '그르르… 쇠 냄새…', summon: { kind: 'bakjwi', count: 3 } },
       { at: 0.4, say: '쿠워어어어!', speedMul: 1.3, summon: { kind: 'bakjwi', count: 5 } },
     ],
-    drops: [['warden_seal', 1], ['ash_core', 1], ['ash_core', 1]],
+    drops: [['soebineul', 1], ['jimseung_gajuk', 1], ['jimseung_gajuk', 1]],
   },
 };
 

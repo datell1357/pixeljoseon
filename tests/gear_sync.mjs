@@ -48,12 +48,12 @@ try {
   await b.waitForFunction(() => window.__world.others.size > 0, null, { timeout: 10000 });
   const seen = () => b.evaluate(() => [...window.__world.others.values()][0].a.sheetId);
   const before = await seen();
-  check('다른 사람 화면에 장비가 보임', before.includes('sword_1') && before.includes('armor_1'), before);
+  check('다른 사람 화면에 장비가 보임', before.includes('hwando_1') && before.includes('gabot_1'), before);
   await b.screenshot({ path: join(OUT, 'other_before.png') });
   await a.keyboard.press('KeyC');
   await sleep(300);
   await a.click('.equipcell:nth-child(3) .slot');
-  await b.waitForFunction(() => ![...window.__world.others.values()][0].a.sheetId.includes('armor_1'), null, { timeout: 5000 });
+  await b.waitForFunction(() => ![...window.__world.others.values()][0].a.sheetId.includes('gabot_1'), null, { timeout: 5000 });
   check('벗으면 다른 사람 화면도 바뀜', true, await seen());
   await sleep(400);
   await b.screenshot({ path: join(OUT, 'other_after.png') });

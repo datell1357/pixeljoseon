@@ -469,7 +469,7 @@ function mossCore() {
   sparkle(p, 25, 5, '#c0f4b8');
   return p;
 }
-function boarTusk() {
+function eomni() {
   const p = new P();
   const iv = ['#a8946a', '#d4c49a', '#f0e6c8', '#fffdf2'];
   for (let i = 0; i <= 26; i++) {
@@ -553,7 +553,7 @@ function riftToken() {
   p.outline();
   return p;
 }
-function key() {
+function yeolsoe() {
   const p = new P();
   // 머리 고리
   p.disk(10, 10, 7, GOLD[1]);
@@ -1352,18 +1352,18 @@ function jUnderCoin() {
 }
 
 const ITEMS = {
-  sword_1: () => jSword(0), sword_2: () => jSword(1), sword_3: () => jSword(2), sword_4: () => jSword(3),
-  staff_1: () => jStaff(0), staff_2: () => jStaff(1), staff_3: () => jStaff(2), staff_4: () => jStaff(3),
-  bow_1: () => jBow(0), bow_2: () => jBow(1), bow_3: () => jBow(2), bow_4: () => jBow(3),
-  helm_1: () => jHelm(0), helm_2: () => jHelm(1), helm_3: () => jHelm(2),
-  armor_1: () => jArmor(0), armor_2: () => jArmor(1), armor_3: () => jArmor(2),
-  boots_1: () => jBoots(0), boots_2: () => jBoots(1), boots_3: () => jBoots(2),
-  ring_1: () => jRing(0), ring_2: () => jRing(1),
-  amulet_1: () => jNorigae(0), amulet_2: () => jNorigae(1),
-  potion_hp_s: () => jPills(false), potion_hp_l: () => jBowl(false),
-  potion_mp_s: () => jPills(true), potion_mp_l: () => jBowl(true),
-  scroll_home: jTalisman, ember_shard: jIngot, moss_core: jFur, boar_tusk: boarTusk, ash_core: jHide,
-  warden_seal: jScale, gold: jCoins, rift_token: jUnderCoin, key,
+  hwando_1: () => jSword(0), hwando_2: () => jSword(1), hwando_3: () => jSword(2), hwando_4: () => jSword(3),
+  chorongdae_1: () => jStaff(0), chorongdae_2: () => jStaff(1), chorongdae_3: () => jStaff(2), chorongdae_4: () => jStaff(3),
+  gakgung_1: () => jBow(0), gakgung_2: () => jBow(1), gakgung_3: () => jBow(2), gakgung_4: () => jBow(3),
+  tugu_1: () => jHelm(0), tugu_2: () => jHelm(1), tugu_3: () => jHelm(2),
+  gabot_1: () => jArmor(0), gabot_2: () => jArmor(1), gabot_3: () => jArmor(2),
+  sin_1: () => jBoots(0), sin_2: () => jBoots(1), sin_3: () => jBoots(2),
+  garakji_1: () => jRing(0), garakji_2: () => jRing(1),
+  norigae_1: () => jNorigae(0), norigae_2: () => jNorigae(1),
+  bohyeolhwan: () => jPills(false), bohyeoltang: () => jBowl(false),
+  cheongsimhwan: () => jPills(true), jeonggitang: () => jBowl(true),
+  gwihyang_bujeok: jTalisman, jeongcheol: jIngot, jimseung_teol: jFur, eomni: eomni, jimseung_gajuk: jHide,
+  soebineul: jScale, nyang: jCoins, jeoseung_yeopjeon: jUnderCoin, yeolsoe,
 };
 const SKILL_ORDER = 'musa_hwimori musa_dolgyeok musa_ttanggareugi musa_horyeong musa_cheongeun dosa_hwabu dosa_bingyeolbu dosa_nakseong dosa_hosinbu dosa_yuseongu gungsa_osi gungsa_pyeonjeon gungsa_olmu gungsa_maenun gungsa_hwasalbi gureugi chukjibeop dwittwigi deungpae bujeok_makgi bitgyeo_naegi'.split(' ');
 
@@ -1387,7 +1387,7 @@ function sheet(list, makers, art, name) {
 
 export async function bakeIcons(art) {
   mkdirSync(join(art, 'icons'), { recursive: true });
-  const itemIds = 'sword_1 sword_2 sword_3 sword_4 staff_1 staff_2 staff_3 staff_4 bow_1 bow_2 bow_3 bow_4 helm_1 helm_2 helm_3 armor_1 armor_2 armor_3 boots_1 boots_2 boots_3 ring_1 ring_2 amulet_1 amulet_2 potion_hp_s potion_hp_l potion_mp_s potion_mp_l scroll_home ember_shard moss_core boar_tusk ash_core warden_seal gold rift_token key'.split(' ');
+  const itemIds = 'hwando_1 hwando_2 hwando_3 hwando_4 chorongdae_1 chorongdae_2 chorongdae_3 chorongdae_4 gakgung_1 gakgung_2 gakgung_3 gakgung_4 tugu_1 tugu_2 tugu_3 gabot_1 gabot_2 gabot_3 sin_1 sin_2 sin_3 garakji_1 garakji_2 norigae_1 norigae_2 bohyeolhwan bohyeoltang cheongsimhwan jeonggitang gwihyang_bujeok jeongcheol jimseung_teol eomni jimseung_gajuk soebineul nyang jeoseung_yeopjeon yeolsoe'.split(' ');
   sheet(itemIds, ITEMS, art, 'items');
   sheet(SKILL_ORDER, S, art, 'skills');
 }

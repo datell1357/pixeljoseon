@@ -26,20 +26,20 @@ await page.evaluate(async () => {
   window.LD.stage.loadMap(m);
 });
 const W = { musa: 'sword', dosa: 'staff', gungsa: 'bow' };
-const key = (cls, t, ring = '', am = '', r = 0, p = 0) => `${t.w ? `${W[cls]}_${t.w}.${r}.${p}` : ''},${t.h ? `helm_${t.h}.${r}.${p}` : ''},${t.a ? `armor_${t.a}.${r}.${p}` : ''},${t.b ? `boots_${t.b}.${r}.${p}` : ''},${ring},${am}`;
+const key = (cls, t, ring = '', am = '', r = 0, p = 0) => `${t.w ? `${W[cls]}_${t.w}.${r}.${p}` : ''},${t.h ? `tugu_${t.h}.${r}.${p}` : ''},${t.a ? `gabot_${t.a}.${r}.${p}` : ''},${t.b ? `sin_${t.b}.${r}.${p}` : ''},${ring},${am}`;
 const tiers = [
   { t: {}, },
   { t: { w: 1, a: 1 } },
   { t: { w: 1, h: 1, a: 1, b: 1 } },
-  { t: { w: 2, h: 2, a: 2, b: 2 }, ring: 'ring_1.0.0', am: 'amulet_1.0.0' },
-  { t: { w: 3, h: 3, a: 3, b: 3 }, ring: 'ring_2.0.0', am: 'amulet_2.0.0' },
-  { t: { w: 4, h: 3, a: 3, b: 3 }, ring: 'ring_2.0.0', am: 'amulet_2.0.0' },
+  { t: { w: 2, h: 2, a: 2, b: 2 }, ring: 'garakji_1.0.0', am: 'norigae_1.0.0' },
+  { t: { w: 3, h: 3, a: 3, b: 3 }, ring: 'garakji_2.0.0', am: 'norigae_2.0.0' },
+  { t: { w: 4, h: 3, a: 3, b: 3 }, ring: 'garakji_2.0.0', am: 'norigae_2.0.0' },
 ];
 // 등급·강화 사진: node tools/lookdev/gear.mjs <폴더> a 18 파일.png rare
 const RARE = process.argv[6] === 'rare';
 if (RARE) {
   tiers.length = 0;
-  for (const [r, p] of [[0, 0], [1, 0], [2, 0], [3, 0], [2, 4], [3, 7], [3, 10]]) tiers.push({ t: { w: 2, h: 2, a: 2, b: 2 }, r, p, ring: `ring_2.${r}.${p}`, am: `amulet_2.${r}.${p}` });
+  for (const [r, p] of [[0, 0], [1, 0], [2, 0], [3, 0], [2, 4], [3, 7], [3, 10]]) tiers.push({ t: { w: 2, h: 2, a: 2, b: 2 }, r, p, ring: `garakji_2.${r}.${p}`, am: `norigae_2.${r}.${p}` });
 }
 const ANIM = process.argv[7] ?? 'idle';
 const rows = [];
