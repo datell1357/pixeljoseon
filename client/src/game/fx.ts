@@ -2,6 +2,7 @@
 import * as Phaser from 'phaser';
 import { PX_U, PX_V, toX, toY } from '@shared/core';
 import { DEPTH } from './actor';
+import { stageOrNull } from './boot';
 
 const ADD = Phaser.BlendModes.ADD;
 const RATIO = PX_V / PX_U;
@@ -101,7 +102,6 @@ export class Fx {
   nums: Num[] = [];
   numPool: Phaser.GameObjects.Text[] = [];
   warns: Warn[] = [];
-  warnG: Phaser.GameObjects.Graphics;
   projs = new Map<number, ProjView>();
   patches = new Map<number, { imgs: Phaser.GameObjects.Image[]; until: number; u: number; v: number; r: number; next: number }>();
   traps = new Map<number, { img: Phaser.GameObjects.Image; u: number; v: number; r: number }>();
@@ -109,8 +109,6 @@ export class Fx {
   shake = 0;
 
   constructor(public scene: Phaser.Scene) {
-    // 어둠 층 위에 그려야 어두운 던전에서도 경고가 또렷하다
-    this.warnG = scene.add.graphics().setDepth(DEPTH.DARK + 1);
   }
 
   private img(tex: string): Phaser.GameObjects.Image {
@@ -377,79 +375,21 @@ export class Fx {
     this.warns = this.warns.filter((w) => w.m !== mid);
   }
 
-  private shapePoints(w: Warn, r: number): Phaser.Math.Vector2[] {
-    const pts: Phaser.Math.Vector2[] = [];
-    const P = (a: number, b: number) => new Phaser.Math.Vector2(toX(a, b), toY(a, b));
-    if (w.shape === 'cone') {
-      const base = Math.atan2(w.dv ?? 0, w.du ?? 1);
-      const half = (((w.arc ?? 90) / 2) * Math.PI) / 180;
-      pts.push(P(w.u, w.v));
-      const n = 18;
-      for (let i = 0; i <= n; i++) {
-        const a = base - half + (2 * half * i) / n;
-        pts.push(P(w.u + Math.cos(a) * r, w.v + Math.sin(a) * r));
-      }
-    } else if (w.shape === 'line') {
-      const du = w.du ?? 1;
-      const dv = w.dv ?? 0;
-      const h = (w.width ?? 1) / 2;
-      const nu = -dv * h;
-      const nv = du * h;
-      pts.push(P(w.u + nu, w.v + nv), P(w.u + du * r + nu, w.v + dv * r + nv), P(w.u + du * r - nu, w.v + dv * r - nv), P(w.u - nu, w.v - nv));
-    } else {
-      const n = 40;
-      for (let i = 0; i < n; i++) {
-        const a = (i / n) * Math.PI * 2;
-        pts.push(P(w.u + Math.cos(a) * r, w.v + Math.sin(a) * r));
-      }
-    }
-    return pts;
-  }
-
+  /** 범위 표시는 3D 땅 위 장판으로 그린다(인물 아래에 깔리고 땅을 따른다) */
   private drawWarns(dt: number) {
-    const g = this.warnG;
-    g.clear();
+    const layer = stageOrNull()?.warns;
     const keep: Warn[] = [];
     for (const w of this.warns) {
       w.age += dt;
-      const p = Math.min(1, w.age / w.t);
       if (w.age > w.t + 0.12) continue;
       keep.push(w);
-      const color = w.friendly ? 0xffcf6a : 0xff3b30;
+      const p = Math.min(1, w.age / w.t);
       const pulse = 0.5 + 0.5 * Math.sin(w.age * 22);
-      const endFade = w.age > w.t ? 1 - (w.age - w.t) / 0.12 : 1;
-      if (w.shape === 'ring') {
-        // 도넛: 바깥과 안쪽 원으로 그린다
-        const outer = this.shapePoints(w, w.r);
-        const inner = this.shapePoints(w, w.inner ?? 0).reverse();
-        g.fillStyle(color, (0.14 + 0.16 * p) * endFade);
-        for (let i = 0; i < outer.length; i++) {
-          const j = (i + 1) % outer.length;
-          const ii = outer.length - 1 - i;
-          const jj = (ii - 1 + outer.length) % outer.length;
-          g.fillTriangle(outer[i].x, outer[i].y, outer[j].x, outer[j].y, inner[ii].x, inner[ii].y);
-          g.fillTriangle(outer[j].x, outer[j].y, inner[jj].x, inner[jj].y, inner[ii].x, inner[ii].y);
-        }
-        g.lineStyle(1, color, 0.9 * endFade);
-        g.strokePoints(outer, true, true);
-        g.lineStyle(1, 0xffffff, (0.5 + 0.4 * pulse) * endFade);
-        g.strokePoints(inner, true, true);
-        continue;
-      }
-      const pts = this.shapePoints(w, w.r);
-      if (!w.soft) {
-        g.fillStyle(color, 0.12 * endFade);
-        g.fillPoints(pts, true);
-        // 안쪽이 차오르며 터질 때를 알려 준다
-        const grow = w.shape === 'line' ? w.r * p : w.r * p;
-        const inner = this.shapePoints(w, Math.max(0.02, grow));
-        g.fillStyle(color, (0.14 + 0.18 * p) * endFade);
-        g.fillPoints(inner, true);
-      }
-      g.lineStyle(1, w.friendly ? 0xffe9a8 : p > 0.7 ? 0xffffff : 0xff7a6a, (w.soft ? 0.45 : 0.75 + 0.25 * pulse) * endFade);
-      g.strokePoints(pts, true, true);
+      const endFade = w.age > w.t ? 1 - (w.age - w.t) / 0.12 : Math.min(1, w.age / 0.08);
+      layer?.set(w, w, p, endFade, pulse);
     }
     this.warns = keep;
+    layer?.sweep(new Set(keep));
   }
 
   addProj(m: { id: number; kind: string; u: number; v: number; du: number; dv: number; speed: number; range: number; friendly: boolean }) {
@@ -589,7 +529,7 @@ export class Fx {
   }
 
   destroy() {
-    this.warnG.destroy();
+    stageOrNull()?.warns.clear();
     for (const p of this.parts) p.img.destroy();
     for (const i of this.pool) i.destroy();
     for (const n of this.nums) n.txt.destroy();

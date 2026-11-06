@@ -21,6 +21,7 @@ import {
   WATER_FRAG,
 } from './shaders';
 import { TerrainData } from './terrain';
+import { WarnLayer } from './warns3d';
 
 const CHUNK = 12;
 const SHADOW_SIZE = 3072;
@@ -119,6 +120,8 @@ export class Stage3D {
   terrainMat: THREE.ShaderMaterial | null = null;
   grassMat: THREE.ShaderMaterial | null = null;
   terrain: TerrainData | null = null;
+  /** 공격 범위 장판 */
+  warns = new WarnLayer(this.scene, () => this.terrain);
   chunks: ChunkInst[] = [];
   grassChunks: { mesh: THREE.Mesh; cx: number; cz: number }[] = [];
   terrainMesh: THREE.Mesh | null = null;
@@ -284,6 +287,7 @@ export class Stage3D {
     this.terrainMesh = this.waterMesh = null;
     this.terrain?.dispose();
     this.terrain = null;
+    this.warns.clear();
     this.lamps = [];
   }
 
