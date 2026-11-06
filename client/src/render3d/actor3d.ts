@@ -9,6 +9,8 @@ import { uberMaterial } from './stage';
 const D2R = Math.PI / 180;
 
 export function assetOf(id: string): CharAsset | null {
+  // '이름@old': 블렌더 모델이 있어도 예전 코드 모델을 쓴다 (그림 점검 비교용)
+  if (id.endsWith('@old')) return monsterAsset(id.slice(0, -4));
   return pcAsset(id) ?? humanAsset(id) ?? skinnedAsset(id) ?? monsterAsset(id);
 }
 
