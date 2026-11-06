@@ -1,4 +1,5 @@
-// 공격 범위 표시: 땅 위에 깔리는 장판. 인물보다 아래에 그려지고 땅 높낮이를 따른다.
+// 공격 범위 표시: 땅 위에 깔리는 장판. 땅 높낮이를 따른다.
+// 그리는 순서: 땅·길·소품 → 장판(깊이 검사 없이 덮음) → 인물. 그래서 길이나 돌턱에 가리지 않고, 인물은 장판 위에 선다.
 // 모양(원·도넛·부채꼴·직선)은 조각 셰이더가 계산해 가장자리가 매끄럽다.
 import * as THREE from 'three';
 import type { TerrainData } from './terrain';
@@ -91,12 +92,10 @@ export class WarnLayer {
       glslVersion: THREE.GLSL3,
       vertexShader: VERT,
       fragmentShader: FRAG,
-      transparent: true,
+      // 불투명 목록에 넣어 그리는 순서(renderOrder)를 인물보다 앞에 고정한다
+      transparent: false,
       depthWrite: false,
-      depthTest: true,
-      polygonOffset: true,
-      polygonOffsetFactor: -4,
-      polygonOffsetUnits: -4,
+      depthTest: false,
       // 색만 섞는다. 알파(빛 번짐 값)와 법선 칸은 그대로 둔다
       blending: THREE.CustomBlending,
       blendSrc: THREE.SrcAlphaFactor,
@@ -119,7 +118,7 @@ export class WarnLayer {
     });
     const mesh = new THREE.Mesh(new THREE.BufferGeometry(), mat);
     mesh.frustumCulled = false;
-    mesh.renderOrder = 2;
+    mesh.renderOrder = 1;
     mesh.userData.noShadow = true;
     return { mesh, mat };
   }
