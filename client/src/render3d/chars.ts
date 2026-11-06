@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { Human, STAND } from '@bake/rig.js';
 import { idleFrames } from '@bake/humans.js';
 import { Geo, mix, tone, v3, type Hex } from './geo';
+import { skinnedAsset } from './skinned';
 
 export const DIMS = {
   hipH: 0.9,
@@ -1056,7 +1057,14 @@ function buildNpc(id: string): Build {
 
 const cache = new Map<string, CharAsset>();
 
-export function humanAsset(id: string): CharAsset | null {
+/** 주소에 ?human=old를 붙이면 블렌더 사람 모델 대신 예전 코드 모델을 쓴다 */
+const OLD_HUMAN = typeof location !== 'undefined' && new URLSearchParams(location.search).get('human') === 'old';
+
+export function humanAsset(id: string, old = false): CharAsset | null {
+  if (!old && !OLD_HUMAN && id.startsWith('npc_')) {
+    const sk = skinnedAsset(id);
+    if (sk) return sk;
+  }
   let a = cache.get(id);
   if (a) return a;
   if (id.startsWith('npc_')) {

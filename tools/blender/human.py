@@ -48,12 +48,54 @@ LOOK = {
         sleeve=0.004, vest=True, skirt=dict(hem='knee', drop=-0.12, open='side', flare=0.35, color='under'),
         beltw=0.018, head='band', wraps=True,
     ),
+    # ---- 마을 사람 ----
+    'npc_elder': dict(
+        # 담우: 흰 머리·수염의 마을 어른. 초록 두루마기, 갓, 지팡이
+        macro=dict(gender=1.0, age=0.95, muscle=0.35, weight=0.45, proportions=0.8, height=0.45),
+        skin=0xeabf9a, hair=0xdcdad2, brow=0xe6e4dc, under=0x4e6e54, coat=0x4e6e54, trim=0xd8cdb0, collar=0xeeeae0,
+        belt=0xd8cdb0, band=0x1e1c22, pants=0xd8d2c4, wrap=0xd8d2c4, boots=0x2a2428,
+        sleeve=0.03, vest=False, skirt=dict(hem='knee', drop=0.12, open='back', flare=0.5, color='under'),
+        beltw=0.01, head='gat', wraps=False, beard=0xefeee8, item='cane',
+    ),
+    'npc_merchant': dict(
+        # 보따: 보부상 아낙. 노란 저고리, 붉은 치마, 패랭이, 등짐
+        macro=dict(gender=0.0, age=0.45, muscle=0.45, weight=0.5, proportions=1.0, height=0.45),
+        skin=0xf0c8a4, hair=0x2c1e1a, under=0xd2a84c, coat=0xd2a84c, trim=0x9a3a30, collar=0xf0ead8, cuff=0x9a3a30,
+        belt=0x7a3c34, band=0xc4a464, pants=0x7a3c34, wrap=0x7a3c34, boots=0x3a2a20,
+        sleeve=0.012, vest=False, skirt=dict(hem='ankle', drop=-0.06, open='none', flare=0.6, color='pants', top='chest'),
+        beltw=0, head='straw', wraps=False, pack=True,
+    ),
+    'npc_smith': dict(
+        # 철구: 맨팔에 가죽 앞치마, 머릿수건, 망치
+        macro=dict(gender=1.0, age=0.6, muscle=0.95, weight=0.62, proportions=0.9, height=0.55),
+        skin=0xd8a57e, hair=0x1c1614, under=0x54382a, coat=0x54382a, trim=0x3a2a20, collar=0x8a6a4a,
+        belt=0x2c221c, band=0xe4dcc4, pants=0x45404a, wrap=0x45404a, boots=0x2a2020,
+        sleeve=0.0, vest=False, skirt=dict(hem='knee', drop=0.05, open='apron', flare=0.2, color='under'),
+        beltw=0.02, head='band', wraps=False, bare=True, item='hammer',
+    ),
+    'npc_guard': dict(
+        # 하진: 포교. 붉은 철릭, 쪽빛 소매·바지, 전립, 창
+        macro=dict(gender=1.0, age=0.5, muscle=0.7, weight=0.5, proportions=1.0, height=0.62),
+        skin=0xecbc92, hair=0x1c1614, under=0x263a5e, coat=0xa42e2c, trim=0xd2a24a, collar=0xe9e2d0,
+        belt=0x2c221c, band=0x26242c, pants=0x263a5e, wrap=0x4a3a2c, boots=0x241c1c,
+        sleeve=0.006, vest=True, skirt=dict(hem='knee', drop=-0.02, open='front', flare=0.45, color='coat'),
+        beltw=0.02, head='jeonrip', wraps=True, item='spear',
+    ),
+    'npc_keeper': dict(
+        # 유림: 곳간지기. 흰 저고리, 보라 치마, 쪽머리에 금비녀
+        macro=dict(gender=0.0, age=0.5, muscle=0.4, weight=0.45, proportions=1.0, height=0.5),
+        skin=0xf2cba6, hair=0x2a2028, under=0xe9e2d0, coat=0xe9e2d0, trim=0xd2a24a, collar=0x5c4670, cuff=0x5c4670,
+        belt=0x5c4670, band=0xd2a24a, pants=0x5c4670, wrap=0xe9e2d0, boots=0xe9e2d0,
+        sleeve=0.012, vest=False, skirt=dict(hem='ankle', drop=-0.06, open='none', flare=0.7, color='pants', top='chest'),
+        beltw=0, head='bun', wraps=False, keys=True,
+    ),
 }[WHO]
+NPC = WHO.startswith('npc_')
 
 
 def make_body():
     m = dict(LOOK['macro'])
-    m.update(cupsize=0.5, firmness=0.5, race=dict(asian=1.0, caucasian=0.0, african=0.0))
+    m.update(cupsize=0.2 if LOOK['macro']['gender'] < 0.5 else 0.45, firmness=0.5, race=dict(asian=1.0, caucasian=0.0, african=0.0))
     for o in list(bpy.data.objects):
         bpy.data.objects.remove(o)
     h = HumanService.create_human(macro_detail_dict=m)
@@ -179,6 +221,9 @@ V = [body.matrix_world @ v.co for v in body.data.vertices]
 def covered(i):
     d = DOM[i]
     z = V[i].z
+    if LOOK.get('bare'):
+        # 맨몸 윗도리: 다리와 엉덩이만 옷에 덮인다
+        return d in LEG or d in FOOT or (d == 'pelvis' and z < Z_HIP + 0.03)
     if d in TORSO or d in LEG or d in FOOT or d == 'upperarm_l' or d == 'upperarm_r':
         return True
     if d in ('lowerarm_l', 'lowerarm_r'):
@@ -255,7 +300,9 @@ def collar_line(p, drop=0.0):
 belt_z = Z_WAIST - 0.01
 
 # 저고리(속옷 소매): 몸통과 팔. 소매는 손목으로 갈수록 넉넉하다
-shirt = shell('shirt',
+shirt = None
+if not LOOK.get('bare'):
+  shirt = shell('shirt',
               lambda i: DOM[i] in TORSO | ARM or (DOM[i] == 'neck_01' and V[i].z < Z_NECK + 0.05),
               lambda i, co: (0.009 + LOOK['sleeve'] * sstep(0.2, 1.0, W_LARM[i])) * sstep(-0.004, 0.004, collar_line(V[i]) - V[i].z) - 0.004 * (1 - sstep(-0.004, 0.004, collar_line(V[i]) - V[i].z)),
               smooth_n=6)
@@ -274,7 +321,7 @@ bm = bmesh.new()
 rings = 16 if SK['hem'] == 'knee' else 22
 seg = 48
 hem = (Z_KNEE if SK['hem'] == 'knee' else Z_ANKLE) - SK['drop']
-top = belt_z - 0.01
+top = bone_head('spine_02').z + 0.02 if SK.get('top') == 'chest' else belt_z - 0.01
 radii = []
 for r in range(rings):
     z = top + (hem - top) * r / (rings - 1)
@@ -302,9 +349,15 @@ for r in range(rings):
 for r in range(rings - 1):
     for s_ in range(seg):
         # 트임: 앞(무사 쾌자), 뒤(도포), 양옆(동달이)
-        slit = {'front': (0, seg - 1), 'back': (seg // 2 - 1, seg // 2), 'side': (seg // 4 - 1, seg // 4, 3 * seg // 4 - 1, 3 * seg // 4)}[SK['open']]
-        if s_ in slit and r > rings * (0.2 if SK['open'] == 'front' else 0.55):
-            continue
+        if SK['open'] == 'apron':
+            # 앞치마: 앞쪽 3분의 1만
+            a_ = (s_ + 1) / seg * math.tau
+            if min(a_, math.tau - a_) > 1.0:
+                continue
+        else:
+            slit = {'front': (0, seg - 1), 'back': (seg // 2 - 1, seg // 2), 'side': (seg // 4 - 1, seg // 4, 3 * seg // 4 - 1, 3 * seg // 4), 'none': ()}[SK['open']]
+            if s_ in slit and r > rings * (0.2 if SK['open'] == 'front' else 0.55):
+                continue
         bm.faces.new((grid[r][s_], grid[r + 1][s_], grid[r + 1][(s_ + 1) % seg], grid[r][(s_ + 1) % seg]))
 bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
 me = bpy.data.meshes.new('skirt')
@@ -316,7 +369,9 @@ SKIRT_HEM = hem
 
 # 허리띠
 BW = LOOK['beltw']
-belt = shell('belt', lambda i: DOM[i] in TORSO and abs(V[i].z - belt_z) < 0.06,
+belt = None
+if BW > 0:
+  belt = shell('belt', lambda i: DOM[i] in TORSO and abs(V[i].z - belt_z) < 0.06,
              lambda i, co: 0.034 * sstep(BW + 0.003, BW - 0.003, abs(V[i].z - belt_z)) - 0.006 * (1 - sstep(BW + 0.003, BW - 0.003, abs(V[i].z - belt_z))),
              smooth_n=4)
 
@@ -388,14 +443,60 @@ if LOOK['head'] == 'gat':
     bm.free()
     gat = B.link(bpy.data.objects.new('gat', me))
 
-# 상투
+# 상투(남자) 또는 쪽머리와 비녀(여자)
 bm = bmesh.new()
-crown = Vector((0, HEAD_C.y + 0.01, TOP + 0.005))
-bmesh.ops.create_uvsphere(bm, u_segments=20, v_segments=12, radius=0.032, matrix=Matrix.Translation(crown + Vector((0, 0, 0.022))) @ Matrix.Diagonal((1, 1, 1.2, 1)))
+if LOOK['head'] == 'bun' or LOOK['macro']['gender'] < 0.5:
+    nape = Vector((0, HEAD_C.y + 0.085, Z_HEAD + 0.02))
+    bmesh.ops.create_uvsphere(bm, u_segments=20, v_segments=12, radius=0.045, matrix=Matrix.Translation(nape) @ Matrix.Diagonal((1.25, 0.8, 0.85, 1)))
+else:
+    crown = Vector((0, HEAD_C.y + 0.01, TOP + 0.005))
+    bmesh.ops.create_uvsphere(bm, u_segments=20, v_segments=12, radius=0.032, matrix=Matrix.Translation(crown + Vector((0, 0, 0.022))) @ Matrix.Diagonal((1, 1, 1.2, 1)))
 me = bpy.data.meshes.new('topknot')
 bm.to_mesh(me)
 bm.free()
 topknot = B.link(bpy.data.objects.new('topknot', me))
+
+# 머리 위 쓰개: 전립(포교), 패랭이(보부상), 비녀(쪽머리)
+hat = None
+if LOOK['head'] in ('jeonrip', 'straw', 'bun'):
+    bm = bmesh.new()
+    hc = Vector((0, HEAD_C.y + 0.005, brow_z + 0.055))
+    tilt = Matrix.Rotation(math.radians(-6), 4, 'X')
+    if LOOK['head'] == 'jeonrip':
+        bmesh.ops.create_cone(bm, cap_ends=True, segments=36, radius1=0.2, radius2=0.17, depth=0.012, matrix=Matrix.Translation(hc) @ tilt)
+        bmesh.ops.create_uvsphere(bm, u_segments=20, v_segments=10, radius=0.1, matrix=Matrix.Translation(hc + Vector((0, 0, 0.02))) @ tilt @ Matrix.Diagonal((1, 1, 0.95, 1)))
+        bmesh.ops.create_uvsphere(bm, u_segments=10, v_segments=6, radius=0.035, matrix=Matrix.Translation(hc + Vector((0, 0.01, 0.13))))
+    elif LOOK['head'] == 'straw':
+        bmesh.ops.create_cone(bm, cap_ends=True, segments=36, radius1=0.2, radius2=0.075, depth=0.075, matrix=Matrix.Translation(hc + Vector((0, 0, 0.03))) @ tilt)
+    else:
+        nape = Vector((0, HEAD_C.y + 0.09, Z_HEAD + 0.02))
+        bmesh.ops.create_cone(bm, cap_ends=True, segments=8, radius1=0.006, radius2=0.006, depth=0.15, matrix=Matrix.Translation(nape + Vector((0, 0.01, 0))) @ Matrix.Rotation(math.radians(90), 4, 'Y'))
+    me = bpy.data.meshes.new('hat')
+    bm.to_mesh(me)
+    bm.free()
+    hat = B.link(bpy.data.objects.new('hat', me))
+    HAT_C = hc
+if LOOK['head'] in ('jeonrip', 'straw', 'bun', 'gat') or LOOK['macro']['gender'] < 0.5:
+    # 쓰개 아래나 여자 머리에는 머리띠를 두르지 않는다
+    if LOOK['head'] != 'gat':
+        bpy.data.objects.remove(band)
+        band = None
+
+# 수염(어른): 턱과 입가를 덮는다
+beard = None
+if LOOK.get('beard'):
+    MOUTH_Z = EYE_C[0].z - 0.075
+
+    def beard_amt(i, co):
+        p = V[i]
+        k = sstep(MOUTH_Z + 0.03, MOUTH_Z - 0.0, p.z) if not LIPS[i] else 0.0
+        # 콧수염: 입술 바로 위 가는 띠
+        if abs(p.z - (MOUTH_Z + 0.022)) < 0.006 and abs(p.x) < 0.03:
+            k = 1.0
+        return 0.009 * k - 0.004 * (1 - k)
+
+    beard = shell('beard', lambda i: DOM[i] in ('head', 'neck_01') and V[i].y < HEAD_C.y - 0.03 and V[i].z < MOUTH_Z + 0.04 and V[i].z > Z_NECK + 0.02,
+                  beard_amt, smooth_n=2)
 
 # ---------------- 가중치: 새로 지은 물체 ----------------
 
@@ -422,11 +523,12 @@ def weight_all(o, bone):
 weight_from_body(skirt)
 weight_from_body(boots)
 weight_all(topknot, 'head')
-if gat:
-    weight_all(gat, 'head')
+for o in (gat, hat):
+    if o:
+        weight_all(o, 'head')
 
 # ---------------- 칠하기 ----------------
-C = {k: lin(v) for k, v in LOOK.items() if isinstance(v, int)}
+C = {k: lin(v) for k, v in LOOK.items() if isinstance(v, int) and not isinstance(v, bool)}
 
 
 def grain(co, k=1.0, s=90):
@@ -453,12 +555,12 @@ def skin_col(co, n, i):
     # 입술
     if LIPS[j]:
         c = mixc(c, lin(0xb06a60), 0.3)
-    # 눈썹: 눈 위 띠
+    # 눈썹: 눈 위 띠 (어른은 흰 눈썹)
     for e in EYE_C:
         dx = abs(co.x - e.x)
         dz = co.z - (e.z + 0.022 - (dx - 0.0) ** 2 * 6)
         if co.y < e.y + 0.01 and dx < 0.032 and abs(dz) < 0.0045 and abs(co.x) > 0.008:
-            c = mixc(c, C['hair'], 0.9)
+            c = mixc(c, C.get('brow', C['hair']), 0.9)
     # 눈두덩 살짝 어둡게, 볼 붉게
     for e in EYE_C:
         d = (co - e).length
@@ -532,27 +634,41 @@ def shirt_col(co, n, i):
     # 깃 띠(무사·궁사는 흰 동정, 도사는 쪽빛 깃)
     if collar_line(V[j]) - V[j].z < 0.008:
         c = C['collar']
-    # 도포 소매 끝(수구)에 쪽빛 선
+    # 소매 끝동: 도포는 쪽빛 수구, 저고리는 끝동 색
+    if 'cuff' in LOOK and W_LARM[j] > 0.5 and (co - (bone_head('hand_l') if co.x > 0 else bone_head('hand_r'))).length < 0.07:
+        c = C['cuff']
     if LOOK['sleeve'] > 0.03 and W_LARM[j] > 0.5 and (co - (bone_head('hand_l') if co.x > 0 else bone_head('hand_r'))).length < 0.06:
         c = C['trim']
     return [x * grain(co, 0.8, 220) for x in c]
 
 
-paint(shirt, shirt_col)
+if shirt:
+    paint(shirt, shirt_col)
 if coat:
     paint(coat, coat_col)
 paint(skirt, skirt_col)
-paint(belt, cloth(C['belt']))
+if belt:
+    paint(belt, cloth(C['belt']))
 paint(pants, pants_col)
 paint(boots, cloth(C['boots'], 0.5))
 paint(hair, hair_col)
 paint(topknot, hair_col)
-paint(band, cloth(C['band']))
+if band:
+    paint(band, cloth(C['band']))
+if hat:
+    if LOOK['head'] == 'jeonrip':
+        paint(hat, lambda co, n, i: lin(0xb5302a) if co.z > HAT_C.z + 0.1 else [x * grain(co, 0.5, 200) for x in lin(0x26242c)])
+    elif LOOK['head'] == 'straw':
+        paint(hat, lambda co, n, i: [x * (1 + 0.18 * math.sin(math.atan2(co.x, co.y) * 60)) for x in lin(0xc4a464)])
+    else:
+        paint(hat, lambda co, n, i: lin(0xd2a24a))
+if beard:
+    paint(beard, lambda co, n, i: [x * (1 + 0.12 * noise.noise(Vector((co.x * 500, co.y * 500, co.z * 60)))) for x in C['beard']])
 if gat:
     # 갓은 반쯤 비치는 검은 대나무 결
     paint(gat, lambda co, n, i: [x * (1 + 0.25 * noise.noise(Vector((co.x * 300, co.y * 300, co.z * 20)))) for x in lin(0x1e1c22)])
 
-PARTS = [o for o in (skin, eyes, shirt, coat, skirt, belt, pants, boots, hair, topknot, band, gat) if o]
+PARTS = [o for o in (skin, eyes, shirt, coat, skirt, belt, pants, boots, hair, topknot, band, gat, hat, beard) if o]
 for o in PARTS:
     for pl in o.data.polygons:
         pl.use_smooth = True
@@ -770,6 +886,77 @@ if WHO == 'gungsa':
     paint(quiver, quiver_col)
     WEAPONS = [bow, quiver]
 
+# ---------------- 마을 사람 소지품 ----------------
+IT = LOOK.get('item')
+if IT:
+    grip, M, along = fist('r')
+    bm = bmesh.new()
+    if IT == 'cane':
+        # 마디진 지팡이: 주먹 아래로 땅까지, 위는 손잡이 혹
+        loft_into(bm, grip, M, [(-0.95, 0.022, 0.022, 0), (-0.4, 0.026, 0.026, 0.01), (0.06, 0.028, 0.028, 0)], n=8)
+        bmesh.ops.create_uvsphere(bm, u_segments=10, v_segments=6, radius=0.03, matrix=Matrix.Translation(grip + M @ Vector((0, 0.08, 0))))
+        cols = (0x5e3d28, 0x704a30)
+    elif IT == 'hammer':
+        # 자루 끝을 쥐고 쇠머리는 아래로
+        loft_into(bm, grip, M, [(0.06, 0.026, 0.026, 0), (-0.42, 0.024, 0.024, 0)], n=8)
+        loft_into(bm, grip, M, [(-0.4, 0.08, 0.1, 0), (-0.5, 0.08, 0.1, 0)], n=4)
+        cols = (0x5e3d28, 0x3e3e48)
+    else:
+        # 창: 붉은 술과 날
+        loft_into(bm, grip, M, [(-0.85, 0.024, 0.024, 0), (1.15, 0.022, 0.022, 0)], n=8)
+        loft_into(bm, grip, M, [(1.15, 0.012, 0.05, 0), (1.25, 0.012, 0.06, 0), (1.42, 0.004, 0.004, 0)], n=4)
+        bmesh.ops.create_uvsphere(bm, u_segments=10, v_segments=6, radius=0.045, matrix=Matrix.Translation(grip + M @ Vector((0, 1.11, 0))))
+        cols = (0x5e3d28, 0xdce4ee)
+    item = make_obj('item', bm)
+    weight_all(item, 'hand_r')
+    G_, AX_ = grip, M.col[1]
+
+    def item_col(co, n, i):
+        y = (co - G_).dot(AX_)
+        if IT == 'spear':
+            if 1.07 < y < 1.16:
+                return lin(0xb5302a)
+            if y >= 1.16:
+                return lin(0xdce4ee)
+        if IT == 'hammer' and y < -0.39:
+            return lin(0x3e3e48)
+        return [x * grain(co, 0.8, 200) for x in lin(cols[0])]
+    paint(item, item_col)
+    WEAPONS.append(item)
+
+if LOOK.get('pack'):
+    # 등짐: 지게 틀에 얹은 보따리
+    bm = bmesh.new()
+    back_c = Vector((0, bone_head('spine_02').y + 0.2, bone_head('spine_02').z + 0.05))
+    bmesh.ops.create_cube(bm, size=1.0, matrix=Matrix.Translation(back_c) @ Matrix.Diagonal((0.36, 0.22, 0.34, 1)))
+    bmesh.ops.create_uvsphere(bm, u_segments=12, v_segments=8, radius=0.13, matrix=Matrix.Translation(back_c + Vector((0, 0.0, 0.26))) @ Matrix.Diagonal((1.3, 0.9, 0.8, 1)))
+    for sx in (-0.2, 0.2):
+        bmesh.ops.create_cone(bm, cap_ends=True, segments=6, radius1=0.018, radius2=0.018, depth=0.9,
+                              matrix=Matrix.Translation(Vector((sx, back_c.y + 0.02, back_c.z - 0.2))))
+    pack = make_obj('pack', bm)
+    weight_all(pack, 'spine_03')
+    PK = back_c
+
+    def pack_col(co, n, i):
+        if co.z > PK.z + 0.17:
+            return [x * grain(co, 0.8, 120) for x in lin(0x3e5e7a)]
+        if abs(co.x) > 0.17 and co.y > PK.y + 0.0:
+            return lin(0x5a3f2c)
+        return [x * grain(co, 0.8, 120) for x in lin(0x7d6448)]
+    paint(pack, pack_col)
+    WEAPONS.append(pack)
+
+if LOOK.get('keys'):
+    # 허리춤의 열쇠 꾸러미
+    bm = bmesh.new()
+    kc = Vector((0.1, bone_head('spine_01').y - 0.13, bone_head('spine_02').z - 0.02))
+    for k in range(4):
+        bmesh.ops.create_cube(bm, size=1.0, matrix=Matrix.Translation(kc + Vector((k * 0.018, 0, -0.03 * (k % 2)))) @ Matrix.Diagonal((0.012, 0.012, 0.07, 1)))
+    keys = make_obj('item', bm)
+    weight_all(keys, 'spine_01')
+    paint(keys, lambda co, n, i: lin(0xd2a24a))
+    WEAPONS.append(keys)
+
 for o in WEAPONS:
     for pl in o.data.polygons:
         pl.use_smooth = True
@@ -780,7 +967,10 @@ preview(WHO + '_armed', ALL, 2.0, Vector((0, 0, 0.9)), yaws=(0, 40))
 # ---------------- 저폴리 + 질감 굽기 ----------------
 # 부위마다 따로 줄이고, 한 장에 UV를 모은 뒤 부위끼리만 굽는다(겹친 옷끼리 색이 새지 않게)
 BUDGET = dict(skin=3600, eyes=240, shirt=1500, coat=1100, skirt=1300, belt=260, pants=1200, boots=500,
-              hair=900, topknot=200, band=260, sword=200, shield=160, gat=300, staff=260, bow=360, quiver=200)
+              hair=900, topknot=200, band=260, sword=200, shield=160, gat=300, staff=260, bow=360, quiver=200,
+              hat=300, beard=500, item=300, pack=300)
+if LOOK.get('bare'):
+    BUDGET['skin'] = 5200
 TEX = 512
 lows = []
 for i, o in enumerate(ALL):
@@ -1100,8 +1290,25 @@ if WHO == 'gungsa':
         sky = add(AIM, {'spine_02': [-28, 0, 0], 'spine_01': [-8, 0, 0], 'neck_01': [-20, 0, 0], 'loc': [0, 0.03, 0]})
         return keyed([(0, B0), (0.4, sky), (0.75, sky), (1.0, add(sky, {'upperarm_r': [0, 22, 0], 'lowerarm_r': [40, 0, 0]}))], t)
 
-CLIPS = [('idle', 1.2, idle), ('walk', 0.64, walk), ('attack1', 0.32, attack1), ('attack2', 0.32, attack2), ('attack3', 0.46, attack3),
-         ('cast', 0.5, cast), ('spin', 0.5, spin), ('dodge', 0.38, dodge), ('guard', 0.12, guard), ('hit', 0.24, hit), ('death', 0.8, death)]
+if NPC:
+    # 마을 사람: 서기와 걷기만. 서는 자세가 사람마다 다르다
+    STANCE = {
+        'npc_elder': {'lowerarm_r': [-50, 0, 0], 'hand_r': [-15, 0, 0], 'spine_02': [8, 0, 0], 'spine_03': [6, 0, 0], 'neck_01': [-10, 0, 0], 'upperarm_l': [-8, 0, 0], 'lowerarm_l': [-40, 0, 0]},
+        'npc_merchant': {'upperarm_l': [-12, -8, 0], 'lowerarm_l': [-70, 0, 0], 'upperarm_r': [-12, 8, 0], 'lowerarm_r': [-70, 0, 0]},
+        'npc_smith': {'upperarm_l': [0, -6, 0], 'lowerarm_l': [-25, 0, 0], 'spine_02': [-3, 0, 0]},
+        'npc_guard': {'upperarm_r': [8, 0, 0], 'lowerarm_r': [-62, 0, 0], 'hand_r': [40, 0, 0], 'spine_02': [-3, 0, 0]},
+        'npc_keeper': {'lowerarm_l': [-10, 0, 0], 'lowerarm_r': [-10, 0, 0], 'curl': [-35, 0, 0]},
+    }[WHO]
+    B0 = add(base(), STANCE)
+
+    def idle(t):
+        s_ = math.sin(t * math.tau)
+        return add(B0, {'spine_02': [1.2 * s_, 0, 0], 'neck_01': [-0.8 * s_, 0, 2 * math.sin(t * math.tau * 0.5 + 1)], 'loc': [0, 0, -0.003 + 0.003 * s_]})
+
+    CLIPS = [('idle', 1.5, idle), ('walk', 0.7, walk)]
+else:
+    CLIPS = [('idle', 1.2, idle), ('walk', 0.64, walk), ('attack1', 0.32, attack1), ('attack2', 0.32, attack2), ('attack3', 0.46, attack3),
+             ('cast', 0.5, cast), ('spin', 0.5, spin), ('dodge', 0.38, dodge), ('guard', 0.12, guard), ('hit', 0.24, hit), ('death', 0.8, death)]
 for nm, d, fn in CLIPS:
     clip(nm, d, fn)
 
@@ -1126,4 +1333,4 @@ class R:
     obj = rig
 
 
-B.export(low, R, os.path.join(OUT, f'pc_{WHO}.glb'))
+B.export(low, R, os.path.join(OUT, f'{WHO}.glb' if NPC else f'pc_{WHO}.glb'))
