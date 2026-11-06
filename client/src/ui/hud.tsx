@@ -41,12 +41,20 @@ function Vitals() {
   return (
     <div class="vitals">
       <div class="vname">
-        <b class="lv">{m.level}</b>
-        <span>{m.name}</span>
+        <b class="vn">{m.name}</b>
+        <span class="lv">Lv {m.level}</span>
         <small>{CLASSES[m.cls].label}</small>
       </div>
-      <Bar cls="hp" value={v.hp} max={v.maxHp} label={`${v.hp} / ${v.maxHp}${v.shield > 0 ? ` +${v.shield}` : ''}`} />
-      <Bar cls="mp" value={v.mp} max={v.maxMp} label={`${v.mp} / ${v.maxMp}`} />
+      <Bar cls="hp" value={v.hp} max={v.maxHp} />
+      <div class="vnum">
+        <span>체력</span>
+        <span>{`${v.hp} / ${v.maxHp}${v.shield > 0 ? ` +${v.shield}` : ''}`}</span>
+      </div>
+      <Bar cls="mp" value={v.mp} max={v.maxMp} />
+      <div class="vnum">
+        <span>기력</span>
+        <span>{`${v.mp} / ${v.maxMp}`}</span>
+      </div>
       <Buffs />
     </div>
   );
