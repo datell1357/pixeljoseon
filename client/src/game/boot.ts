@@ -1,4 +1,5 @@
 // Phaser 게임 만들기와 장면 전환
+import { preloadSkinned } from '../render3d/skinned';
 import * as Phaser from 'phaser';
 import type { Room } from '@colyseus/sdk';
 import type { MapData } from '@shared/mapdata';
@@ -125,7 +126,7 @@ export function applyGfx() {
 }
 
 export async function createGame() {
-  await loadDescriptors();
+  await Promise.all([loadDescriptors(), preloadSkinned()]);
   const { w, h, k } = logicalSize();
   const parent = document.getElementById('game')!;
   stage = new Stage3D(parent);

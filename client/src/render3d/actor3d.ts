@@ -3,12 +3,13 @@ import * as THREE from 'three';
 import { monsterAsset } from './monsters3d';
 import { humanAsset, retarget, type BuiltRig, type CharAsset, type Chain, type Panel } from './chars';
 import { pcAsset } from './pc';
+import { skinnedAsset } from './skinned';
 import { uberMaterial } from './stage';
 
 const D2R = Math.PI / 180;
 
 export function assetOf(id: string): CharAsset | null {
-  return pcAsset(id) ?? humanAsset(id) ?? monsterAsset(id);
+  return pcAsset(id) ?? humanAsset(id) ?? skinnedAsset(id) ?? monsterAsset(id);
 }
 
 function lerpPose(a: Record<string, number>, b: Record<string, number>, t: number) {
@@ -61,7 +62,7 @@ export class ActorView {
     const n = Math.max(1, this.built.bones.length);
     this.data = new Float32Array(4 * 4 * n);
     this.tex = boneTexture(this.data, n);
-    this.mat = uberMaterial({ bones: this.tex });
+    this.mat = uberMaterial({ bones: this.tex, skinned: a.skinned, map: a.map ?? null });
     this.mat.uniforms.uFur.value = a.fur ?? 0;
     this.mesh = new THREE.Mesh(a.geometry, this.mat);
     this.mesh.frustumCulled = false;
@@ -137,7 +138,8 @@ export class ActorView {
     const raw = this.poseAt(name, p);
     const pose = this.asset.retarget ? retarget(raw) : raw;
     const b = this.built;
-    b.rig.apply(pose);
+    if (b.rig.play) b.rig.play(name, p);
+    else b.rig.apply(pose);
     b.strings?.update(pose);
     const root = this.root;
     root.position.set(x, y, z);
@@ -225,7 +227,8 @@ export class ActorView {
           break;
         }
       }
-      if (hide) tmpM.makeScale(0, 0, 0).setPosition(this.root.position);
+      if (hide && !this.built.bindInv) tmpM.makeScale(0, 0, 0).setPosition(this.root.position);
+      else if (this.built.bindInv) tmpM.multiplyMatrices(o.matrixWorld, this.built.bindInv[i]);
       else tmpM.copy(o.matrixWorld);
       d.set(tmpM.elements, i * 16);
     }

@@ -72,6 +72,10 @@ export interface CharAsset {
   alpha?: number;
   /** 털결 세기 (짐승만) */
   fur?: number;
+  /** 스킨드 모델 (정점마다 뼈 넷) */
+  skinned?: boolean;
+  /** 색 텍스처 */
+  map?: THREE.Texture | null;
   /** 지금 이 모델을 쓰는 인물 수. 장비 조합 모델을 언제 버려도 되는지 판단한다 */
   refs?: number;
 }
@@ -82,6 +86,8 @@ export interface BuiltRig {
   panels: Panel[];
   chains: Chain[];
   strings?: { update: (P: Record<string, number>) => void };
+  /** 스킨드 모델: 뼈마다 곱할 묶임 역행렬 */
+  bindInv?: THREE.Matrix4[];
 }
 
 /** 몸체 만들기: 뼈 이름별로 Geo에 그린다 */
