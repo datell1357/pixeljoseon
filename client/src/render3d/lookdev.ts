@@ -3,6 +3,7 @@ import type { MapData } from '@shared/mapdata';
 import { PX_U, PX_V } from '@shared/core';
 import { ActorView } from './actor3d';
 import { Stage3D } from './stage';
+import { preloadSkinned } from './skinned';
 
 const parent = document.getElementById('game')!;
 const stage = new Stage3D(parent);
@@ -97,5 +98,7 @@ const api = {
     return { ms: (performance.now() - t0) / n, ...stage.stats };
   },
 };
-(window as unknown as { LD: typeof api }).LD = api;
+void preloadSkinned().then(() => {
+  (window as unknown as { LD: typeof api }).LD = api;
+});
 window.addEventListener('error', (e) => api.errors.push(String(e.message)));

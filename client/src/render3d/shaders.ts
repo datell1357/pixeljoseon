@@ -101,9 +101,15 @@ in vec3 color;
 out vec3 vWorld; out vec3 vN; out vec3 vCol; out vec4 vAux; out vec2 vUv; out vec3 vRoot;
 uniform float uTime; uniform float uPass;
 #ifdef USE_BONES
+#ifdef USE_SKIN
+in vec4 skinIndex;
+in vec4 skinWeight;
+#else
 in float bone;
+#endif
 uniform sampler2D uBoneTex;
 out vec3 vObj;
+mat4 boneMat(int bi){ return mat4(texelFetch(uBoneTex,ivec2(0,bi),0),texelFetch(uBoneTex,ivec2(1,bi),0),texelFetch(uBoneTex,ivec2(2,bi),0),texelFetch(uBoneTex,ivec2(3,bi),0)); }
 #endif
 void main(){
   vec4 lp = vec4(position,1.);
@@ -116,8 +122,13 @@ void main(){
 #endif
 #ifdef USE_BONES
   vObj = position;
-  int bi = int(bone+.5);
-  mdl = mat4(texelFetch(uBoneTex,ivec2(0,bi),0),texelFetch(uBoneTex,ivec2(1,bi),0),texelFetch(uBoneTex,ivec2(2,bi),0),texelFetch(uBoneTex,ivec2(3,bi),0));
+#ifdef USE_SKIN
+  // 뼈 넷을 가중치로 섞는다: 관절이 살처럼 구부러진다
+  mdl = boneMat(int(skinIndex.x+.5))*skinWeight.x + boneMat(int(skinIndex.y+.5))*skinWeight.y
+      + boneMat(int(skinIndex.z+.5))*skinWeight.z + boneMat(int(skinIndex.w+.5))*skinWeight.w;
+#else
+  mdl = boneMat(int(bone+.5));
+#endif
 #endif
   vec4 wp = mdl*lp;
   if(aux.z>0.){
@@ -151,12 +162,19 @@ in vec3 vWorld; in vec3 vN; in vec3 vCol; in vec4 vAux; in vec2 vUv; in vec3 vRo
 in vec3 vObj;
 uniform float uFur;
 #endif
+#ifdef USE_MAP
+uniform sampler2D uMap;
+#endif
 layout(location=0) out vec4 oC;
 layout(location=1) out vec4 oN;
 uniform float uAlpha; uniform vec4 uFlash; uniform float uCut;
 void main(){
   // 잎 카드: 카드 하나가 작은 잎 여러 장처럼 보이게 구멍을 뚫는다
+#ifdef USE_MAP
+  bool leaf = false;
+#else
   bool leaf = vUv.x!=0.||vUv.y!=0.;
+#endif
   float leafTone = 1.;
   if(leaf){
     vec2 q = vUv; float w = 1.-q.y*q.y; if(abs(q.x)>w) discard;
@@ -181,10 +199,14 @@ void main(){
     n = normalize(n + f*uFur*1.1);
     furTone = 1. + f.x*uFur*.38;
   }
-  vec3 c = lit(vCol*furTone,n,vWorld,vAux.x,0.,sh,.55);
+  vec3 alb = vCol;
+#ifdef USE_MAP
+  alb = texture(uMap, vUv).rgb;
+#endif
+  vec3 c = lit(alb*furTone,n,vWorld,vAux.x,0.,sh,.55);
   // 앞에서 비추는 보조광과 가장자리 빛: 배경에서 떠오르게 한다
   float nv = max(dot(n,uViewDir),0.);
-  c += vCol*(nv>.78?.26:nv>.42?.17:.08);
+  c += alb*(nv>.78?.26:nv>.42?.17:.08);
   c += (uSunCol*.34+uSky*.26)*(nv<.3?1.:nv<.46?.42:0.)*(n.y*.5+.6);
 #else
   float paint = leaf ? .62 : .14;
