@@ -5,7 +5,7 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import type { BuiltRig, CharAsset } from './chars';
 
 /** 시트 이름 → 모델 파일. 여기 있는 짐승은 코드로 지은 모델 대신 이 모델을 쓴다 */
-export const FILES: Record<string, string> = Object.fromEntries(['fox', 'wolf', 'dhole', 'raccoon', 'gumiho', 'tiger', 'bear', 'boar', 'squirrel', 'bat', 'bulgasari'].map((n) => [n, `/models/${n}.glb`]));
+export const FILES: Record<string, string> = Object.fromEntries(['yeou', 'neukdae', 'seungnyangi', 'neoguri', 'gumiho', 'horangi', 'bandalgom', 'metdwaeji', 'daramjwi', 'bakjwi', 'bulgasari'].map((n) => [n, `/models/${n}.glb`]));
 /** 도트 느낌: 동작을 초당 이만큼으로 끊어 재생한다 */
 const STEP_FPS = 12;
 

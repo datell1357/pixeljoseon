@@ -13,10 +13,10 @@ STAGE = argv[2] if len(argv) > 2 else 'all'
 os.makedirs(OUT, exist_ok=True)
 
 SPECS = {
-    'fox': dict(),
-    'wolf': dict(body_w=1.22, body_d=1.18, leg_k=1.3, neck_k=1.45, head_k=1.22, muzzle=1.0, ear_h=0.62, ear_w=1.1, tail_k=0.82, tail_droop=22, cheek=1.6),
-    'dhole': dict(body_w=1.06, body_d=1.05, leg_k=1.08, neck_k=1.08, head_k=1.05, muzzle=0.8, ear_h=0.68, ear_w=1.15, ear_round=True, tail_k=1.0, tail_droop=14),
-    'raccoon': dict(body_w=1.5, body_d=1.32, leg_len=0.62, leg_k=1.3, neck_k=1.5, head_k=1.18, muzzle=0.72, ear_h=0.5, ear_w=0.95, ear_round=True, tail_k=1.2, tail_len=0.55, tail_droop=34, cheek=2.0, chest=0.78),
+    'yeou': dict(),
+    'neukdae': dict(body_w=1.22, body_d=1.18, leg_k=1.3, neck_k=1.45, head_k=1.22, muzzle=1.0, ear_h=0.62, ear_w=1.1, tail_k=0.82, tail_droop=22, cheek=1.6),
+    'seungnyangi': dict(body_w=1.06, body_d=1.05, leg_k=1.08, neck_k=1.08, head_k=1.05, muzzle=0.8, ear_h=0.68, ear_w=1.15, ear_round=True, tail_k=1.0, tail_droop=14),
+    'neoguri': dict(body_w=1.5, body_d=1.32, leg_len=0.62, leg_k=1.3, neck_k=1.5, head_k=1.18, muzzle=0.72, ear_h=0.5, ear_w=0.95, ear_round=True, tail_k=1.2, tail_len=0.55, tail_droop=34, cheek=2.0, chest=0.78),
     'gumiho': dict(body_w=1.05, leg_k=1.1, neck_k=1.15, head_k=1.08, muzzle=1.05, ear_h=0.92, ear_w=1.05, tails=9, cheek=1.2),
 }
 S = dict(body_w=1.0, body_d=1.0, chest=1.0, leg_len=1.0, leg_k=1.0, neck_k=1.0, head_k=1.0, muzzle=1.0, ear_h=1.0, ear_w=1.0, ear_round=False, tail_k=1.0, tail_len=1.0, tail_droop=0, cheek=1.0, tails=1)
@@ -154,7 +154,7 @@ def eyes(co, c, ring):
             return lin(0x0c0808) if d < 0.0085 * hk else ring
     return c
 
-def fox_color(part, t, co, n):
+def yeou_color(part, t, co, n):
     RED, RED_D, CREAM, WHITE, BLACK = lin(0xcf6424), lin(0x9a3e16), lin(0xead6b8), lin(0xf4efe4), lin(0x241814)
     c = mixc(RED, RED_D, (n.z - 0.55) * 2.2) if n.z > 0.55 else RED
     if part == 'torso':
@@ -183,7 +183,7 @@ def fox_color(part, t, co, n):
         c = (CREAM if t < 0.7 else BLACK) if n.y < -0.2 else (BLACK if t > 0.45 else RED_D)
     return c
 
-def wolf_color(part, t, co, n):
+def neukdae_color(part, t, co, n):
     G, GD, TAN, CR, DK = lin(0x7a7268), lin(0x34302c), lin(0x9a8268), lin(0xd8ccb8), lin(0x1c1a18)
     c = mixc(TAN, G, (n.z + 0.1) * 1.5)
     if part == 'torso':
@@ -216,7 +216,7 @@ def wolf_color(part, t, co, n):
         c = CR if (n.y < -0.4 and t < 0.6) else GD
     return c
 
-def dhole_color(part, t, co, n):
+def seungnyangi_color(part, t, co, n):
     R, RD, CR, BK = lin(0xb85a26), lin(0x7e3a1a), lin(0xe4cfac), lin(0x1e1614)
     c = mixc(R, RD, (n.z - 0.5) * 2) if n.z > 0.5 else R
     if part == 'torso':
@@ -243,7 +243,7 @@ def dhole_color(part, t, co, n):
         c = lin(0xf4ece0) if n.y < -0.2 else R
     return c
 
-def raccoon_color(part, t, co, n):
+def neoguri_color(part, t, co, n):
     BUFF, GRIZ, PALE, BK = lin(0xa88c62), lin(0x5a4e40), lin(0xddd2bc), lin(0x1a1614)
     from mathutils import noise as nz
     sp = nz.noise(co * 140)
@@ -304,11 +304,11 @@ def gumiho_color(part, t, co, n):
         c = lin(0xf8d0d0) if n.y < -0.2 else (RED if t > 0.75 else GOLD)
     return c
 
-COLORS = dict(fox=fox_color, wolf=wolf_color, dhole=dhole_color, raccoon=raccoon_color, gumiho=gumiho_color)
+COLORS = dict(yeou=yeou_color, neukdae=neukdae_color, seungnyangi=seungnyangi_color, neoguri=neoguri_color, gumiho=gumiho_color)
 
 def colorize(part, t, co, n):
     # 어깨와 넓적다리는 몸통 털로 칠한다 (너구리는 다리 전체가 검다)
-    if part in ('legF0', 'legH0') and SP != 'raccoon':
+    if part in ('legF0', 'legH0') and SP != 'neoguri':
         part, t = 'torso', 0.5
     return COLORS[SP](part, t, co, n)
 
@@ -346,7 +346,7 @@ r.skin(low)
 A = B.Anim(r)
 tail_names = [['tail1', 'tail2', 'tail3', 'tail4']] if S['tails'] == 1 else [[f't{i}_1', f't{i}_2', f't{i}_3'] for i in range(S['tails'])]
 opt = dict(size=S['leg_len'], stride=0.075 * S['leg_len'], lift=0.045 * S['leg_len'], tailAmp=6 if S['tails'] == 1 else 4)
-if SP == 'raccoon':
+if SP == 'neoguri':
     opt.update(bob=0.008, roll=4)
 B.quad_anims(A, tail_names, opt)
 

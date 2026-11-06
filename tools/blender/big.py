@@ -22,7 +22,7 @@ def pts(rows, x=0.0):
 
 # ---------------- 종별 해부 ----------------
 # 각 종은 몸통·목·머리·턱·꼬리 경로와 단면, 다리 관절 점, 귀를 정한다.
-if SP == 'tiger':
+if SP == 'horangi':
     D = dict(
         torso=(pts([(-0.33, 0.33), (-0.28, 0.345), (-0.2, 0.35), (-0.08, 0.335), (0.04, 0.335), (0.14, 0.345), (0.23, 0.355), (0.29, 0.36)]),
                [(0.03, 0.03, 0.03), (0.07, 0.065, 0.075), (0.09, 0.075, 0.095), (0.078, 0.066, 0.076), (0.088, 0.07, 0.105), (0.098, 0.076, 0.125), (0.094, 0.074, 0.12), (0.06, 0.06, 0.08)]),
@@ -42,7 +42,7 @@ if SP == 'tiger':
         hipsb=((-0.3, 0.34), (-0.12, 0.34)), spineb=(0.06, 0.335), chestb=(0.22, 0.355),
         eyes=(0.452, 0.4, 0.045), eye_r=0.011,
     )
-elif SP in ('bear', 'bulgasari'):
+elif SP in ('bandalgom', 'bulgasari'):
     D = dict(
         torso=(pts([(-0.32, 0.3), (-0.27, 0.32), (-0.18, 0.33), (-0.06, 0.325), (0.06, 0.335), (0.15, 0.35), (0.23, 0.345), (0.29, 0.33)]),
                [(0.05, 0.05, 0.05), (0.11, 0.1, 0.11), (0.14, 0.12, 0.14), (0.14, 0.12, 0.14), (0.145, 0.13, 0.15), (0.145, 0.14, 0.15), (0.13, 0.12, 0.14), (0.08, 0.08, 0.09)]),
@@ -71,7 +71,7 @@ elif SP in ('bear', 'bulgasari'):
         D['trunk'] = (pts([(0.47, 0.33), (0.515, 0.3), (0.545, 0.23), (0.55, 0.15), (0.53, 0.085), (0.505, 0.065)]), [(0.04, 0.04, 0.04), (0.036, 0.036, 0.036), (0.031, 0.031, 0.031), (0.026, 0.026, 0.026), (0.021, 0.021, 0.021), (0.02, 0.02, 0.02)])
         D['legr'] = dict(D['legr'], paw=0)
         D['eyes'] = (0.44, 0.375, 0.052)
-else:  # boar
+else:  # metdwaeji
     D = dict(
         torso=(pts([(-0.32, 0.25), (-0.28, 0.265), (-0.2, 0.27), (-0.08, 0.275), (0.04, 0.29), (0.13, 0.3), (0.21, 0.285), (0.27, 0.26)]),
                [(0.04, 0.04, 0.04), (0.08, 0.075, 0.08), (0.095, 0.085, 0.09), (0.105, 0.1, 0.1), (0.118, 0.125, 0.115), (0.12, 0.135, 0.12), (0.105, 0.115, 0.11), (0.07, 0.07, 0.07)]),
@@ -136,7 +136,7 @@ if SP == 'bulgasari':
                 continue
             x0 = side * 0.07
             b.sweep([P(f, top - 0.03, x0), P(f - 0.02, top + l * 0.55, x0 * 1.3), P(f - 0.035, top + l, x0 * 1.55)], [(0.016, 0.016, 0.016), (0.009, 0.009, 0.009), (0.0015, 0.0015, 0.0015)], 'spike', UP, around=8, sub=2)
-if SP == 'boar':
+if SP == 'metdwaeji':
     # 등 갈기: 어깨에서 엉덩이까지 억센 털이 솟는다
     for i in range(14):
         f = 0.24 - i * 0.038
@@ -164,7 +164,7 @@ if SP == 'bulgasari':
     eb.sweep([P(0.455, 0.37), P(0.465, 0.41), P(0.46, 0.455)], [(0.018, 0.018, 0.018), (0.012, 0.012, 0.012), (0.002, 0.002, 0.002)], 'horn', UP, around=8, sub=3)
     for s in (1, -1):
         eb.sweep([P(0.39, 0.43, s * 0.045), P(0.375, 0.48, s * 0.06), P(0.35, 0.51, s * 0.065)], [(0.014, 0.014, 0.014), (0.01, 0.01, 0.01), (0.002, 0.002, 0.002)], 'horn', UP, around=8, sub=3)
-if SP == 'boar':
+if SP == 'metdwaeji':
     for s in (1, -1):
         eb.sweep([P(0.43, 0.15, s * 0.04), P(0.47, 0.18, s * 0.058), P(0.47, 0.225, s * 0.052)], [(0.011, 0.011, 0.011), (0.008, 0.008, 0.008), (0.002, 0.002, 0.002)], 'tusk', UP, around=8, sub=3)
 # 발톱은 자동 가중치가 엉뚱한 뼈에 붙여 걸을 때 떨어져 보여서 넣지 않는다 (화면에서 1픽셀 남짓)
@@ -173,8 +173,8 @@ if False:
         for key in ('toeF', 'toeH'):
             c = LEG[side][key]
             pw = D['paw']
-            for i in range(4 if SP == 'tiger' else 5):
-                ox = (i / (3 if SP == 'tiger' else 4) - 0.5) * pw[0] * 1.4
+            for i in range(4 if SP == 'horangi' else 5):
+                ox = (i / (3 if SP == 'horangi' else 4) - 0.5) * pw[0] * 1.4
                 a = c + Vector((ox, -pw[1] * 0.8, 0.0))
                 eb.sweep([a, a + Vector((0, -0.012, -0.008)), a + Vector((0, -0.018, -0.02))], [(0.005, 0.005, 0.005), (0.004, 0.004, 0.004), (0.001, 0.001, 0.001)], 'claw', UP, around=6, sub=2)
 extras = [eb.to_object('extras')]
@@ -188,7 +188,7 @@ def near_eye(co, r):
 
 
 # ---------------- 색 ----------------
-def tiger_color(part, t, co, n):
+def horangi_color(part, t, co, n):
     OR, ORD, W, BK = lin(0xd06c22), lin(0xb05418), lin(0xf2ece0), lin(0x1a1412)
     f, z, x = -co.y, co.z, co.x
     c = mixc(OR, ORD, (n.z - 0.4) * 1.5) if n.z > 0.4 else OR
@@ -240,7 +240,7 @@ def tiger_color(part, t, co, n):
     return c
 
 
-def bear_color(part, t, co, n):
+def bandalgom_color(part, t, co, n):
     BK, BK2, MZ, W = lin(0x1c1818), lin(0x2c2626), lin(0x8a6a4a), lin(0xeee6d6)
     f, z, x = -co.y, co.z, co.x
     c = BK2 if n.z > 0.4 else BK
@@ -264,7 +264,7 @@ def bear_color(part, t, co, n):
     return c
 
 
-def boar_color(part, t, co, n):
+def metdwaeji_color(part, t, co, n):
     H, HD, G, PK = lin(0x5a4636), lin(0x34281e), lin(0x7c6c5a), lin(0x9a7068)
     sp = noise.noise(co * 120)
     c = mixc(H, G, 0.6 if sp > 0.2 else 0.12)
@@ -324,8 +324,8 @@ def bulgasari_color(part, t, co, n):
     return c
 
 
-COLORS = dict(tiger=tiger_color, bear=bear_color, boar=boar_color, bulgasari=bulgasari_color)
-B.paint([body] + extras, samples, COLORS[SP], grain={'bear': 0.7}.get(SP, 1.0))
+COLORS = dict(horangi=horangi_color, bandalgom=bandalgom_color, metdwaeji=metdwaeji_color, bulgasari=bulgasari_color)
+B.paint([body] + extras, samples, COLORS[SP], grain={'bandalgom': 0.7}.get(SP, 1.0))
 
 if STAGE == 'paint':
     print(B.preview(OUT, f'{SP}_paint', [body] + extras, scale=1.6, target=Vector((0, 0.05, 0.25))))
@@ -362,7 +362,7 @@ r.skin(low)
 # ---------------- 동작 ----------------
 A = B.Anim(r)
 tails = [[f'tail{i + 1}' for i in range(len(tail_bones) - 1)]]
-if SP == 'tiger':
+if SP == 'horangi':
     attack = [
         (1, {}),
         (4, {'hipsL': (0, 0.03, -0.05), 'hips': [(X, 4)], 'neck': [(X, 12)], 'head': [(X, 6)], 'feet': {'ikH.L': (-0.04, 0), 'ikH.R': (-0.04, 0)}}),
@@ -372,7 +372,7 @@ if SP == 'tiger':
         (16, {}),
     ]
     opt = dict(gait='walk', stride=0.08, lift=0.05, bob=0.004, roll=2, tailAmp=8, tailDroop=4, attack=attack, walk_n=20)
-elif SP in ('bear', 'bulgasari'):
+elif SP in ('bandalgom', 'bulgasari'):
     attack = [
         (1, {}),
         (6, {'hipsL': (0, 0.06, 0.1), 'hips': [(X, -34)], 'neck': [(X, -8)], 'head': [(X, -6)], 'jaw': [(X, -26)], 'feet': {'ikF.L': (0.03, 0.26), 'ikF.R': (0.06, 0.24)}}),

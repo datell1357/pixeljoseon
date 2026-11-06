@@ -1500,7 +1500,7 @@ export class GameRoom extends Room {
 
   private circleBlast(m: MonRt, u: number, v: number, a: MonAttack) {
     if (m.st === 'dead') return;
-    this.broadcast('blast', { u, v, r: a.r, col: a.burn ? 'ember' : m.def.id === 'elder' ? 'root' : 'dark' });
+    this.broadcast('blast', { u, v, r: a.r, col: a.burn ? 'ember' : m.def.id === 'gumiho' ? 'root' : 'dark' });
     for (const p of this.players.values()) {
       if (p.s.dead) continue;
       if (dist(p.s.u, p.s.v, u, v) <= a.r) this.damagePlayer(p, m.def.dmg * a.mult * m.dmgMul, m);
@@ -2064,11 +2064,11 @@ export class GameRoom extends Room {
     const opts = { rift: true, hpMul: sc.hp * partyMul, dmgMul: sc.dmg, expMul: sc.exp };
     this.later(0.8, () => {
       if (n % 5 === 0) {
-        const boss = n % 10 === 0 ? 'warden' : 'elder';
-        const bossMul = boss === 'warden' ? Math.min(1, level / 18) * 0.5 : Math.max(0.5, Math.min(1, level / 8)) * 0.55;
+        const boss = n % 10 === 0 ? 'bulgasari' : 'gumiho';
+        const bossMul = boss === 'bulgasari' ? Math.min(1, level / 18) * 0.5 : Math.max(0.5, Math.min(1, level / 8)) * 0.55;
         this.spawnMon(boss, 17, 13, Math.max(level, DESIGN_LEVEL[boss] - 6), { ...opts, hpMul: opts.hpMul * bossMul, rift: true });
       } else {
-        const pool = n < 4 ? ['mushroom', 'wisp', 'boar'] : n < 9 ? ['fox', 'boar', 'ashwolf', 'emberbug'] : ['golem', 'cultist', 'shade', 'ashwolf', 'emberbug'];
+        const pool = n < 4 ? ['daramjwi', 'neoguri', 'metdwaeji'] : n < 9 ? ['yeou', 'metdwaeji', 'neukdae', 'seungnyangi'] : ['bandalgom', 'horangi', 'bakjwi', 'neukdae', 'seungnyangi'];
         const count = Math.min(14, 4 + Math.floor(n * 0.7));
         for (let i = 0; i < count; i++) {
           const a = Math.random() * Math.PI * 2;

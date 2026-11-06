@@ -242,14 +242,14 @@ async function main() {
   await sleep(500);
   check('몬스터 동기화', a.monsters().length > 20, `${a.monsters().length}마리`);
   const expBefore = a.me.exp + a.me.level * 1e6;
-  await a.fightUntil(() => (a.events.exp?.length ?? 0) >= 2, 'mushroom', 40000);
+  await a.fightUntil(() => (a.events.exp?.length ?? 0) >= 2, 'daramjwi', 40000);
   check('전투로 경험치 획득', (a.events.exp?.length ?? 0) >= 2, `처치 ${a.events.exp?.length ?? 0}`);
   check('서버가 피해 계산', (a.events.hit?.length ?? 0) > 0, `타격 ${a.events.hit?.length ?? 0}`);
   check('퀘스트 진행', a.me.quests.active.q_first_light >= 1, `${a.me.quests.active.q_first_light}/5`);
   check('경험치·레벨 변화', a.me.exp + a.me.level * 1e6 > expBefore);
 
   // 맞을 때까지 기다려 경고 → 피해 흐름 확인
-  await a.fightUntil(() => (a.events.hitP?.length ?? 0) > 0 && (a.events.warn?.length ?? 0) > 0, 'mushroom', 25000);
+  await a.fightUntil(() => (a.events.hitP?.length ?? 0) > 0 && (a.events.warn?.length ?? 0) > 0, 'daramjwi', 25000);
   check('몬스터 공격 전에 경고 표시', (a.events.warn?.length ?? 0) > 0, `${a.events.warn?.length ?? 0}회`);
   const hits = a.events.hitP ?? [];
   check('몬스터가 플레이어를 때림', hits.length > 0 && hits[0].n > 0, `${hits.length}회, 첫 피해 ${hits[0]?.n}`);

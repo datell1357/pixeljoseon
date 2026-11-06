@@ -128,7 +128,7 @@ describe('퀘스트', () => {
     c.level = 5;
     expect(questAvailable(c, second)).toBe(false);
     C.acceptQuest(c, 'q_first_light');
-    for (let i = 0; i < 5; i++) C.onKill(c, 'mushroom');
+    for (let i = 0; i < 5; i++) C.onKill(c, 'daramjwi');
     const first = QUESTS[0];
     expect(questComplete(c, first)).toBe(true);
     expect(npcMark(c, 'npc_elder')).toBe('?');
@@ -155,7 +155,7 @@ describe('퀘스트', () => {
     c.level = 5;
     c.quests.done.push('q_first_light');
     C.acceptQuest(c, 'q_smith_iron');
-    for (let i = 0; i < 8; i++) C.onKill(c, 'wisp');
+    for (let i = 0; i < 8; i++) C.onKill(c, 'neoguri');
     C.turnInQuest(c, 'q_smith_iron');
     const g = c.bag.find((x) => x?.kind === 'gear');
     expect(g && g.kind === 'gear' && GEAR[g.gear.base].cls).toBe('gungsa');
@@ -179,10 +179,10 @@ describe('밸런스', () => {
   it('1레벨 수호자는 버섯을 몇 대에 잡고, 버섯에게는 오래 버틴다', () => {
     const c = fresh();
     const s = C.computeStats(c);
-    const hits = Math.ceil(MONSTERS.mushroom.hp / mitigate(s.atk, MONSTERS.mushroom.def));
+    const hits = Math.ceil(MONSTERS.daramjwi.hp / mitigate(s.atk, MONSTERS.daramjwi.def));
     expect(hits).toBeGreaterThanOrEqual(2);
     expect(hits).toBeLessThanOrEqual(5);
-    const hurt = mitigate(MONSTERS.mushroom.dmg, s.def);
+    const hurt = mitigate(MONSTERS.daramjwi.dmg, s.def);
     expect(s.maxHp / hurt).toBeGreaterThan(15);
   });
 
