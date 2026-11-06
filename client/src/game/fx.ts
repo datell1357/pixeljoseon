@@ -33,6 +33,7 @@ interface Num {
   t: number;
   life: number;
   big: boolean;
+  pop: number;
 }
 
 export interface Warn {
@@ -304,19 +305,68 @@ export class Fx {
     this.groundRing(u, v, r, color, 0.4);
   }
 
-  number(u: number, v: number, val: string, color: string, big = false, lift = 26) {
-    const x = toX(u, v) + (Math.random() - 0.5) * 14;
-    const y = toY(u, v) - lift;
+  /** 같은 대상에 연달아 뜨는 숫자가 겹치지 않게 조금씩 위로 쌓는다 */
+  private numStack = new Map<string, { n: number; at: number }>();
+
+  number(u: number, v: number, val: string, color: string, big = false, lift = 26, key?: string, mine = false) {
+    let stack = 0;
+    if (key) {
+      const now = performance.now();
+      const st = this.numStack.get(key);
+      stack = st && now - st.at < 450 ? (st.n + 1) % 4 : 0;
+      this.numStack.set(key, { n: stack, at: now });
+    }
+    const x = toX(u, v) + (Math.random() - 0.5) * 8 + (stack % 2 ? 10 : -4);
+    const y = toY(u, v) - lift - stack * (big ? 22 : 17);
     let txt = this.numPool.pop();
     if (!txt) {
       txt = this.scene.add
-        .text(0, 0, '', { fontFamily: 'Galmuri11', fontSize: '11px', stroke: '#14101a', strokeThickness: 3, color: '#fff' })
+        .text(0, 0, '', { fontFamily: 'Pretendard Variable, sans-serif', fontStyle: 'bold', fontSize: '13px', stroke: '#0e0a08', strokeThickness: 4, color: '#fff' })
         .setOrigin(0.5, 0.5)
+        .setResolution(3)
         .setDepth(DEPTH.TEXT - 1);
     }
-    txt.setFontSize(big ? 15 : 11);
-    txt.setColor(color).setText(val).setVisible(true).setAlpha(1).setPosition(x, y).setScale(big ? 1.5 : 1.2);
-    this.nums.push({ txt, x, y, vx: (Math.random() - 0.5) * 22, vy: big ? -62 : -46, t: 0, life: big ? 0.85 : 0.62, big });
+    txt.setFontSize(big ? 20 : mine ? 15 : 12);
+    const pop = big ? 2 : mine ? 1.5 : 1.2;
+    txt.setColor(color).setText(val).setVisible(true).setAlpha(1).setPosition(x, y).setScale(pop);
+    this.nums.push({ txt, x, y, vx: (Math.random() - 0.5) * 16, vy: big ? -40 : -30, t: 0, life: big ? 0.95 : 0.7, big, pop });
+  }
+
+  /** 맞은 자리의 번쩍임과 맞은 방향으로 튀는 파편 */
+  impact(u: number, v: number, lift: number, du: number, dv: number, big: boolean) {
+    const x = toX(u, v);
+    const y = toY(u, v) - lift;
+    const len = Math.hypot(du, dv) || 1;
+    const dx = (du / len) * PX_U;
+    const dy = (dv / len) * PX_V;
+    const dl = Math.hypot(dx, dy) || 1;
+    const ax = dx / dl;
+    const ay = dy / dl;
+    this.part({ tex: 'glow', x, y, life: big ? 0.16 : 0.1, s0: big ? 0.75 : 0.45, s1: big ? 1 : 0.6, a0: 1, a1: 0, color: big ? 0xffe2a0 : 0xffffff, depth: DEPTH.FX + 1 });
+    const rot = Math.atan2(ay, ax);
+    this.part({ tex: 'spark', x, y, life: big ? 0.14 : 0.09, s0: big ? 2.6 : 1.7, s1: 0.4, a0: 1, a1: 0, rot, color: 0xffffff, depth: DEPTH.FX + 1, sx: 0.35 });
+    const n = big ? 14 : 7;
+    for (let i = 0; i < n; i++) {
+      const a = (Math.random() - 0.5) * 1.3;
+      const c = Math.cos(a);
+      const sn = Math.sin(a);
+      const vx = ax * c - ay * sn;
+      const vy = ax * sn + ay * c;
+      const sp = (big ? 220 : 160) * (0.5 + Math.random());
+      this.part({
+        tex: 'px',
+        x,
+        y,
+        vx: vx * sp,
+        vy: vy * sp - 20,
+        g: 260,
+        drag: 5,
+        life: 0.16 + Math.random() * 0.2,
+        s0: 0.5 + Math.random() * 0.6,
+        s1: 0.05,
+        color: i % 3 === 0 ? 0xffd25a : 0xffffff,
+      });
+    }
   }
 
   addWarn(w: Omit<Warn, 'age' | 'fade'>) {
@@ -495,13 +545,17 @@ export class Fx {
         this.nums.pop();
         continue;
       }
-      n.vy += 90 * dt;
-      n.x += n.vx * dt;
-      n.y += n.vy * dt;
-      n.txt.setPosition(Math.round(n.x), Math.round(n.y));
-      n.txt.setAlpha(k > 0.65 ? 1 - (k - 0.65) / 0.35 : 1);
-      const pop = n.big ? 1.5 : 1.2;
-      n.txt.setScale(k < 0.15 ? pop - (pop - 1) * (k / 0.15) : 1);
+      // 처음 0.08초는 크게 박혔다가 제자리로, 그다음 천천히 떠오르며 사라진다
+      const settle = 0.08 / n.life;
+      if (k > settle) {
+        n.vy += 40 * dt;
+        n.x += n.vx * dt;
+        n.y += n.vy * dt;
+      }
+      const jitter = n.big && k < settle * 2 ? (Math.random() - 0.5) * 3 : 0;
+      n.txt.setPosition(Math.round(n.x + jitter), Math.round(n.y));
+      n.txt.setAlpha(k > 0.7 ? 1 - (k - 0.7) / 0.3 : 1);
+      n.txt.setScale(k < settle ? n.pop - (n.pop - 1) * (k / settle) : 1);
     }
     for (const p of this.projs.values()) {
       this.moveProj(p, dt);

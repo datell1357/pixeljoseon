@@ -1550,34 +1550,46 @@ export class WorldScene extends Phaser.Scene {
     const a = this.mons.get(m.m);
     if (!a) return;
     const mine = m.by === this.sid;
-    a.flash(70);
     const big = !!m.c;
-    this.fx.number(a.u, a.v, String(m.n), big ? '#ffd25a' : mine ? '#ffffff' : '#c8c4bc', big, a.topY() * 0.7);
-    this.fx.burst(a.u, a.v, big ? 12 : 5, big ? [0xffd25a, 0xffffff, 0xff8a3c] : [0xffffff, 0xffc0a8], big ? 110 : 70, a.topY() * 0.45, 0.28);
+    const by = this.actorOf(m.by);
+    const du = by ? a.u - by.u : 0;
+    const dv = by ? a.v - by.v : 1;
+    a.flash(big ? 110 : 80);
+    this.fx.number(a.u, a.v, String(m.n), big ? '#ffd25a' : mine ? '#ffffff' : '#c8c4bc', big, a.topY() * 0.75, m.m, mine);
     if (mine) {
+      this.fx.impact(a.u, a.v, a.topY() * 0.45, du, dv, big);
+      if (!(this.room.state as any).monsters.get(m.m)?.boss) a.kick(du, dv, big ? 0.16 : 0.08);
       this.lastCombat = this.time.now;
       sfx(big ? 'crit' : 'hit');
-      this.hitstop = Math.max(this.hitstop, big ? 0.07 : 0.035);
-      a.frozen = Math.max(a.frozen, big ? 0.09 : 0.05);
-      this.fx.shake = Math.max(this.fx.shake, big ? 2.6 : 1);
+      this.hitstop = Math.max(this.hitstop, big ? 0.08 : 0.04);
+      a.frozen = Math.max(a.frozen, big ? 0.1 : 0.06);
+      this.fx.shake = Math.max(this.fx.shake, big ? 3.5 : 1.4);
+    } else {
+      this.fx.burst(a.u, a.v, 4, [0xffffff, 0xffc0a8], 60, a.topY() * 0.45, 0.25);
     }
     const mon = (this.room.state as any).monsters.get(m.m);
     if (mon && mon.hp <= 0) {
       sfx('mdeath');
       this.fx.burst(a.u, a.v, 18, [0xffffff, 0xd8d0c0, 0x8a7a68], 100, 20, 0.35);
+      if (mine) {
+        this.fx.glowAt(a.u, a.v, 1.4, 0xfff0d0, 0.18, a.topY() * 0.4);
+        this.hitstop = Math.max(this.hitstop, 0.07);
+        this.fx.shake = Math.max(this.fx.shake, 3);
+      }
     }
   }
 
   private onHitPlayer(m: any) {
     const a = this.actorOf(m.sid);
     if (!a) return;
-    a.flash(90, 0xff6a5a);
-    this.fx.number(a.u, a.v, String(m.n), m.sh ? '#8fd0ff' : m.sid === this.sid ? '#ff7a6a' : '#e0a8a0', false, 40);
+    a.flash(110, 0xff6a5a);
+    this.fx.number(a.u, a.v, String(m.n), m.sh ? '#8fd0ff' : m.sid === this.sid ? '#ff7a6a' : '#e0a8a0', false, 40, m.sid, m.sid === this.sid);
     this.fx.burst(a.u, a.v, 6, [0xff7a6a, 0x8a1a1a], 70, 22, 0.3);
     if (m.sid === this.sid) {
       this.lastCombat = this.time.now;
       sfx('hurt');
-      this.fx.shake = Math.max(this.fx.shake, 3);
+      this.fx.shake = Math.max(this.fx.shake, 4);
+      this.hitstop = Math.max(this.hitstop, 0.05);
       const el = document.getElementById('hurt');
       if (el) {
         el.classList.remove('on');
