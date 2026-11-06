@@ -1188,7 +1188,9 @@ export class WorldScene extends Phaser.Scene {
     const cy = Math.round(this.camY + sy);
     this.cameras.main.centerOn(cx, cy);
     const stage = getStage();
-    stage.setView(cx, cy);
+    // 사실적 모드는 화면 픽셀보다 촘촘하게 그리므로 카메라도 소수점까지 따라간다
+    if (stage.realistic) stage.setView(this.camX + sx, this.camY + sy);
+    else stage.setView(cx, cy);
     stage.setFocus(this.me.u, this.me.v, 0.9, !this.dead);
     stage.render(dt);
   }

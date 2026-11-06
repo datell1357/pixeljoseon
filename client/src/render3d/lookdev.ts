@@ -30,6 +30,10 @@ const api = {
       a.v.update(dt, a.anim, a.p, a.u, stage.terrain?.groundAt(a.u, a.w) ?? 0, a.w, a.dir, a.s);
     }
   },
+  /** 0 도트, 1 사실적 (시제품) */
+  style(v: number) {
+    stage.setStyle(v > 0.5);
+  },
   size(w: number, h: number, k: number) {
     stage.setSize(w, h, k);
   },
