@@ -45,6 +45,9 @@ export class Actor {
   /** 비반복 동작이 끝나면 이 동작으로 돌아간다. 없으면 마지막 프레임 유지 */
   next?: string;
   frozen = 0;
+  /** 맞고 살짝 밀려나는 그림 위치(서버 위치는 그대로) */
+  kickU = 0;
+  kickV = 0;
   flashUntil = 0;
   scale = 1;
   fading = 1;
@@ -114,6 +117,11 @@ export class Actor {
   update(dt: number) {
     if (this.frozen > 0) this.frozen -= dt;
     else this.t += dt;
+    if (this.kickU || this.kickV) {
+      const k = Math.exp(-dt * 14);
+      this.kickU = Math.abs(this.kickU * k) < 0.002 ? 0 : this.kickU * k;
+      this.kickV = Math.abs(this.kickV * k) < 0.002 ? 0 : this.kickV * k;
+    }
     const info = this.animInfo;
     if (info && !info.loop && this.t >= this.dur && this.next) {
       const n = this.next;
@@ -134,8 +142,8 @@ export class Actor {
       const d = DIR_VEC[this.dir] ?? DIR_VEC[0];
       this.heading = Math.atan2(d[0], d[1]);
     }
-    const x = toX(this.u, this.v);
-    const y = toY(this.u, this.v);
+    const x = toX(this.u + this.kickU, this.v + this.kickV);
+    const y = toY(this.u + this.kickU, this.v + this.kickV);
     // 화면 픽셀에 맞춰 세워야 움직일 때 모델 표면이 떨리지 않는다
     const wx = Math.round(x) / PX_U;
     const wz = Math.round(y) / PX_V;
@@ -166,6 +174,12 @@ export class Actor {
 
   screenY() {
     return toY(this.u, this.v);
+  }
+
+  kick(du: number, dv: number, amt: number) {
+    const l = Math.hypot(du, dv) || 1;
+    this.kickU = (du / l) * amt;
+    this.kickV = (dv / l) * amt;
   }
 
   flash(ms = 70, color = 0xffffff) {
