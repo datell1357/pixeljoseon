@@ -22,11 +22,31 @@ from bl_ext.user_default.mpfb.services.targetservice import TargetService
 scene = B.reset()
 
 # ---------------- 인물 설정 ----------------
+# 옷 구성 값: sleeve 아래팔 소매 넉넉함(m), vest 소매 없는 겉옷, skirt 자락(밑단 높이 기준·트임), belt 허리띠 반폭,
+# head 'band' 머리띠 / 'gat' 갓, wrap 행전
 LOOK = {
     'musa': dict(
         macro=dict(gender=1.0, age=0.5, muscle=0.68, weight=0.48, proportions=1.0, height=0.62),
-        skin=0xe8bf98, hair=0x1c1616, under=0x8a2c2c, coat=0x2c3f66, trim=0xc9913e,
+        skin=0xe8bf98, hair=0x1c1616, under=0x8a2c2c, coat=0x2c3f66, trim=0xc9913e, collar=0xe8e2d4,
         belt=0x3a2418, band=0xa8302c, pants=0x38333e, wrap=0xd8d2c4, boots=0x2a221e,
+        sleeve=0.016, vest=True, skirt=dict(hem='knee', drop=0.17, open='front', flare=0.55, color='coat'),
+        beltw=0.022, head='band', wraps=True,
+    ),
+    'dosa': dict(
+        # 흰 도포에 갓. 소매가 넓고 자락이 발목까지 온다
+        macro=dict(gender=1.0, age=0.56, muscle=0.45, weight=0.42, proportions=1.0, height=0.6),
+        skin=0xe8c09c, hair=0x1a1618, under=0xe6e0d0, coat=0xe6e0d0, trim=0x2c4a6e, collar=0x2c4a6e,
+        belt=0x8a2f35, band=0x1e1c22, pants=0xd8d2c4, wrap=0xd8d2c4, boots=0x1e1c22,
+        sleeve=0.05, vest=False, skirt=dict(hem='ankle', drop=-0.1, open='back', flare=0.7, color='under'),
+        beltw=0.009, head='gat', wraps=False,
+    ),
+    'gungsa': dict(
+        # 짧은 동달이에 가죽 조끼, 행전. 날렵한 몸
+        macro=dict(gender=1.0, age=0.47, muscle=0.6, weight=0.4, proportions=1.0, height=0.6),
+        skin=0xe0b48c, hair=0x1e1814, under=0x56683e, coat=0x6e4c30, trim=0xc9a65a, collar=0xe4dccc,
+        belt=0x2c2018, band=0xa8382e, pants=0x4a4436, wrap=0xd8d0be, boots=0x2c241e,
+        sleeve=0.004, vest=True, skirt=dict(hem='knee', drop=-0.12, open='side', flare=0.35, color='under'),
+        beltw=0.018, head='band', wraps=True,
     ),
 }[WHO]
 
@@ -237,20 +257,23 @@ belt_z = Z_WAIST - 0.01
 # 저고리(속옷 소매): 몸통과 팔. 소매는 손목으로 갈수록 넉넉하다
 shirt = shell('shirt',
               lambda i: DOM[i] in TORSO | ARM or (DOM[i] == 'neck_01' and V[i].z < Z_NECK + 0.05),
-              lambda i, co: (0.009 + 0.016 * sstep(0.2, 1.0, W_LARM[i])) * sstep(-0.004, 0.004, collar_line(V[i]) - V[i].z) - 0.004 * (1 - sstep(-0.004, 0.004, collar_line(V[i]) - V[i].z)),
+              lambda i, co: (0.009 + LOOK['sleeve'] * sstep(0.2, 1.0, W_LARM[i])) * sstep(-0.004, 0.004, collar_line(V[i]) - V[i].z) - 0.004 * (1 - sstep(-0.004, 0.004, collar_line(V[i]) - V[i].z)),
               smooth_n=6)
 
 # 쾌자(남색 겉옷): 소매 없는 몸판. 진동둘레와 깃은 매끄럽게 파묻는다
-coat = shell('coat',
+coat = None
+if LOOK['vest']:
+  coat = shell('coat',
              lambda i: (DOM[i] in TORSO or (DOM[i] in ('upperarm_l', 'upperarm_r') and W_UARM[i] < 0.8)) and belt_z - 0.05 < V[i].z < Z_NECK + 0.05,
              lambda i, co: 0.02 * sstep(0.5, 0.3, W_UARM[i]) * sstep(-0.004, 0.004, collar_line(V[i], 0.02) - V[i].z) - 0.006 * (1 - sstep(0.5, 0.3, W_UARM[i]) * sstep(-0.004, 0.004, collar_line(V[i], 0.02) - V[i].z)),
              smooth_n=10)
 
 # 자락: 허리띠 아래로 퍼진다. 고리마다 몸(다리 포함)보다 넉넉하게, 주름을 준다
+SK = LOOK['skirt']
 bm = bmesh.new()
-rings = 16
+rings = 16 if SK['hem'] == 'knee' else 22
 seg = 48
-hem = Z_KNEE - 0.17
+hem = (Z_KNEE if SK['hem'] == 'knee' else Z_ANKLE) - SK['drop']
 top = belt_z - 0.01
 radii = []
 for r in range(rings):
@@ -269,15 +292,18 @@ for r in range(rings):
     z = top + (hem - top) * t
     rx, ymin, ymax = radii[r]
     cy, ry = (ymin + ymax) / 2, (ymax - ymin) / 2
+    fl = 1 + (SK['flare'] - 0.55) * 0.3 * t
     row = []
     for s_ in range(seg):
         a = (s_ + 0.5) / seg * math.tau
         pleat = 1 + 0.035 * t * math.sin(a * 16)
-        row.append(bm.verts.new((math.sin(a) * rx * pleat, cy - math.cos(a) * ry * pleat, z)))
+        row.append(bm.verts.new((math.sin(a) * rx * pleat * fl, cy - math.cos(a) * ry * pleat * fl, z)))
     grid.append(row)
 for r in range(rings - 1):
     for s_ in range(seg):
-        if s_ in (0, seg - 1) and r > 2:
+        # 트임: 앞(무사 쾌자), 뒤(도포), 양옆(동달이)
+        slit = {'front': (0, seg - 1), 'back': (seg // 2 - 1, seg // 2), 'side': (seg // 4 - 1, seg // 4, 3 * seg // 4 - 1, 3 * seg // 4)}[SK['open']]
+        if s_ in slit and r > rings * (0.2 if SK['open'] == 'front' else 0.55):
             continue
         bm.faces.new((grid[r][s_], grid[r + 1][s_], grid[r + 1][(s_ + 1) % seg], grid[r][(s_ + 1) % seg]))
 bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
@@ -289,8 +315,9 @@ solidify(skirt, 0.005)
 SKIRT_HEM = hem
 
 # 허리띠
+BW = LOOK['beltw']
 belt = shell('belt', lambda i: DOM[i] in TORSO and abs(V[i].z - belt_z) < 0.06,
-             lambda i, co: 0.034 * sstep(0.024, 0.018, abs(V[i].z - belt_z)) - 0.006 * (1 - sstep(0.024, 0.018, abs(V[i].z - belt_z))),
+             lambda i, co: 0.034 * sstep(BW + 0.003, BW - 0.003, abs(V[i].z - belt_z)) - 0.006 * (1 - sstep(BW + 0.003, BW - 0.003, abs(V[i].z - belt_z))),
              smooth_n=4)
 
 # 바지: 허벅지는 넉넉하게, 종아리 아래는 행전으로 조인다
@@ -347,6 +374,20 @@ band = shell('band', lambda i: DOM[i] == 'head' and band_d(V[i]) < 0.03 and not 
              lambda i, co: 0.018 * sstep(0.014, 0.01, band_d(V[i])) - 0.004 * (1 - sstep(0.014, 0.01, band_d(V[i]))),
              smooth_n=2)
 
+# 갓: 넓은 챙과 높은 모자집(도사). 머리띠(망건) 위에 얹는다
+gat = None
+if LOOK['head'] == 'gat':
+    bm = bmesh.new()
+    hz = brow_z + 0.06
+    hc = Vector((0, HEAD_C.y + 0.005, hz))
+    tilt = Matrix.Rotation(math.radians(-6), 4, 'X')
+    bmesh.ops.create_cone(bm, cap_ends=True, segments=40, radius1=0.21, radius2=0.2, depth=0.006, matrix=Matrix.Translation(hc) @ tilt)
+    bmesh.ops.create_cone(bm, cap_ends=True, segments=28, radius1=0.085, radius2=0.075, depth=0.13, matrix=Matrix.Translation(hc + Vector((0, 0, 0.068))) @ tilt)
+    me = bpy.data.meshes.new('gat')
+    bm.to_mesh(me)
+    bm.free()
+    gat = B.link(bpy.data.objects.new('gat', me))
+
 # 상투
 bm = bmesh.new()
 crown = Vector((0, HEAD_C.y + 0.01, TOP + 0.005))
@@ -381,6 +422,8 @@ def weight_all(o, bone):
 weight_from_body(skirt)
 weight_from_body(boots)
 weight_all(topknot, 'head')
+if gat:
+    weight_all(gat, 'head')
 
 # ---------------- 칠하기 ----------------
 C = {k: lin(v) for k, v in LOOK.items() if isinstance(v, int)}
@@ -455,19 +498,19 @@ def coat_col(co, n, i):
 
 
 def skirt_col(co, n, i):
-    c = C['coat']
-    # 밑단과 앞트임에 금빛 선
+    c = C[SK['color']]
+    # 밑단에 선, 무사는 앞트임에도
     if co.z < SKIRT_HEM + 0.025:
         c = C['trim']
     a = math.atan2(co.x, -(co.y - 0.0))
-    if abs(a) < 0.2:
+    if SK['open'] == 'front' and abs(a) < 0.2:
         c = C['trim']
     g = grain(co, 0.8, 220)
     return [x * g for x in c]
 
 
 def pants_col(co, n, i):
-    if co.z < Z_KNEE - 0.06:
+    if LOOK['wraps'] and co.z < Z_KNEE - 0.06:
         c = C['wrap']
         # 행전 끈
         if abs((co.z - Z_ANKLE) % 0.05 - 0.025) < 0.004:
@@ -486,14 +529,18 @@ paint(eyes, eye_col)
 def shirt_col(co, n, i):
     _, j, _ = bkd.find(co)
     c = C['under']
-    # 흰 동정(깃 위 띠)
+    # 깃 띠(무사·궁사는 흰 동정, 도사는 쪽빛 깃)
     if collar_line(V[j]) - V[j].z < 0.008:
-        c = lin(0xe8e2d4)
+        c = C['collar']
+    # 도포 소매 끝(수구)에 쪽빛 선
+    if LOOK['sleeve'] > 0.03 and W_LARM[j] > 0.5 and (co - (bone_head('hand_l') if co.x > 0 else bone_head('hand_r'))).length < 0.06:
+        c = C['trim']
     return [x * grain(co, 0.8, 220) for x in c]
 
 
 paint(shirt, shirt_col)
-paint(coat, coat_col)
+if coat:
+    paint(coat, coat_col)
 paint(skirt, skirt_col)
 paint(belt, cloth(C['belt']))
 paint(pants, pants_col)
@@ -501,8 +548,11 @@ paint(boots, cloth(C['boots'], 0.5))
 paint(hair, hair_col)
 paint(topknot, hair_col)
 paint(band, cloth(C['band']))
+if gat:
+    # 갓은 반쯤 비치는 검은 대나무 결
+    paint(gat, lambda co, n, i: [x * (1 + 0.25 * noise.noise(Vector((co.x * 300, co.y * 300, co.z * 20)))) for x in lin(0x1e1c22)])
 
-PARTS = [skin, eyes, shirt, coat, skirt, belt, pants, boots, hair, topknot, band]
+PARTS = [o for o in (skin, eyes, shirt, coat, skirt, belt, pants, boots, hair, topknot, band, gat) if o]
 for o in PARTS:
     for pl in o.data.polygons:
         pl.use_smooth = True
@@ -561,33 +611,45 @@ def make_obj(name, bm):
     return B.link(bpy.data.objects.new(name, me))
 
 
-WEAPONS = []
-if WHO == 'musa':
-    h0, hm = bone_frame('hand_r')
-    along = (hm @ Vector((0, 1, 0))).normalized()          # 손목 → 손가락
-    k_i, k_p = bone_head('index_01_r'), bone_head('pinky_01_r')
-    blade = (k_i - k_p)
-    blade = (blade - along * blade.dot(along)).normalized()  # 주먹을 가로질러 엄지 쪽으로
-    palm = along.cross(blade).normalized()
-    if palm.dot(bone_head('thumb_02_r') - h0) < 0:
+def fist(sd):
+    """주먹 좌표계: grip(쥔 곳), M 열 = (두께, 주먹을 가로지르는 축(엄지 쪽), 손바닥 쪽), along(손목→손가락)"""
+    h0, hm = bone_frame('hand_' + sd)
+    along = (hm @ Vector((0, 1, 0))).normalized()
+    k_i, k_p = bone_head('index_01_' + sd), bone_head('pinky_01_' + sd)
+    axis = (k_i - k_p)
+    axis = (axis - along * axis.dot(along)).normalized()
+    palm = along.cross(axis).normalized()
+    if palm.dot(bone_head('thumb_02_' + sd) - h0) < 0:
         palm = -palm
     grip = (k_i + k_p) / 2 + along * 0.035 + palm * 0.028
-    side = blade.cross(palm).normalized()
-    # 칼날의 날(굽는 쪽)은 손등 반대, 즉 앞으로 휜다
-    M = Matrix((side, blade, palm)).transposed()           # 열: 두께, 길이, 날 방향
+    side = axis.cross(palm).normalized()
+    return grip, Matrix((side, axis, palm)).transposed(), along
+
+
+def loft_into(bm, grip, M, secs, n=4):
+    """secs: [(축 위치, 두께, 너비, 손바닥 쪽 휨)] → 단면을 이은 막대. n=4 사각, 그 이상은 둥근 단면"""
+    rings_ = []
+    for y, tx, wz, cz in secs:
+        ring = []
+        for k in range(n):
+            a = (k + 0.5) / n * math.tau
+            ring.append(bm.verts.new(grip + M @ Vector((math.cos(a) * tx / 2 * (1.41 if n == 4 else 1), y, cz + math.sin(a) * wz / 2 * (1.41 if n == 4 else 1)))))
+        rings_.append(ring)
+    for r0, r1 in zip(rings_, rings_[1:]):
+        for k in range(n):
+            bm.faces.new((r0[k], r0[(k + 1) % n], r1[(k + 1) % n], r1[k]))
+    bm.faces.new(rings_[0][::-1])
+    bm.faces.new(rings_[-1])
+
+
+WEAPONS = []
+if WHO == 'musa':
+    grip, M, along = fist('r')
+    blade = M.col[1]
     bm = bmesh.new()
 
     def loft(secs):
-        """secs: [(길이 위치, 두께, 너비, 휨)] → 사각 단면을 이은 막대"""
-        rings_ = []
-        for y, tx, wz, cz in secs:
-            ring = [bm.verts.new(grip + M @ Vector((sx * tx / 2, y, cz + sz * wz / 2))) for sx, sz in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
-            rings_.append(ring)
-        for r0, r1 in zip(rings_, rings_[1:]):
-            for k in range(4):
-                bm.faces.new((r0[k], r0[(k + 1) % 4], r1[(k + 1) % 4], r1[k]))
-        bm.faces.new(rings_[0][::-1])
-        bm.faces.new(rings_[-1])
+        loft_into(bm, grip, M, secs)
 
     loft([(-0.13, 0.03, 0.034, 0), (0.05, 0.03, 0.034, 0)])                # 자루
     loft([(0.05, 0.075, 0.08, 0), (0.065, 0.075, 0.08, 0)])                 # 코등이
@@ -632,9 +694,85 @@ if WHO == 'musa':
         return [x * grain(co, 0.6, 120) for x in lin(0x8a2c28)]
     paint(shield, shield_col)
     WEAPONS = [sword, shield]
-    for o in WEAPONS:
-        for pl in o.data.polygons:
-            pl.use_smooth = True
+
+if WHO == 'dosa':
+    # 초롱대: 주먹을 꿰뚫는 긴 지팡이, 꼭대기에 초롱
+    grip, M, along = fist('r')
+    bm = bmesh.new()
+    loft_into(bm, grip, M, [(-0.62, 0.026, 0.026, 0), (1.05, 0.022, 0.022, 0)], n=8)
+    loft_into(bm, grip, M, [(1.02, 0.03, 0.03, 0), (1.06, 0.03, 0.03, 0), (1.1, 0.012, 0.012, 0.04), (1.12, 0.012, 0.012, 0.08)], n=6)
+    top = grip + M @ Vector((0, 1.06, 0.1))
+    bmesh.ops.create_cone(bm, cap_ends=True, segments=8, radius1=0.055, radius2=0.055, depth=0.12, matrix=Matrix.Translation(top + Vector((0, 0, -0.1))))
+    bmesh.ops.create_cone(bm, cap_ends=True, segments=8, radius1=0.07, radius2=0.02, depth=0.04, matrix=Matrix.Translation(top + Vector((0, 0, -0.02))))
+    staff = make_obj('staff', bm)
+    weight_all(staff, 'hand_r')
+    LANTERN = top + Vector((0, 0, -0.1))
+
+    def staff_col(co, n, i):
+        if (co - LANTERN).length < 0.075 and abs(co.z - LANTERN.z) < 0.055:
+            # 한지 초롱: 붉은 갓에 노란 불빛
+            return lin(0xf2c06a) if abs(co.z - LANTERN.z) < 0.045 else lin(0x8a2f35)
+        if co.z > LANTERN.z + 0.05:
+            return lin(0x8a2f35)
+        return [x * grain(co, 0.8, 200) for x in lin(0x5a3a26)]
+    paint(staff, staff_col)
+    WEAPONS = [staff]
+
+if WHO == 'gungsa':
+    # 각궁(왼손): 줌통에서 두 고자로 뻗고, 고자는 사수 쪽으로 휜다. 시위는 두 끝을 곧게 잇는다
+    grip, M, along = fist('l')
+    bm = bmesh.new()
+    back = -1.0  # 손바닥 쪽(M 셋째 열)과 사수 쪽의 관계는 미리보기로 맞춘다
+    secs_up, secs_dn = [], []
+    for k in range(13):
+        u = k / 12
+        bend = -0.13 * u ** 1.6 + (0.035 * ((u - 0.82) / 0.18) ** 2 if u > 0.82 else 0)
+        w = 0.03 * (1 - 0.55 * u)
+        secs_up.append((0.05 + 0.55 * u, 0.018, w, bend))
+        secs_dn.append((-0.05 - 0.55 * u, 0.018, w, bend))
+    loft_into(bm, grip, M, [(-0.06, 0.03, 0.04, 0), (0.06, 0.03, 0.04, 0)], n=6)
+    loft_into(bm, grip, M, secs_up, n=4)
+    loft_into(bm, grip, M, secs_dn, n=4)
+    tip_u = grip + M @ Vector((0, secs_up[-1][0], secs_up[-1][3]))
+    tip_d = grip + M @ Vector((0, secs_dn[-1][0], secs_dn[-1][3]))
+    loft_into(bm, grip, M, [(secs_dn[-1][0], 0.004, 0.004, secs_dn[-1][3] - 0.004), (secs_up[-1][0], 0.004, 0.004, secs_up[-1][3] - 0.004)], n=4)
+    bow = make_obj('bow', bm)
+    weight_all(bow, 'hand_l')
+    BOW_G = grip
+
+    def bow_col(co, n, i):
+        d = (co - BOW_G).length
+        if d < 0.065:
+            return lin(0x6a2c24)
+        return [x * grain(co, 0.6, 160) for x in lin(0x3a2a1e)] if n.dot(M.col[2]) > 0 else [x * grain(co, 0.6, 160) for x in lin(0xb8925a)]
+    paint(bow, bow_col)
+
+    # 화살통: 오른 어깨 뒤에서 왼 허리로 비스듬히
+    bm = bmesh.new()
+    sh = bone_head('clavicle_r') + Vector((0, 0.14, 0.02))
+    hip = Vector((0.12, bone_head('spine_01').y + 0.13, Z_WAIST - 0.05))
+    d = (sh - hip)
+    q = d.normalized().to_track_quat('Z', 'Y').to_matrix().to_4x4()
+    mid = (sh + hip) / 2
+    bmesh.ops.create_cone(bm, cap_ends=True, segments=12, radius1=0.05, radius2=0.06, depth=d.length * 0.85, matrix=Matrix.Translation(mid) @ q)
+    for k in range(5):
+        off = Vector(((k - 2) * 0.016, (k % 2) * 0.012, 0))
+        base_ = sh + d.normalized() * 0.0 + off
+        bmesh.ops.create_cone(bm, cap_ends=True, segments=4, radius1=0.012, radius2=0.002, depth=0.1, matrix=Matrix.Translation(base_ + d.normalized() * 0.07) @ q)
+    quiver = make_obj('quiver', bm)
+    weight_all(quiver, 'spine_03')
+    QV_TOP = sh
+
+    def quiver_col(co, n, i):
+        if (co - QV_TOP).dot(d.normalized()) > -0.01:
+            return lin(0xe8e2d4)  # 깃
+        return [x * grain(co, 0.8, 200) for x in lin(0x5a3a26)]
+    paint(quiver, quiver_col)
+    WEAPONS = [bow, quiver]
+
+for o in WEAPONS:
+    for pl in o.data.polygons:
+        pl.use_smooth = True
 
 ALL = PARTS + WEAPONS
 preview(WHO + '_armed', ALL, 2.0, Vector((0, 0, 0.9)), yaws=(0, 40))
@@ -642,7 +780,7 @@ preview(WHO + '_armed', ALL, 2.0, Vector((0, 0, 0.9)), yaws=(0, 40))
 # ---------------- 저폴리 + 질감 굽기 ----------------
 # 부위마다 따로 줄이고, 한 장에 UV를 모은 뒤 부위끼리만 굽는다(겹친 옷끼리 색이 새지 않게)
 BUDGET = dict(skin=3600, eyes=240, shirt=1500, coat=1100, skirt=1300, belt=260, pants=1200, boots=500,
-              hair=900, topknot=200, band=260, sword=200, shield=160)
+              hair=900, topknot=200, band=260, sword=200, shield=160, gat=300, staff=260, bow=360, quiver=200)
 TEX = 512
 lows = []
 for i, o in enumerate(ALL):
@@ -918,6 +1056,49 @@ def death(t):
                     'upperarm_l': [0, -50, 0], 'upperarm_r': [0, 50, 0], 'lowerarm_l': [-10, 0, 0], 'neck_01': [10, 0, 0], 'loc': [0, 0.45, -0.85], 'curl': [20 - CURL, 0, 0]})
     return keyed([(0, B0), (0.35, kneel), (0.8, down), (1.0, down)], t)
 
+
+# ---------------- 직업별 동작 ----------------
+if WHO == 'dosa':
+    # 오른손은 초롱대를 세워 든다
+    B0 = add(base(), {'lowerarm_r': [-58, 0, 0], 'hand_r': [0, 0, 0]})
+    GUARD = add(B0, {'upperarm_r': [-45, 10, 0], 'lowerarm_r': [-40, 0, 0], 'upperarm_l': [-55, -15, 0], 'lowerarm_l': [-70, 0, 0], 'spine_02': [4, 0, -8], 'loc': [0, 0, -0.03]})
+
+    def attack1(t):
+        wind = add(B0, {'spine_02': [0, 0, -18], 'upperarm_r': [10, 0, 0], 'lowerarm_r': [-40, 0, 0]})
+        hit = add(B0, {'spine_02': [8, 0, 18], 'upperarm_r': [-70, 10, 0], 'lowerarm_r': [30, 0, 0], 'thigh_r': [-15, 0, 0], 'calf_r': [10, 0, 0], 'loc': [0, -0.04, -0.02]})
+        return keyed([(0, B0), (0.3, wind), (0.55, hit), (1.0, hit)], t)
+
+    def attack2(t):
+        wind = add(B0, {'spine_02': [0, 0, -20], 'upperarm_l': [-40, -20, 0], 'lowerarm_l': [-100, 0, 0], 'curl': [-50, 0, 0]})
+        hit = add(B0, {'spine_02': [6, 0, 22], 'upperarm_l': [-85, -HANG + 15, 0], 'lowerarm_l': [-5, 0, 0], 'hand_l': [-50, 0, 0], 'thigh_l': [-15, 0, 0], 'calf_l': [10, 0, 0], 'loc': [0, -0.04, -0.02], 'curl': [-55, 0, 0]})
+        return keyed([(0, B0), (0.3, wind), (0.55, hit), (1.0, hit)], t)
+
+    def cast(t):
+        up = add(B0, {'spine_02': [-8, 0, 0], 'neck_01': [-10, 0, 0], 'upperarm_r': [-120, 0, 0], 'lowerarm_r': [-10, 0, 0],
+                      'upperarm_l': [-80, -HANG + 20, 0], 'lowerarm_l': [-20, 0, 0], 'hand_l': [-40, 0, 0], 'curl': [-50, 0, 0]})
+        return keyed([(0, B0), (0.35, up), (0.8, up), (1.0, up)], t)
+
+if WHO == 'gungsa':
+    # 왼손에 활을 비스듬히 든다
+    B0 = add(base(), {'lowerarm_l': [-38, 0, 0]})
+    AIM = add(B0, {'upperarm_l': [-82, -HANG + 12, 0], 'lowerarm_l': [38, 0, 0], 'spine_01': [0, 0, -14], 'spine_02': [0, 0, -14], 'neck_01': [0, 0, 22],
+                   'upperarm_r': [-82, HANG - 30, 0], 'lowerarm_r': [-150, 0, 0], 'thigh_l': [-10, 0, 0], 'thigh_r': [8, 0, 0]})
+    LOOSE = add(AIM, {'upperarm_r': [0, 22, 0], 'lowerarm_r': [40, 0, 0], 'curl': [-50, 0, 0]})
+    GUARD = add(B0, {'upperarm_l': [-55, -10, 0], 'lowerarm_l': [-60, 0, 0], 'upperarm_r': [-30, 0, 0], 'lowerarm_r': [-60, 0, 0], 'spine_02': [4, 0, 8], 'loc': [0, 0, -0.04]})
+
+    def attack1(t):
+        return keyed([(0, B0), (0.45, AIM), (0.6, LOOSE), (1.0, LOOSE)], t)
+
+    def attack2(t):
+        return keyed([(0, AIM), (0.2, AIM), (0.35, LOOSE), (1.0, LOOSE)], t)
+
+    def attack3(t):
+        up = add(AIM, {'spine_02': [-14, 0, 0], 'neck_01': [-12, 0, 0]})
+        return keyed([(0, B0), (0.4, up), (0.55, add(up, {'upperarm_r': [0, 22, 0], 'lowerarm_r': [40, 0, 0], 'curl': [-50, 0, 0]})), (1.0, add(up, {'upperarm_r': [0, 22, 0], 'lowerarm_r': [40, 0, 0]}))], t)
+
+    def cast(t):
+        sky = add(AIM, {'spine_02': [-28, 0, 0], 'spine_01': [-8, 0, 0], 'neck_01': [-20, 0, 0], 'loc': [0, 0.03, 0]})
+        return keyed([(0, B0), (0.4, sky), (0.75, sky), (1.0, add(sky, {'upperarm_r': [0, 22, 0], 'lowerarm_r': [40, 0, 0]}))], t)
 
 CLIPS = [('idle', 1.2, idle), ('walk', 0.64, walk), ('attack1', 0.32, attack1), ('attack2', 0.32, attack2), ('attack3', 0.46, attack3),
          ('cast', 0.5, cast), ('spin', 0.5, spin), ('dodge', 0.38, dodge), ('guard', 0.12, guard), ('hit', 0.24, hit), ('death', 0.8, death)]
