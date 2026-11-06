@@ -572,27 +572,52 @@ function key() {
 }
 
 // ---------- 스킬 ----------
-const BG = {
-  w: ['#3a1e20', '#5a2a2a', '#7a3c34'],
-  m: ['#1e1e48', '#2c2c6c', '#40408c'],
-  a: ['#1c3220', '#28482c', '#3a6438'],
-  x: ['#2a2c34', '#3c404c', '#545a68'],
+// ---------- 스킬 아이콘: 먹빛 바탕, 직업별 단청 테두리, 조선식 상징 ----------
+const CLS = {
+  w: ['#a3372e', '#e0684c', '#5a1c1a'], // 무사: 주홍 단청
+  m: ['#23786c', '#5cc6ac', '#123e38'], // 도사: 청록
+  a: ['#b08424', '#ecc65a', '#5a4214'], // 궁사: 황
+  x: ['#626674', '#a6aab6', '#2e3038'], // 공용
 };
+const HANJI = ['#8a6a24', '#c8a03e', '#ecd082', '#fff4c8'];
+const CINNA = '#c4302a';
+const INK = '#1a1620';
+const RATTAN = ['#5a3a1a', '#8a5e2c', '#b88a48', '#e0b878'];
+const FIRE = ['#a8301c', '#e8601e', '#ffa83a', '#fff0a0'];
+const ICE = ['#2a5a98', '#4a9ad6', '#9ee0f6', '#effcff'];
+const STAR = ['#c87a1e', '#f2b23a', '#ffe68a', '#fffbe6'];
+const QI = ['#2a6a8c', '#56b4d6', '#a4ecf4', '#f0ffff'];
+
 function frame(kind) {
   const p = new P();
-  const [d, m, l] = BG[kind];
+  const [c0, c1, c2] = CLS[kind];
   for (let y = 1; y < 31; y++)
     for (let x = 1; x < 31; x++) {
-      if ((x < 3 || x > 28) && (y < 3 || y > 28) && (x === 1 || x === 30 || y === 1 || y === 30)) continue;
-      const t = (x + y) / 62;
-      p.px(x, y, t < 0.4 ? m : d);
+      if ((x === 1 || x === 30) && (y === 1 || y === 30)) continue;
+      // 가운데가 조금 밝은 먹빛
+      const d = Math.hypot(x - 15.5, y - 14) / 16;
+      p.px(x, y, d < 0.45 ? '#2a2433' : d < 0.8 ? '#211c29' : '#18141e');
     }
-  // 테두리
-  for (let i = 3; i < 29; i++) {
-    p.px(i, 1, l);
-    p.px(1, i, l);
-    p.px(i, 30, OUT);
-    p.px(30, i, OUT);
+  // 구석의 구름 무늬
+  for (const [cx, cy, s] of [[5, 26, 1], [26, 6, -1]]) {
+    p.arc(cx, cy, 2.2, 0, Math.PI * 1.5 * s, '#2f2838');
+    p.arc(cx + 3 * s, cy, 1.4, Math.PI, Math.PI * 2.4, '#2f2838');
+  }
+  // 단청 테두리: 겉 색띠, 안쪽 어두운 줄, 모서리 꺾쇠
+  for (let i = 2; i < 30; i++) {
+    p.px(i, 1, c0);
+    p.px(1, i, c0);
+    p.px(i, 30, c2);
+    p.px(30, i, c2);
+    p.px(i, 2, '#120f17');
+    p.px(2, i, '#120f17');
+    p.px(i, 29, '#120f17');
+    p.px(29, i, '#120f17');
+  }
+  for (const [x, y, dx, dy] of [[3, 3, 1, 1], [28, 3, -1, 1], [3, 28, 1, -1], [28, 28, -1, -1]]) {
+    p.px(x, y, c1);
+    p.px(x + dx, y, c1);
+    p.px(x, y + dy, c1);
   }
   return p;
 }
@@ -601,291 +626,353 @@ const finish = (p, sym) => {
   p.over(sym);
   return p;
 };
-function symSword(q, x, y, len, w = 1, r = STEEL) {
-  blade(q, x, y, len, w, r);
-  q.line(x - 3, y - 2, x + 2, y + 3, GOLD[2], 2);
-  q.line(x - 4, y + 4, x - 1, y + 1, WOOD[2], 2);
+
+/** 휜 칼날: a(손잡이 쪽) → b(끝), bend만큼 등이 휜다 */
+function curved(q, ax, ay, bx, by, bend, w, ramp) {
+  const len = Math.hypot(bx - ax, by - ay);
+  const ux = (bx - ax) / len;
+  const uy = (by - ay) / len;
+  const nx = -uy;
+  const ny = ux;
+  const n = Math.ceil(len * 2);
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    const o = bend * 4 * t * (1 - t);
+    const x = ax + (bx - ax) * t + nx * o;
+    const y = ay + (by - ay) * t + ny * o;
+    const ww = w * (t > 0.85 ? (1 - t) / 0.15 : 1);
+    for (let k = -ww; k <= ww; k += 0.5) {
+      const col = k < -ww * 0.4 ? ramp[3] : k > ww * 0.4 ? ramp[1] : ramp[2];
+      q.px(x + nx * k, y + ny * k, col);
+    }
+  }
 }
-function arrowDiag(q, x0, y0, x1, y1, col = '#e8e0c8', head = STEEL[3], fl = RUBY[2]) {
-  q.line(x0, y0, x1, y1, col);
-  const dx = Math.sign(x1 - x0);
-  const dy = Math.sign(y1 - y0);
+/** 환도: 휜 외날 칼, 둥근 코등이, 감은 손잡이 */
+function hwando(q, ax, ay, bx, by, bend = 1.6, ramp = STEEL) {
+  curved(q, ax, ay, bx, by, bend, 1.2, ramp);
+  const len = Math.hypot(bx - ax, by - ay);
+  const ux = (bx - ax) / len;
+  const uy = (by - ay) / len;
+  q.disk(ax, ay, 2, BRASS[2]);
+  q.px(ax - 1, ay - 1, BRASS[3]);
+  for (let k = 1; k <= 5; k++) q.px(ax - ux * (k + 1), ay - uy * (k + 1), k % 2 ? '#3a2228' : '#6a3a3a');
+  for (let k = 1; k <= 5; k++) q.px(ax - ux * (k + 1) + 0.6, ay - uy * (k + 1) + 0.6, k % 2 ? '#2a1a20' : '#4a2a2e');
+}
+/** 부적: 노란 종이에 붉은 획 */
+function talisman(q, x, y, w, h, paper = HANJI, ink = CINNA) {
+  q.rect(x, y, w, h, paper[2]);
+  q.rect(x, y, 1, h, paper[3]);
+  q.rect(x + w - 1, y, 1, h, paper[1]);
+  q.rect(x, y + h - 1, w, 1, paper[1]);
+  const cx = x + Math.floor(w / 2);
+  q.line(cx, y + 2, cx, y + h - 3, ink);
+  q.line(cx - 2, y + 3, cx + 2, y + 3, ink);
+  q.line(cx - 2, y + 6, cx + 1, y + 8, ink);
+  q.arc(cx, y + h - 6, 2, Math.PI * 0.1, Math.PI * 1.6, ink);
+  q.line(cx - 2, y + h - 3, cx + 2, y + h - 3, ink);
+}
+function flame(q, cx, by, h, w, ramp = FIRE) {
+  for (let k = 0; k < 4; k++) {
+    const s = 1 - k * 0.24;
+    q.poly([[cx - w * s, by], [cx - w * 0.7 * s, by - h * 0.45 * s], [cx - w * 0.2 * s, by - h * 0.6 * s], [cx, by - h * s], [cx + w * 0.35 * s, by - h * 0.55 * s], [cx + w * s, by - h * 0.3 * s], [cx + w * 0.8 * s, by]], ramp[k]);
+  }
+}
+function arrow(q, x0, y0, x1, y1, shaft = '#d8c8a0', head = STEEL[3], fl = '#e8e8e8') {
+  q.line(x0, y0, x1, y1, shaft);
   const len = Math.hypot(x1 - x0, y1 - y0);
   const ux = (x1 - x0) / len;
   const uy = (y1 - y0) / len;
-  q.poly([[x1 + ux * 3, y1 + uy * 3], [x1 - uy * 2.2, y1 + ux * 2.2], [x1 + uy * 2.2, y1 - ux * 2.2]], head);
+  q.poly([[x1 + ux * 3, y1 + uy * 3], [x1 - uy * 1.8, y1 + ux * 1.8], [x1 + uy * 1.8, y1 - ux * 1.8]], head);
   for (let k = 0; k < 3; k++) {
-    q.px(x0 + ux * k - uy, y0 + uy * k + ux, fl);
-    q.px(x0 + ux * k + uy, y0 + uy * k - ux, fl);
+    q.px(x0 + ux * k - uy * 1.2, y0 + uy * k + ux * 1.2, fl);
+    q.px(x0 + ux * k + uy * 1.2, y0 + uy * k - ux * 1.2, fl);
   }
 }
+function meteor(q, hx, hy, tx, ty, r, ramp = STAR) {
+  const n = 7;
+  for (let i = 0; i < n; i++) {
+    const t = i / n;
+    q.line(tx + (hx - tx) * t, ty + (hy - ty) * t, tx + (hx - tx) * (t + 1 / n), ty + (hy - ty) * (t + 1 / n), ramp[Math.min(3, Math.floor(t * 3.5))], 1 + t * r * 1.6);
+  }
+  q.ball(hx, hy, r, ramp);
+}
+/** 등패: 등나무를 엮은 둥근 방패 */
+function deungpae(q, cx, cy, r) {
+  q.disk(cx, cy, r, RATTAN[1]);
+  for (let k = r - 1; k > 0; k -= 2) q.arc(cx, cy, k, 0, Math.PI * 2, k % 4 < 2 ? RATTAN[2] : RATTAN[0]);
+  q.arc(cx, cy, r - 0.5, Math.PI * 1.0, Math.PI * 1.6, RATTAN[3]);
+  // 가운데 범 얼굴 대신 붉은 원과 금 장식
+  q.disk(cx, cy, 2.2, '#b8342c');
+  q.px(cx - 1, cy - 1, '#ff8a6a');
+  q.disk(cx, cy, 0.8, GOLD[2]);
+}
+
 const S = {
   w_whirl() {
     const p = frame('w');
     const q = new P();
-    q.arc(16, 16, 11, 0.3, Math.PI * 1.7, '#ffe48a', 2);
-    q.arc(16, 16, 7, Math.PI * 1.2, Math.PI * 2.8, '#ffb24a', 1);
-    q.poly([[27, 12], [29, 18], [24, 17]], '#ffe48a');
-    symSword(q, 11, 21, 12, 1);
+    // 원을 그리는 칼바람
+    q.arc(16, 16, 12, Math.PI * 0.15, Math.PI * 1.75, '#f6e6b8', 2);
+    q.arc(16, 16, 9, Math.PI * 1.1, Math.PI * 2.6, '#e0684c', 1);
+    q.poly([[26.5, 7], [29, 13], [23.5, 11]], '#f6e6b8');
+    hwando(q, 10, 22, 24, 9, 1.8);
     return finish(p, q);
   },
   w_charge() {
     const p = frame('w');
     const q = new P();
-    for (const [y, x0] of [[9, 3], [16, 2], [23, 3]]) q.line(x0, y, x0 + 8, y, '#ffd8a0');
-    q.disk(19, 16, 9, IRON[1]);
-    q.disk(19, 16, 7.5, '#b23a38');
-    q.arc(19, 16, 8.5, Math.PI * 0.9, Math.PI * 1.6, STEEL[3]);
-    q.rect(18, 9, 2, 14, '#f0d9a0');
-    q.rect(12, 15, 14, 2, '#f0d9a0');
-    q.disk(19, 16, 2, GOLD[2]);
+    for (const [y, x0, l] of [[8, 3, 7], [14, 2, 6], [20, 3, 7], [26, 5, 5]]) q.line(x0, y, x0 + l, y, '#f0d0a0');
+    deungpae(q, 19, 16, 9);
+    hwando(q, 24, 24, 29, 10, 0.6);
     return finish(p, q);
   },
   w_slam() {
     const p = frame('w');
     const q = new P();
-    // 땅 금
-    q.line(4, 26, 28, 26, '#6e5a48');
-    q.line(16, 24, 8, 28, '#ffb24a');
-    q.line(16, 24, 24, 28, '#ffb24a');
-    q.line(16, 24, 16, 29, '#ffe48a');
-    q.arc(16, 25, 11, Math.PI * 1.05, Math.PI * 1.95, '#ffe48a');
-    // 칼
-    q.rect(14, 8, 4, 16, STEEL[2]);
-    q.rect(14, 8, 1, 16, STEEL[3]);
-    q.rect(17, 8, 1, 16, STEEL[0]);
-    q.poly([[14, 24], [18, 24], [16, 27]], STEEL[2]);
-    q.rect(10, 6, 12, 2, GOLD[2]);
-    q.rect(15, 2, 2, 4, WOOD[2]);
+    // 갈라진 땅
+    q.rect(4, 24, 24, 4, '#4e3e34');
+    q.rect(4, 24, 24, 1, '#6e5a48');
+    q.line(16, 24, 9, 28, '#ffb24a');
+    q.line(16, 24, 23, 28, '#ffb24a');
+    q.line(16, 24, 5, 26, '#e0684c');
+    q.line(16, 24, 27, 26, '#e0684c');
+    q.arc(16, 24, 12, Math.PI * 1.08, Math.PI * 1.92, '#ffe48a');
+    q.arc(16, 24, 8, Math.PI * 1.15, Math.PI * 1.85, '#ffb24a');
+    // 내리꽂힌 환도
+    curved(q, 16, 6, 16, 25, 1.2, 1.5, STEEL);
+    q.rect(12, 5, 8, 2, BRASS[2]);
+    q.rect(15, 1, 2, 4, '#5a2e32');
     return finish(p, q);
   },
   w_cry() {
     const p = frame('w');
     const q = new P();
-    q.ball(11, 16, 7, STEEL);
-    q.rect(5, 15, 12, 2, '#23182a');
-    q.poly([[12, 18], [17, 15], [17, 22]], '#23182a');
-    q.rect(10, 9, 2, 6, GOLD[2]);
-    q.arc(14, 17, 7, -0.7, 0.7, '#ffe48a');
-    q.arc(14, 17, 11, -0.7, 0.7, '#ffb24a');
-    q.arc(14, 17, 15, -0.55, 0.55, '#e0703a');
+    // 용고: 정면에서 본 북면, 붉은 테와 금 징, 비스듬한 북채
+    q.disk(13, 17, 10, '#8a2a26');
+    q.disk(13, 17, 8.5, '#b8342c');
+    q.disk(13, 17, 7, '#e8d6b0');
+    q.disk(13, 17, 5.5, '#f4e8cc');
+    for (let k = 0; k < 10; k++) {
+      const a = (k / 10) * Math.PI * 2;
+      q.px(13 + Math.cos(a) * 9.2, 17 + Math.sin(a) * 9.2, GOLD[2]);
+    }
+    q.arc(13, 17, 3, 0, Math.PI * 2, '#c8a87a');
+    q.line(23, 5, 15, 14, '#6a3a22', 2);
+    q.disk(15, 14, 1.8, '#e8d8b8');
+    // 울림
+    q.arc(14, 17, 13, -0.55, 0.55, '#ffe48a');
+    q.arc(14, 17, 16, -0.45, 0.45, '#ffb24a');
     return finish(p, q);
   },
   w_judge() {
     const p = frame('w');
     const q = new P();
-    // 빛줄기
-    for (const x of [8, 24]) q.line(16, 2, x, 28, '#ffcf6e');
-    q.line(16, 2, 4, 20, '#c88f2a');
-    q.line(16, 2, 28, 20, '#c88f2a');
-    // 내려오는 큰 칼
-    q.rect(13, 6, 6, 18, '#fff4c8');
-    q.rect(13, 6, 2, 18, '#ffffff');
-    q.rect(17, 6, 2, 18, '#ffcf6e');
-    q.poly([[13, 24], [19, 24], [16, 29]], '#fff4c8');
-    q.rect(8, 4, 16, 2, GOLD[2]);
-    q.rect(15, 1, 2, 3, GOLD[3]);
+    // 하늘에서 내리꽂히는 큰 환도와 땅의 충격
+    for (const [x0, y0] of [[22, 3], [26, 6], [28, 11]]) q.line(x0, y0, x0 - 4, y0 + 4, '#e0684c');
+    q.rect(4, 26, 24, 2, '#4e3e34');
+    q.arc(13, 27, 10, Math.PI * 1.05, Math.PI * 1.95, '#ffe48a', 2);
+    for (const x of [4, 22]) q.line(13, 26, x, 22, '#ffb24a');
+    curved(q, 24, 4, 12, 24, -2.4, 2.2, STEEL);
+    q.disk(24, 4, 2.4, BRASS[2]);
+    q.line(25, 3, 28, 0, '#5a2e32', 2);
+    sparkle(q, 7, 9, '#ffe48a', true);
     return finish(p, q);
   },
   m_fireball() {
     const p = frame('m');
     const q = new P();
-    q.poly([[3, 28], [10, 12], [20, 22]], '#c8421c');
-    q.poly([[6, 26], [12, 15], [18, 21]], '#ff8a2a');
-    q.ball(19, 13, 8, ['#c8421c', '#ff8a2a', '#ffc24a', '#fff4c8']);
+    flame(q, 17, 28, 16, 9);
+    talisman(q, 9, 9, 8, 15);
+    q.rect(9, 9, 2, 2, null);
+    q.px(16, 23, FIRE[2]);
+    q.px(15, 22, FIRE[1]);
+    sparkle(q, 25, 7, '#ffd27a');
     return finish(p, q);
   },
   m_nova() {
     const p = frame('m');
     const q = new P();
-    q.arc(16, 16, 11, 0, Math.PI * 2, FROST[2], 3);
-    q.arc(16, 16, 11, 0, Math.PI * 2, FROST[3], 1);
-    for (let i = 0; i < 6; i++) {
-      const a = (i / 6) * Math.PI * 2 + 0.3;
-      const x = 16 + Math.cos(a) * 11;
-      const y = 16 + Math.sin(a) * 11;
-      q.poly([[x + Math.cos(a) * 4, y + Math.sin(a) * 4], [x - Math.sin(a) * 2, y + Math.cos(a) * 2], [x - Math.cos(a) * 2, y - Math.sin(a) * 2], [x + Math.sin(a) * 2, y - Math.cos(a) * 2]], '#e8fbff');
+    // 얼음 결정 여섯 갈래
+    for (let k = 0; k < 6; k++) {
+      const a = (k / 6) * Math.PI * 2 - Math.PI / 2;
+      const x = 16 + Math.cos(a) * 12;
+      const y = 16 + Math.sin(a) * 12;
+      q.line(16 + Math.cos(a) * 7, 16 + Math.sin(a) * 7, x, y, ICE[2], 2);
+      q.line(x - Math.cos(a + 0.7) * 3, y - Math.sin(a + 0.7) * 3, x, y, ICE[3]);
+      q.line(x - Math.cos(a - 0.7) * 3, y - Math.sin(a - 0.7) * 3, x, y, ICE[3]);
     }
-    q.px(16, 16, '#ffffff');
+    talisman(q, 13, 9, 7, 14, ['#3a6a9a', '#6aa6d6', '#bfe6f8', '#f0fcff'], '#1e3a7a');
     return finish(p, q);
   },
   m_meteor() {
     const p = frame('m');
     const q = new P();
-    q.poly([[28, 2], [14, 12], [22, 20]], '#ff8a2a');
-    q.poly([[28, 3], [17, 13], [21, 17]], '#ffe48a');
-    q.ball(13, 19, 8, ['#2a2024', '#4a3a38', '#6e5a50', '#a08a70']);
-    q.line(9, 17, 13, 22, '#ff7a2a');
-    q.line(13, 22, 18, 19, '#ffc24a');
-    q.line(13, 15, 13, 22, '#ff7a2a');
+    q.rect(4, 26, 24, 2, '#3a3448');
+    meteor(q, 19, 21, 5, 4, 4.5);
+    q.arc(19, 26, 8, Math.PI * 1.1, Math.PI * 1.9, '#ffb24a');
+    sparkle(q, 26, 9, '#fff4c8');
+    sparkle(q, 9, 20, '#c8d8ff');
     return finish(p, q);
   },
   m_shield() {
     const p = frame('m');
     const q = new P();
-    q.poly([[16, 3], [26, 7], [26, 17], [16, 29], [6, 17], [6, 7]], SAPPH[2]);
-    q.poly([[16, 3], [16, 29], [6, 17], [6, 7]], SAPPH[3]);
-    q.poly([[16, 7], [22, 10], [22, 16], [16, 24], [10, 16], [10, 10]], SAPPH[1]);
-    q.poly([[16, 11], [19, 15], [16, 20], [13, 15]], '#e8fbff');
+    // 부적을 감싼 기운의 막
+    q.arc(16, 16, 12, 0, Math.PI * 2, QI[1], 2);
+    q.arc(16, 16, 10, Math.PI * 1.1, Math.PI * 1.7, QI[3]);
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * Math.PI * 2;
+      q.px(16 + Math.cos(a) * 12, 16 + Math.sin(a) * 12, QI[3]);
+    }
+    talisman(q, 12, 8, 8, 16);
     return finish(p, q);
   },
   m_starfall() {
     const p = frame('m');
     const q = new P();
-    const star = (x, y, r, col) => {
-      const pts = [];
-      for (let i = 0; i < 10; i++) {
-        const a = -Math.PI / 2 + (i * Math.PI) / 5;
-        const R = i % 2 ? r * 0.45 : r;
-        pts.push([x + Math.cos(a) * R, y + Math.sin(a) * R]);
-      }
-      q.poly(pts, col);
-    };
-    q.line(27, 2, 20, 11, '#8fd2ee');
-    q.line(13, 2, 8, 10, '#8fd2ee');
-    q.line(24, 14, 17, 22, '#8fd2ee');
-    star(18, 13, 6, '#ffe48a');
-    star(7, 12, 4, '#fff4c8');
-    star(15, 25, 4.6, '#ffe48a');
+    meteor(q, 12, 22, 4, 8, 2.6, ['#4a6ac8', '#7aa6f2', '#c8e0ff', '#ffffff']);
+    meteor(q, 22, 18, 13, 3, 3.2);
+    meteor(q, 25, 27, 19, 16, 2.2);
+    sparkle(q, 7, 25, '#c8e0ff');
     return finish(p, q);
   },
   a_fan() {
     const p = frame('a');
     const q = new P();
-    arrowDiag(q, 4, 25, 14, 5);
-    arrowDiag(q, 4, 26, 24, 12);
-    arrowDiag(q, 5, 27, 26, 24);
+    for (let k = -2; k <= 2; k++) {
+      const a = -Math.PI / 4 + k * 0.32;
+      arrow(q, 7, 25, 7 + Math.cos(a) * 19, 25 + Math.sin(a) * 19);
+    }
     return finish(p, q);
   },
   a_pierce() {
     const p = frame('a');
     const q = new P();
-    for (const x of [10, 19]) {
-      q.ell(x, 16, 3.5, 9, '#7a5a3a');
-      q.ell(x, 16, 2, 7, '#c8483c');
-      q.ell(x, 16, 1, 4, '#f0e4c8');
+    // 짧은 애기살이 짚 과녁 둘을 한 줄로 꿰뚫는다
+    for (const [x, y] of [[13, 8], [21, 8]]) {
+      q.ell(x, 16, 3, 7, '#c8a050');
+      q.ell(x, 16, 2, 5.5, '#a87a34');
+      q.ell(x - 0.5, 16, 1, 3, '#e8c870');
     }
-    q.line(1, 16, 26, 16, '#ffe48a', 1);
-    q.poly([[30, 16], [25, 13], [25, 19]], STEEL[3]);
-    q.rect(2, 14, 3, 1, RUBY[2]);
-    q.rect(2, 18, 3, 1, RUBY[2]);
+    q.line(3, 16, 26, 16, '#e8d8a8', 1);
+    q.line(3, 17, 26, 17, '#b8a478', 1);
+    q.poly([[30, 16.5], [25, 13], [25, 20]], STEEL[3]);
+    q.px(4, 15, '#e8e8e8');
+    q.px(4, 18, '#e8e8e8');
+    for (const [y, x0] of [[11, 3], [22, 3]]) q.line(x0, y, x0 + 5, y, '#5a4a3a');
+    q.px(13, 16, '#fff0a0');
+    q.px(21, 16, '#fff0a0');
     return finish(p, q);
   },
   a_trap() {
     const p = frame('a');
     const q = new P();
-    // 올가미
-    q.rect(22, 4, 3, 20, WOOD[1]);
-    q.rect(22, 4, 1, 20, WOOD[3]);
-    q.arc(14, 21, 9, 0, Math.PI * 2, '#e0cf9e');
-    q.ell(14, 21, 8, 5, null);
-    q.arc(14, 21, 8.5, 0, Math.PI * 2, '#e0cf9e');
-    q.line(23, 8, 17, 15, '#e0cf9e');
-    q.line(24, 5, 12, 7, '#e0cf9e');
-    q.rect(4, 26, 24, 2, '#4a3a28');
+    // 땅에 놓인 올무: 밧줄 고리와 말뚝
+    q.ell(16, 22, 11, 4, '#3a3020');
+    q.arc(16, 21, 9, 0, Math.PI * 2, '#c8a46a', 2);
+    q.arc(16, 21, 9, Math.PI * 1.05, Math.PI * 1.5, '#ecd08e');
+    q.line(16, 12, 24, 4, '#c8a46a', 2);
+    q.line(7, 21, 4, 28, '#6a4a2a', 2);
+    q.rect(22, 3, 4, 2, '#6a4a2a');
+    q.line(23, 5, 26, 13, '#6a4a2a', 2);
+    for (const x of [10, 22]) q.px(x, 21, '#7a5a3a');
     return finish(p, q);
   },
   a_hawk() {
     const p = frame('a');
     const q = new P();
-    // 날개
-    q.poly([[2, 12], [12, 6], [16, 12], [20, 6], [30, 12], [22, 15], [16, 20], [10, 15]], '#b08a58');
-    q.poly([[2, 12], [12, 6], [16, 12], [10, 15]], '#d4b078');
-    q.line(5, 13, 12, 9, '#6e4e2c');
-    q.line(27, 13, 20, 9, '#6e4e2c');
-    // 눈
-    q.ell(16, 21, 7, 4.5, '#fff4c8');
-    q.disk(16, 21, 3.4, '#e0a020');
-    q.disk(16, 21, 1.8, '#16121c');
-    q.px(15, 20, '#ffffff');
+    // 보라매 머리: 매서운 눈, 굽은 부리
+    q.poly([[6, 27], [8, 14], [13, 7], [20, 6], [25, 10], [27, 15], [22, 17], [18, 22], [16, 28]], '#6a4a34');
+    q.poly([[8, 14], [13, 7], [20, 6], [22, 9], [15, 11], [10, 17]], '#8a6a4a');
+    q.poly([[16, 28], [18, 22], [22, 17], [21, 23], [19, 28]], '#e8dcc0');
+    q.poly([[25, 10], [29, 12], [28, 16], [26, 15], [27, 13]], '#e8b84a');
+    q.px(28, 16, '#2a2018');
+    q.disk(20, 11, 2.2, '#f2c234');
+    q.disk(20.5, 11, 1, '#140c0a');
+    q.line(16, 9, 23, 9, '#2a1e18');
+    for (const [x, y] of [[11, 19], [13, 23], [10, 24]]) q.px(x, y, '#4a3224');
     return finish(p, q);
   },
   a_rain() {
     const p = frame('a');
     const q = new P();
-    for (const [x, y] of [[8, 4], [16, 7], [24, 4], [12, 15], [21, 16]]) {
-      q.line(x, y, x - 2, y + 8, '#e8e0c8');
-      q.poly([[x - 3, y + 12], [x - 4, y + 8], [x - 1, y + 8]], STEEL[3]);
-      q.px(x + 1, y - 1, RUBY[2]);
-      q.px(x - 1, y - 1, RUBY[2]);
+    // 하늘에서 곧게 쏟아지는 화살 다섯
+    for (const [x, y] of [[7, 5], [12, 10], [17, 4], [22, 9], [26, 3]]) {
+      q.line(x, y, x, y + 11, '#d8c8a0');
+      q.poly([[x - 2, y + 11], [x + 2, y + 11], [x, y + 15]], STEEL[3]);
+      q.px(x - 1, y, '#e8e8e8');
+      q.px(x + 1, y, '#e8e8e8');
+      q.px(x - 1, y + 1, '#c8c8c8');
+      q.px(x + 1, y + 1, '#c8c8c8');
     }
-    q.line(4, 28, 28, 28, '#4a6a3a');
+    q.rect(4, 27, 24, 1, '#5a4a3a');
+    for (const x of [8, 15, 21]) q.px(x, 26, '#8a7a5a');
     return finish(p, q);
   },
   roll() {
     const p = frame('x');
     const q = new P();
-    q.arc(16, 17, 9, -Math.PI * 0.95, Math.PI * 0.5, '#e8eef6', 2);
-    q.poly([[16, 26], [11, 23], [11, 29]], '#e8eef6');
-    q.ball(16, 17, 4.5, ['#6a7486', '#9aa4b4', '#c8d0dc', '#f2f5fa']);
-    for (const y of [12, 18, 24]) q.rect(2, y, 3, 1, '#9aa4b4');
+    q.arc(16, 15, 9, Math.PI * 0.2, Math.PI * 1.75, '#e8e0d0', 2);
+    q.poly([[23, 6], [27, 12], [21, 12]], '#e8e0d0');
+    for (const [x, y, r] of [[8, 26, 2], [13, 27, 1.5], [24, 26, 1.8]]) q.disk(x, y, r, '#8a7a68');
+    q.rect(5, 28, 22, 1, '#5a4e44');
     return finish(p, q);
   },
   blink() {
     const p = frame('x');
     const q = new P();
-    // 사라지는 쪽(점선 몸)과 나타나는 쪽
-    const body = (x, col, col2) => {
-      q.disk(x, 11, 3.5, col);
-      q.poly([[x - 4, 15], [x + 4, 15], [x + 3, 26], [x - 3, 26]], col2);
-    };
-    body(9, '#6c5a9c', '#4a3c78');
-    for (let y = 8; y < 27; y += 2) for (let x = 5; x < 14; x += 2) q.g[y * C + x] = null;
-    body(22, '#e0c8ff', '#9c6ae4');
-    q.line(13, 16, 17, 16, '#e0c8ff');
-    q.poly([[18, 16], [15, 13], [15, 19]], '#e0c8ff');
-    sparkle(q, 27, 7, '#e0c8ff');
+    // 축지법: 땅을 접어 한 걸음에 건너간다. 흐린 출발점에서 밝은 도착점으로 점선이 휘어 넘어간다
+    q.ell(8, 24, 5, 2, '#34404c');
+    q.ell(8, 24, 3, 1.2, '#4a5a6a');
+    q.ell(24, 22, 6, 2.4, QI[1]);
+    q.ell(24, 22, 4, 1.5, QI[2]);
+    q.ell(24, 22, 2, 0.8, QI[3]);
+    for (let k = 0; k < 12; k++) {
+      const t0 = k / 12;
+      const t1 = (k + 1) / 12;
+      const P0 = [8 + 16 * t0, 22 - 2 * t0 - 14 * Math.sin(Math.PI * t0)];
+      const P1 = [8 + 16 * t1, 22 - 2 * t1 - 14 * Math.sin(Math.PI * t1)];
+      q.line(P0[0], P0[1], P1[0], P1[1], t0 < 0.35 ? QI[1] : t0 < 0.7 ? QI[2] : QI[3], 2);
+    }
+    q.poly([[24, 13], [27, 18], [21, 17]], '#e8f8ff');
+    sparkle(q, 27, 7, QI[3]);
     return finish(p, q);
   },
   leap() {
     const p = frame('x');
     const q = new P();
-    q.arc(16, 24, 12, Math.PI, Math.PI * 1.9, '#e8eef6', 2);
-    q.poly([[29, 23], [23, 20], [27, 16]], '#e8eef6');
-    q.rect(3, 26, 26, 2, '#7a6a58');
-    q.disk(12, 11, 2.5, '#f2c8a2');
-    q.line(12, 13, 13, 18, '#b5553a', 2);
-    q.line(13, 18, 9, 21, '#6a5a48');
-    q.line(13, 18, 17, 20, '#6a5a48');
-    q.line(12, 14, 8, 12, '#b5553a');
-    q.line(12, 14, 16, 12, '#b5553a');
+    // 뒤로 크게 뛰어 물러난다
+    q.arc(15, 22, 10, Math.PI * 1.05, Math.PI * 1.95, '#e8e0d0', 2);
+    q.poly([[4, 20], [7, 26], [9, 20]], '#e8e0d0');
+    q.rect(4, 27, 24, 1, '#5a4e44');
+    for (const x of [22, 25]) q.line(x, 26, x + 2, 23, '#8a7a68');
     return finish(p, q);
   },
   guard_w() {
     const p = frame('w');
     const q = new P();
-    q.disk(16, 16, 11, IRON[2]);
-    q.disk(16, 16, 9.5, '#3f62b0');
-    q.arc(16, 16, 10.5, Math.PI * 0.9, Math.PI * 1.6, '#ffffff');
-    q.rect(15, 7, 2, 18, '#e9e3cf');
-    q.rect(7, 15, 18, 2, '#e9e3cf');
-    q.disk(16, 16, 2.6, GOLD[2]);
-    q.px(15, 15, GOLD[3]);
+    deungpae(q, 16, 16, 11);
     return finish(p, q);
   },
   guard_m() {
     const p = frame('m');
     const q = new P();
-    q.arc(16, 16, 12, Math.PI * 1.05, Math.PI * 1.95, '#c4e4ff', 2);
-    q.arc(16, 18, 8, Math.PI * 1.1, Math.PI * 1.9, '#5c94ec', 1);
-    // 손바닥
-    q.rect(12, 18, 8, 8, '#f2c8a2');
-    q.rect(12, 18, 3, 8, '#ffe0c0');
-    for (const x of [12, 14, 16, 18]) q.rect(x, 14, 2, 5, '#f2c8a2');
-    q.rect(20, 20, 2, 4, '#e0ac84');
-    q.rect(12, 26, 8, 2, '#4a3f9c');
+    // 여섯모 기운의 막 앞에 선 부적
+    const pts = [...Array(6)].map((_, k) => [16 + Math.cos((k / 6) * Math.PI * 2) * 12, 16 + Math.sin((k / 6) * Math.PI * 2) * 12]);
+    for (let k = 0; k < 6; k++) q.line(pts[k][0], pts[k][1], pts[(k + 1) % 6][0], pts[(k + 1) % 6][1], QI[2], 2);
+    talisman(q, 12, 8, 8, 16);
     return finish(p, q);
   },
   guard_a() {
     const p = frame('a');
     const q = new P();
-    // 비껴 든 활 + 막는 쐐기
-    q.arc(8, 24, 18, -Math.PI / 2, 0.05, WOOD[2], 2.4);
-    q.arc(8, 24, 17.5, -Math.PI / 2 + 0.1, -0.05, WOOD[3]);
-    q.line(8, 6, 26, 25, '#e8e0c8');
-    q.poly([[6, 12], [16, 12], [16, 20], [11, 25], [6, 20]], '#7f5a34');
-    q.poly([[6, 12], [11, 12], [11, 25], [6, 20]], '#a58350');
-    q.px(11, 16, '#ffe48a');
+    // 활대로 화살을 빗겨 낸다: 튕겨 나가는 화살과 불똥
+    q.arc(20, 16, 11, Math.PI * 0.62, Math.PI * 1.38, WOOD[2], 2);
+    q.arc(20, 16, 11, Math.PI * 0.75, Math.PI * 1.0, WOOD[3]);
+    q.line(15, 6, 15, 26, '#e8e0d0');
+    arrow(q, 26, 10, 12, 15);
+    sparkle(q, 11, 16, '#ffe48a', true);
+    arrow(q, 13, 18, 6, 27, '#a89878', STEEL[2], '#c8c8c8');
     return finish(p, q);
   },
 };
