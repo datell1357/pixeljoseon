@@ -9,6 +9,7 @@ export type Screen = 'title' | 'chars' | 'create' | 'loading' | 'game';
 export interface Me {
   name: string;
   cls: ClassId;
+  look: number;
   level: number;
   exp: number;
   expNext: number;
@@ -32,6 +33,7 @@ export interface CharSummary {
   look: number;
   level: number;
   map: string;
+  gear?: string;
 }
 
 export interface Vitals {

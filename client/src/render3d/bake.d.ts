@@ -4,6 +4,8 @@ declare module '@bake/rig.js' {
   export const Quad: any;
   export const Rig: any;
   export const STAND: any;
+  export const bakeKeys: (n: number, keys: any[], base?: any, loop?: boolean) => any[];
+  export const trotFrames: (n: number, opt?: any) => any[];
 }
 declare module '@bake/humans.js' {
   export const warriorAnims: () => any;

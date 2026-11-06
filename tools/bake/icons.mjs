@@ -890,19 +890,393 @@ const S = {
   },
 };
 
+
+// ─── 조선 물건 (2026-11-06 다시 그림) ─────────────────────
+const BRONZE = ['#5a3a1a', '#8a5a26', '#b88438', '#e2b866'];
+const CELADON = ['#3e6a62', '#5e9488', '#8cc0b0', '#cfeee2'];
+const BLUEG = ['#2a4a7a', '#4a7ac0', '#8ab8f0', '#e0f2ff'];
+const STRAW = ['#7a5e2a', '#a8843e', '#ccaa5a', '#ecd690'];
+const SILK_R = ['#6e1420', '#a8232c', '#d8443e', '#f48a72'];
+
+/** 환도: 살짝 휜 외날, 둥근 코등이, 자루 끝 술 */
+function jSword(t) {
+  const p = new P();
+  const blades = [IRON, STEEL, ['#3a6a62', '#5e9a8c', '#9cd2c0', '#e8fff4'], BLUEG];
+  const len = [14, 17, 18, 20][t];
+  const w = [1, 1, 1, 2][t];
+  const sx = 9;
+  const sy = 22;
+  blade(p, sx, sy, len, w, blades[t]);
+  // 휜 등: 칼끝 쪽 등선을 한 칸 밀어 휘어 보이게 한다
+  for (let i = Math.floor(len * 0.55); i < len - 1; i++) p.px(sx + i + 1, sy - i + 1, blades[t][0]);
+  const gr = t < 2 ? ['#2a1a14', '#3e2a20', '#5a3c2a', '#7a5638'] : t === 2 ? LEATHER : DARKW;
+  p.line(sx - 5, sy + 5, sx - 1, sy + 1, gr[1], 2);
+  for (let k = 0; k < 4; k++) p.px(sx - 4 + k, sy + 4 - k, gr[3]);
+  // 둥근 코등이
+  const gd = [IRON, BRASS, BRASS, GOLD][t];
+  p.ell(sx, sy, 2.6, 2.6, gd[1]);
+  p.px(sx - 1, sy - 1, gd[3]);
+  p.px(sx, sy - 1, gd[2]);
+  // 자루 끝 술
+  const tas = t === 3 ? BLUEG : SILK_R;
+  p.line(sx - 6, sy + 6, sx - 7, sy + 10, tas[2]);
+  p.line(sx - 7, sy + 6, sx - 8, sy + 10, tas[1]);
+  p.outline();
+  if (t === 3) {
+    sparkle(p, 26, 10, '#c4e4ff');
+    sparkle(p, 15, 6, '#c4e4ff');
+  }
+  if (t === 2) sparkle(p, 25, 6, '#c8fff0');
+  return p;
+}
+
+/** 초롱 지팡이 */
+function jStaff(t) {
+  const p = new P();
+  const pole = [WOOD, BRONZE, ['#2e2a1e', '#4a4030', '#6a5c40', '#8a7a58'], DARKW][t];
+  p.line(8, 29, 20, 9, pole[1], 2);
+  p.line(8, 28, 19, 9, pole[3]);
+  if (t === 0) {
+    // 등잔: 작은 접시와 불꽃
+    p.rect(17, 7, 7, 2, BRONZE[1]);
+    p.rect(18, 7, 5, 1, BRONZE[3]);
+    p.disk(20.5, 4.5, 1.6, AMBER[2]);
+    p.px(20, 4, '#fff4c0');
+  } else if (t === 2) {
+    // 굽은 가지 끝에 맺힌 빛
+    p.line(19, 9, 23, 6, pole[2]);
+    p.line(19, 9, 17, 4, pole[2]);
+    p.ball(21, 5, 3.2, EMER);
+    p.px(14, 18, '#4e6e30');
+    p.px(15, 17, '#5c7a34');
+  } else {
+    // 구부러진 끝에 매단 초롱
+    p.line(20, 9, 23, 5, pole[2], 2);
+    p.line(23, 5, 25, 7, pole[2]);
+    const big = t === 3;
+    const top = big ? BLUEG : SILK_R;
+    const bot = big ? SILK_R : AMBER;
+    const cx = 25;
+    const cy = big ? 14 : 12;
+    const rx = big ? 4 : 3;
+    const ry = big ? 5 : 4;
+    p.line(25, 7, 25, cy - ry, '#2a1e18');
+    p.ell(cx, cy, rx, ry, bot[2]);
+    for (let y = cy - ry; y <= cy - 1; y++) for (let x = cx - rx; x <= cx + rx; x++) if (((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1) p.px(x, y, top[2]);
+    p.rect(cx - rx + 1, cy - ry - 1, rx * 2 - 1, 1, GOLD[1]);
+    p.rect(cx - rx + 1, cy + ry, rx * 2 - 1, 1, GOLD[1]);
+    p.px(cx - 1, cy - 1, '#fffbe0');
+    p.line(cx, cy + ry + 1, cx, cy + ry + 3, top[1]);
+  }
+  p.outline();
+  if (t === 3) sparkle(p, 20, 18, '#ffe48a');
+  if (t === 2) sparkle(p, 25, 3, '#c0f4b8');
+  return p;
+}
+
+/** 각궁: 줌통 양쪽이 휘었다가 끝이 바깥으로 젖혀진다 */
+function jBow(t) {
+  const p = new P();
+  const lim = [WOOD, ['#1e1612', '#3a2a20', '#5a4030', '#7a5a40'], ['#2e3a20', '#4a5a30', '#6a7a40', '#8a9a58'], ['#a8987a', '#d8c8a8', '#f2e8d0', '#ffffff']][t];
+  const wrap = [LEATHER, SILK_R, EMER, GOLD][t];
+  // 위아래로 선 활: 줌통 (12,16), 끝은 (19,3)과 (19,29)
+  const pts = [[19, 3], [17, 4], [15, 6], [13, 9], [12, 12], [12, 16], [12, 20], [13, 23], [15, 26], [17, 28], [19, 29]];
+  for (let i = 0; i + 1 < pts.length; i++) p.line(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], lim[1], 2);
+  for (let i = 0; i + 1 < pts.length; i++) p.line(pts[i][0] - 1, pts[i][1], pts[i + 1][0] - 1, pts[i + 1][1], lim[3]);
+  // 젖혀진 끝
+  p.line(19, 3, 21, 2, lim[2]);
+  p.line(19, 29, 21, 30, lim[2]);
+  p.rect(11, 14, 3, 5, wrap[2]);
+  p.px(11, 14, wrap[3]);
+  // 시위
+  p.line(20, 3, 20, 29, t === 3 ? '#ffe0c0' : '#e8dcc0');
+  p.outline();
+  if (t >= 2) sparkle(p, 23, 6, t === 3 ? '#ffe0c0' : '#c0f4b8');
+  return p;
+}
+
+/** 전립·투구 */
+function jHelm(t) {
+  const p = new P();
+  if (t === 0) {
+    // 가죽 벙거지: 넓은 챙, 둥근 모자, 붉은 상모
+    p.ell(16, 21, 13, 4, LEATHER[1]);
+    p.ell(16, 20, 12, 3, LEATHER[2]);
+    p.ell(16, 15, 7, 7, LEATHER[1]);
+    p.ell(15, 13, 5, 4, LEATHER[2]);
+    p.px(13, 11, LEATHER[3]);
+    p.rect(9, 18, 14, 1, '#2a1a14');
+    p.disk(16, 7, 2, SILK_R[2]);
+    p.px(15, 6, SILK_R[3]);
+  } else {
+    const m = t === 1 ? STEEL : ['#24232a', '#3a3842', '#56535e', '#7a7684'];
+    // 볼끼
+    p.rect(7, 18, 18, 9, t === 1 ? LEATHER[1] : m[1]);
+    for (let x = 8; x < 25; x += 3) p.rect(x, 19, 1, 7, t === 1 ? LEATHER[0] : m[0]);
+    // 둥근 투구
+    p.ell(16, 16, 9, 9, m[1]);
+    for (let y = 7; y <= 16; y++) for (let x = 7; x <= 25; x++) if (((x - 16) / 9) ** 2 + ((y - 16) / 9) ** 2 <= 1 && x < 15) p.px(x, y, m[2]);
+    p.px(11, 11, m[3]);
+    p.px(12, 10, m[3]);
+    // 챙과 테
+    p.rect(5, 17, 22, 2, m[0]);
+    p.rect(6, 16, 20, 1, t === 1 ? GOLD[2] : '#ff7a2a');
+    // 꼭대기
+    p.rect(15, 4, 2, 4, t === 1 ? GOLD[2] : '#ff7a2a');
+    p.disk(16, 3, 2, t === 1 ? SILK_R[2] : '#d8443e');
+    if (t === 2) {
+      p.line(7, 13, 3, 6, m[2], 2);
+      p.line(25, 13, 29, 6, m[2], 2);
+      p.line(16, 8, 16, 15, '#ff9a4a');
+    }
+  }
+  p.outline();
+  if (t === 2) sparkle(p, 26, 22, '#ffb06a');
+  return p;
+}
+
+/** 철릭·쇄자갑·찰갑 */
+function jArmor(t) {
+  const p = new P();
+  const coat = [['#1c2a4a', '#2c3f66', '#41588a', '#6a82b4'], IRON, ['#24232a', '#3a3842', '#56535e', '#7a7684']][t];
+  // 몸판과 넓게 퍼진 치마
+  p.poly([[10, 6], [22, 6], [24, 16], [27, 29], [5, 29], [8, 16]], coat[1]);
+  p.poly([[10, 6], [16, 6], [15, 29], [5, 29], [8, 16]], coat[2]);
+  // 소매
+  p.poly([[10, 6], [5, 9], [3, 18], [7, 18], [9, 12]], coat[1]);
+  p.poly([[22, 6], [27, 9], [29, 18], [25, 18], [23, 12]], coat[0]);
+  if (t === 0) {
+    // 철릭: 허리 아래 잔주름, 흰 동정, 띠
+    for (let x = 7; x < 26; x += 2) p.line(x, 18, x - (x < 16 ? 1 : -1), 28, coat[0]);
+    p.line(12, 6, 18, 13, '#ece6d6');
+    p.line(20, 6, 16, 10, '#ece6d6');
+  } else if (t === 1) {
+    // 쇄자갑: 고리 무늬와 앞치마
+    for (let y = 7; y < 29; y++) for (let x = 6; x < 27; x++) if ((x + y) % 2 && p.get(x, y)) p.px(x, y, coat[0]);
+    p.rect(13, 9, 6, 18, '#2c3f66');
+    p.rect(13, 9, 6, 1, GOLD[2]);
+    p.rect(13, 26, 6, 1, GOLD[2]);
+  } else {
+    // 찰갑: 줄지어 엮은 쇳조각, 달아오른 테
+    for (let y = 8; y < 29; y += 3) for (let x = 6; x < 27; x++) if (p.get(x, y)) p.px(x, y, coat[0]);
+    for (let y = 9; y < 29; y += 3) for (let x = 6 + (y % 2); x < 27; x += 3) if (p.get(x, y)) p.px(x, y, coat[3]);
+    p.rect(9, 5, 14, 2, '#ff7a2a');
+    p.rect(5, 28, 22, 1, '#ff7a2a');
+  }
+  p.rect(8, 16, 16, 2, t === 0 ? SILK_R[1] : LEATHER[0]);
+  p.outline();
+  if (t === 2) sparkle(p, 26, 5, '#ffb06a');
+  return p;
+}
+
+/** 짚신·목화 */
+function jBoots(t) {
+  const p = new P();
+  if (t === 0) {
+    // 짚신: 위에서 본 엮은 바닥과 끈
+    for (const ox of [0, 11]) {
+      p.ell(10 + ox, 17, 4.5, 11, STRAW[1]);
+      for (let y = 8; y < 27; y += 2) p.line(7 + ox, y, 13 + ox, y, STRAW[2]);
+      p.line(7 + ox, 12, 13 + ox, 12, '#5a3c1e');
+      p.line(10 + ox, 7, 10 + ox, 12, '#5a3c1e');
+    }
+  } else {
+    const leather = t === 1 ? ['#1a1416', '#2e2428', '#4a3a40', '#6a5660'] : BLUEG;
+    // 목이 긴 신과 흰 밑창
+    p.poly([[9, 3], [18, 3], [18, 22], [27, 24], [27, 28], [7, 28], [8, 20]], leather[1]);
+    p.poly([[9, 3], [12, 3], [11, 22], [8, 26], [7, 26], [8, 20]], leather[2]);
+    p.rect(7, 27, 21, 2, '#ece6d6');
+    p.rect(9, 3, 9, 2, t === 1 ? SILK_R[1] : '#ffffff');
+    if (t === 2) {
+      p.line(18, 8, 25, 4, '#e0f2ff');
+      p.line(18, 11, 26, 9, '#c4e4ff');
+    }
+  }
+  p.outline();
+  if (t === 2) sparkle(p, 26, 14, '#c4e4ff');
+  return p;
+}
+
+/** 가락지: 한 쌍의 고리 */
+function jRing(t) {
+  const p = new P();
+  const m = t === 0 ? BRONZE : GOLD;
+  for (const [cx, cy] of [[12, 17], [20, 15]]) {
+    p.ell(cx, cy, 6, 6, m[1]);
+    p.ell(cx, cy, 4, 4, null);
+    p.arc(cx, cy, 5, 3.4, 5.2, m[3]);
+  }
+  if (t === 1) p.ball(20, 9, 2.6, AMBER);
+  p.outline();
+  if (t === 1) sparkle(p, 25, 6, '#ffe48a');
+  return p;
+}
+
+/** 노리개: 매듭, 장식, 긴 술 */
+function jNorigae(t) {
+  const p = new P();
+  // 고리와 매듭
+  p.ell(16, 4, 2.5, 2.5, GOLD[2]);
+  p.ell(16, 4, 1, 1, null);
+  p.poly([[16, 7], [20, 10], [16, 13], [12, 10]], SILK_R[2]);
+  p.px(15, 9, SILK_R[3]);
+  // 장식
+  if (t === 0) {
+    p.ell(16, 17, 3.5, 4, AMBER[2]);
+    p.rect(13, 13, 7, 1, GOLD[1]);
+    p.rect(13, 21, 7, 1, GOLD[1]);
+    p.px(15, 16, '#fff4c0');
+  } else {
+    p.ball(16, 17, 4.2, CELADON);
+    p.rect(12, 12, 9, 1, GOLD[2]);
+  }
+  // 술
+  const tas = t === 0 ? SILK_R : BLUEG;
+  p.rect(14, 22, 5, 2, GOLD[1]);
+  for (let x = 13; x <= 19; x++) p.line(x, 24, x + (x - 16) * 0.3, 30, x % 2 ? tas[2] : tas[1]);
+  p.outline();
+  if (t === 1) sparkle(p, 23, 14, '#e0f2ff');
+  return p;
+}
+
+/** 환약: 비단 주머니 위의 둥근 알약. mp는 금박을 싼 청심환 */
+function jPills(gold) {
+  const p = new P();
+  p.ell(16, 23, 12, 5, gold ? '#2c3f66' : '#7a2c30');
+  p.ell(16, 22, 11, 4, gold ? '#41588a' : '#a8402e');
+  const ramp = gold ? GOLD : ['#3a1a10', '#6a3220', '#8a4a2e', '#b8704a'];
+  p.ball(11, 18, 3.6, ramp);
+  p.ball(20, 18, 3.6, ramp);
+  p.ball(15.5, 13, 3.6, ramp);
+  p.outline();
+  if (gold) sparkle(p, 22, 9, '#fff0a8');
+  return p;
+}
+
+/** 탕약: 사발에 담긴 약. 김이 오른다 */
+function jBowl(blue) {
+  const p = new P();
+  const bowl = blue ? CELADON : ['#c8bca8', '#e2d8c4', '#f2ecdc', '#ffffff'];
+  p.poly([[4, 16], [28, 16], [24, 26], [8, 26]], bowl[1]);
+  p.poly([[4, 16], [14, 16], [12, 26], [8, 26]], bowl[2]);
+  p.rect(11, 26, 10, 2, bowl[0]);
+  p.ell(16, 16, 12, 3, blue ? '#2f56c0' : '#6a2a1a');
+  p.ell(14, 15, 7, 1.5, blue ? '#5c94ec' : '#9a4a2a');
+  // 김
+  for (const [x, ph] of [[11, 0], [17, 1], [22, 0]]) for (let y = 5; y < 12; y++) p.px(x + ((y + ph) % 4 < 2 ? 0 : 1), y, '#e8e0d0');
+  p.outline();
+  return p;
+}
+
+/** 부적: 노란 종이에 붉은 글씨 */
+function jTalisman() {
+  const p = new P();
+  p.rect(10, 3, 12, 26, '#e8c040');
+  p.rect(10, 3, 3, 26, '#f6dc70');
+  p.rect(10, 3, 12, 1, '#b8901e');
+  const red = '#b8232c';
+  p.line(16, 6, 16, 26, red);
+  p.line(13, 9, 19, 9, red);
+  p.line(13, 13, 19, 16, red);
+  p.line(19, 13, 13, 16, red);
+  p.disk(16, 21, 2.4, red);
+  p.disk(16, 21, 1, '#e8c040');
+  p.line(13, 25, 19, 25, red);
+  p.outline();
+  return p;
+}
+
+/** 정철: 단단히 두드린 쇳덩이 */
+function jIngot() {
+  const p = new P();
+  p.poly([[6, 14], [24, 10], [28, 18], [10, 23]], IRON[1]);
+  p.poly([[6, 14], [24, 10], [25, 12], [7, 16]], IRON[3]);
+  p.poly([[10, 23], [28, 18], [28, 21], [10, 26]], IRON[0]);
+  p.line(9, 22, 26, 18, '#ff8a3a');
+  p.outline();
+  sparkle(p, 25, 8, '#ffb06a');
+  return p;
+}
+
+/** 짐승 털 한 뭉치 */
+function jFur() {
+  const p = new P();
+  const f = ['#4a2e1c', '#7a5030', '#a8763e', '#d0a06a'];
+  for (let i = 0; i < 9; i++) {
+    const x = 8 + i * 2;
+    p.line(16, 26, x, 6 + Math.abs(i - 4) * 2, f[1 + (i % 3)], 2);
+  }
+  p.rect(13, 24, 7, 4, SILK_R[1]);
+  p.outline();
+  return p;
+}
+
+/** 짐승 가죽: 펼친 가죽 */
+function jHide() {
+  const p = new P();
+  p.poly([[6, 8], [11, 5], [16, 7], [21, 5], [26, 8], [24, 16], [27, 25], [20, 27], [16, 25], [12, 27], [5, 25], [8, 16]], '#a8763e');
+  p.poly([[9, 10], [16, 9], [23, 10], [21, 22], [16, 23], [11, 22]], '#c89458');
+  for (let i = 0; i < 4; i++) p.line(11 + i * 3, 12, 12 + i * 3, 20, '#8a5a2e');
+  p.outline();
+  return p;
+}
+
+/** 불가사리 쇠비늘 */
+function jScale() {
+  const p = new P();
+  p.poly([[16, 3], [27, 12], [23, 28], [9, 28], [5, 12]], IRON[1]);
+  p.poly([[16, 3], [16, 28], [9, 28], [5, 12]], IRON[2]);
+  p.line(16, 6, 13, 16, '#ff7a2a');
+  p.line(13, 16, 18, 24, '#ff9a4a');
+  p.outline();
+  sparkle(p, 24, 6, '#ffb06a');
+  return p;
+}
+
+/** 엽전 꾸러미: 끈에 꿴 상평통보 */
+function jCoins() {
+  const p = new P();
+  const coin = (cx, cy) => {
+    p.ell(cx, cy, 5, 5, BRONZE[2]);
+    p.arc(cx, cy, 4, 3.6, 5.6, BRONZE[3]);
+    p.rect(cx - 1, cy - 1, 3, 3, null);
+  };
+  coin(11, 20);
+  coin(20, 22);
+  coin(16, 13);
+  p.line(16, 3, 16, 9, SILK_R[2]);
+  p.line(15, 3, 17, 3, SILK_R[2]);
+  p.outline();
+  sparkle(p, 25, 12, '#ffe48a');
+  return p;
+}
+
+/** 저승 엽전: 검붉은 빛이 도는 동전 */
+function jUnderCoin() {
+  const p = new P();
+  p.ell(16, 16, 11, 11, VIOLET[0]);
+  p.ell(16, 16, 9, 9, VIOLET[1]);
+  p.arc(16, 16, 8, 3.6, 5.6, VIOLET[3]);
+  p.rect(13, 13, 7, 7, null);
+  p.rect(12, 12, 9, 1, VIOLET[2]);
+  p.outline();
+  sparkle(p, 25, 6, '#e0c8ff');
+  return p;
+}
+
 const ITEMS = {
-  sword_1: () => sword(0), sword_2: () => sword(1), sword_3: () => sword(2), sword_4: () => sword(3),
-  staff_1: () => staff(0), staff_2: () => staff(1), staff_3: () => staff(2), staff_4: () => staff(3),
-  bow_1: () => bow(0), bow_2: () => bow(1), bow_3: () => bow(2), bow_4: () => bow(3),
-  helm_1: () => helm(0), helm_2: () => helm(1), helm_3: () => helm(2),
-  armor_1: () => armor(0), armor_2: () => armor(1), armor_3: () => armor(2),
-  boots_1: () => boots(0), boots_2: () => boots(1), boots_3: () => boots(2),
-  ring_1: () => ring(0), ring_2: () => ring(1),
-  amulet_1: () => amulet(0), amulet_2: () => amulet(1),
-  potion_hp_s: () => potion(false, RUBY), potion_hp_l: () => potion(true, RUBY),
-  potion_mp_s: () => potion(false, SAPPH), potion_mp_l: () => potion(true, SAPPH),
-  scroll_home: scrollHome, ember_shard: emberShard, moss_core: mossCore, boar_tusk: boarTusk, ash_core: ashCore,
-  warden_seal: wardenSeal, gold, rift_token: riftToken, key,
+  sword_1: () => jSword(0), sword_2: () => jSword(1), sword_3: () => jSword(2), sword_4: () => jSword(3),
+  staff_1: () => jStaff(0), staff_2: () => jStaff(1), staff_3: () => jStaff(2), staff_4: () => jStaff(3),
+  bow_1: () => jBow(0), bow_2: () => jBow(1), bow_3: () => jBow(2), bow_4: () => jBow(3),
+  helm_1: () => jHelm(0), helm_2: () => jHelm(1), helm_3: () => jHelm(2),
+  armor_1: () => jArmor(0), armor_2: () => jArmor(1), armor_3: () => jArmor(2),
+  boots_1: () => jBoots(0), boots_2: () => jBoots(1), boots_3: () => jBoots(2),
+  ring_1: () => jRing(0), ring_2: () => jRing(1),
+  amulet_1: () => jNorigae(0), amulet_2: () => jNorigae(1),
+  potion_hp_s: () => jPills(false), potion_hp_l: () => jBowl(false),
+  potion_mp_s: () => jPills(true), potion_mp_l: () => jBowl(true),
+  scroll_home: jTalisman, ember_shard: jIngot, moss_core: jFur, boar_tusk: boarTusk, ash_core: jHide,
+  warden_seal: jScale, gold: jCoins, rift_token: jUnderCoin, key,
 };
 const SKILL_ORDER = 'w_whirl w_charge w_slam w_cry w_judge m_fireball m_nova m_meteor m_shield m_starfall a_fan a_pierce a_trap a_hawk a_rain roll blink leap guard_w guard_m guard_a'.split(' ');
 

@@ -166,7 +166,9 @@ try {
     return Math.hypot(u - mu, v - mv) < stop + 1;
   };
 
-  const arrived = await walkTo(27.3, 27.2, 0.5);
+  const spot = (type, name) => world(`(() => { const o = __world.map.objects.find((x) => x.type === '${type}' && x.name === '${name}'); return [o.u, o.v]; })()`);
+  const [elderU, elderV] = await spot('npc', 'npc_elder');
+  const arrived = await walkTo(elderU, elderV + 1.2, 0.5);
   check('어른에게 걸어감', arrived);
   await sleep(300);
   check('대화 안내 표시', !!(await page.$('.promptbox')));
@@ -179,7 +181,37 @@ try {
   await sleep(500);
   await page.keyboard.press('Escape');
   await sleep(200);
-  check('퀘스트 추적 표시', (await page.locator('.tq').first().innerText()).includes('첫 등불'));
+  check('퀘스트 추적 표시', (await page.locator('.tq').first().innerText()).includes('첫 사냥'));
+
+  // 장비를 벗으면 내 모습과 장비창 미리보기가 함께 바뀐다
+  const sheetBefore = await world(`__world.me.sheetId`);
+  check('입은 장비가 모델에 들어감', sheetBefore.includes('armor_1'), sheetBefore);
+  await page.keyboard.press('KeyC');
+  await sleep(300);
+  await shot('08a_equip_before');
+  await page.click('.equipcell:nth-child(3) .slot');
+  await sleep(500);
+  const sheetAfter = await world(`__world.me.sheetId`);
+  check('갑옷을 벗으면 겉모습이 바뀜', !sheetAfter.includes('armor_1') && sheetAfter !== sheetBefore, sheetAfter);
+  await shot('08b_equip_after');
+  // 가방에서 다시 입는다
+  await page.keyboard.press('KeyC');
+  await page.keyboard.press('KeyI');
+  await sleep(200);
+  const slots = page.locator('.bagwin .slot.full');
+  for (let i = 0; i < (await slots.count()); i++) {
+    await slots.nth(i).hover();
+    await sleep(80);
+    if (await page.getByText('누비 철릭').count()) {
+      await slots.nth(i).click();
+      break;
+    }
+  }
+  await sleep(500);
+  check('다시 입으면 겉모습이 돌아옴', (await world(`__world.me.sheetId`)) === sheetBefore);
+  await page.keyboard.press('KeyI');
+  await page.mouse.move(640, 40);
+  await sleep(120);
 
   // 패널들
   for (const [key, sel, name] of [
@@ -199,7 +231,8 @@ try {
   }
 
   // 숲으로 이동
-  await walkTo(58, 30, 0.8, 35000);
+  const [doorU, doorV] = await spot('door', 'to_woods');
+  await walkTo(doorU, doorV, 0.8, 45000);
   await page.waitForFunction(() => window.__world?.map?.name === 'woods' && window.__world?.ready, null, { timeout: 15000 });
   await sleep(1200);
   await shot('14_woods');
@@ -224,7 +257,7 @@ try {
         await walkTo(t.u, t.v, 1.1, 2500);
       } else {
         // 마우스를 대상 위로 옮겨 클릭
-        const p = await world(`(() => { const cam=__world.cameras.main; const x=${t.u}*40, y=${t.v}*22-14; const pt=cam.getScreenPoint? null:null; const sx=(x-cam.worldView.x)*cam.zoom, sy=(y-cam.worldView.y)*cam.zoom; const k=window.innerWidth/__game.scale.width; return [sx*k, sy*k] })()`);
+        const p = await world(`(() => { const cam=__world.cameras.main; const x=${t.u}*50, y=${t.v}*27.5-18; const pt=cam.getScreenPoint? null:null; const sx=(x-cam.worldView.x)*cam.zoom, sy=(y-cam.worldView.y)*cam.zoom; const k=window.innerWidth/__game.scale.width; return [sx*k, sy*k] })()`);
         await page.mouse.move(p[0], p[1]);
         await page.mouse.down();
         await sleep(450);
