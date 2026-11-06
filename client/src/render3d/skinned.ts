@@ -5,9 +5,14 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import type { BuiltRig, CharAsset } from './chars';
 
 /** 시트 이름 → 모델 파일. 여기 있는 짐승은 코드로 지은 모델 대신 이 모델을 쓴다 */
-export const FILES: Record<string, string> = Object.fromEntries(['yeou', 'neukdae', 'seungnyangi', 'neoguri', 'gumiho', 'horangi', 'bandalgom', 'metdwaeji', 'daramjwi', 'bakjwi', 'bulgasari'].map((n) => [n, `/models/${n}.glb`]));
-/** 도트 느낌: 동작을 초당 이만큼으로 끊어 재생한다 */
-const STEP_FPS = 12;
+export const FILES: Record<string, string> = Object.fromEntries(['yeou', 'neukdae', 'seungnyangi', 'neoguri', 'gumiho', 'horangi', 'bandalgom', 'metdwaeji', 'daramjwi', 'bakjwi', 'bulgasari', 'pc_musa'].map((n) => [n, `/models/${n}.glb`]));
+/** 도트 모드에서는 동작을 초당 이만큼으로 끊어 재생한다. 0이면 끊지 않는다(사실적 모드) */
+let stepFps = 12;
+export function setSkinnedStepFps(n: number) {
+  stepFps = n;
+}
+/** 사람 모델의 게임 속 키(예전 코드 모델과 같게) */
+const HUMAN_H = 1.98;
 
 const loaded = new Map<string, CharAsset>();
 
@@ -53,7 +58,16 @@ function build(id: string, scene: THREE.Object3D, clips: THREE.AnimationClip[]):
   // 셰이더가 쓰는 보조값: 반짝임 0, 빛남 0, 바람 0, 외곽선 부위 번호
   // 외곽선 부위 번호는 정점을 가장 많이 끄는 뼈의 부위로 정한다: 다리와 몸, 머리, 꼬리 사이에 선이 생긴다
   const boneNames = src.skeleton.bones.map((b) => b.name);
+  const human = id.startsWith('pc_');
   const part = (nm: string) => {
+    if (human) {
+      // 사람 뼈: 이름 끝 _l/_r이 옆
+      const hs = nm.endsWith('_l') ? 0 : 1;
+      if (/^(clavicle|upperarm|lowerarm|hand|index|middle|ring|pinky|thumb)/.test(nm)) return 10 + hs;
+      if (/^(thigh|calf|foot|ball)/.test(nm)) return 12 + hs;
+      if (/^(head|neck)/.test(nm)) return 15;
+      return 16;
+    }
     const side = nm.endsWith('L') ? 0 : 1;
     if (/^fire/.test(nm)) return 20;
     const tm = /^t(\d+)_/.exec(nm);
@@ -87,16 +101,19 @@ function build(id: string, scene: THREE.Object3D, clips: THREE.AnimationClip[]):
   const map = (src.material as THREE.MeshStandardMaterial).map ?? null;
   if (map) {
     map.colorSpace = THREE.NoColorSpace;
-    map.magFilter = map.minFilter = THREE.NearestFilter;
+    // 사람은 얼굴 결이 살아야 해서 부드럽게 거른다
+    map.magFilter = map.minFilter = human ? THREE.LinearFilter : THREE.NearestFilter;
     map.generateMipmaps = false;
     map.flipY = false;
     map.needsUpdate = true;
   }
   const byName = new Map(clips.map((c) => [c.name, c]));
   const anims: CharAsset['anims'] = {};
-  for (const [name, loop] of [['idle', true], ['walk', true], ['attack', false], ['hit', false], ['death', false], ['sweep', false], ['slam', false], ['cast', false]] as const) {
-    const c = byName.get(name);
-    if (c) anims[name] = { frames: Math.round(c.duration * 24), dur: c.duration, loop, poses: [{}] };
+  const LOOPS = new Set(['idle', 'walk']);
+  for (const c of clips) {
+    const name = c.name;
+    const loop = LOOPS.has(name);
+    anims[name] = { frames: Math.round(c.duration * 24), dur: c.duration, loop, poses: [{}] };
   }
   const bindIndex = src.skeleton.bones.map((b) => b.name);
   const bindInv = src.skeleton.boneInverses.map((m) => m.clone().multiply(src.bindMatrix));
@@ -126,7 +143,7 @@ function build(id: string, scene: THREE.Object3D, clips: THREE.AnimationClip[]):
         }
         const loop = anims[clip.name]?.loop ?? false;
         const f = loop ? ((p % 1) + 1) % 1 : Math.min(Math.max(p, 0), 0.999);
-        const t = Math.floor(f * clip.duration * STEP_FPS) / STEP_FPS;
+        const t = stepFps > 0 ? Math.floor(f * clip.duration * stepFps) / stepFps : f * clip.duration;
         action!.time = t;
         mixer.update(0);
       },
@@ -140,5 +157,5 @@ function build(id: string, scene: THREE.Object3D, clips: THREE.AnimationClip[]):
   proto.rig.root.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(src);
   const height = Math.max(0.3, box.max.y);
-  return { geometry: geo, boneOrder: bindIndex, rigFactory, anims, retarget: false, height, baseScale: 2.05, fur: id === 'bulgasari' ? 0.2 : 0.45, map, skinned: true, emKey: id === 'bulgasari' } as CharAsset;
+  return { geometry: geo, boneOrder: bindIndex, rigFactory, anims, retarget: false, height, baseScale: human ? HUMAN_H / height : 2.05, fur: id === 'bulgasari' ? 0.2 : 0.45, map, skinned: true, emKey: id === 'bulgasari' } as CharAsset;
 }

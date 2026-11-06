@@ -1,5 +1,5 @@
 // Phaser 게임 만들기와 장면 전환
-import { preloadSkinned } from '../render3d/skinned';
+import { preloadSkinned, setSkinnedStepFps } from '../render3d/skinned';
 import * as Phaser from 'phaser';
 import type { Room } from '@colyseus/sdk';
 import type { MapData } from '@shared/mapdata';
@@ -127,6 +127,7 @@ export function applyGfx() {
   // 기본은 사실적 모드. 주소에 ?style=pixel을 붙이면 예전 도트 모드로 본다
   const pixel = new URLSearchParams(location.search).get('style') === 'pixel';
   stage.setStyle(!pixel, low ? 0.6 : 1);
+  setSkinnedStepFps(pixel ? 12 : 0);
 }
 
 export async function createGame() {

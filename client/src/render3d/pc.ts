@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { gungsaAnims, dosaAnims, musaAnims } from '@bake/humans.js';
 import { parseGearKey, type Slot, type WornPiece } from '@shared/items';
 import { Geo, mix, tone, v3, type Hex } from './geo';
+import { skinnedAsset } from './skinned';
 import { Body, DIMS, SKINS, addChain, arms, bangs, belt, bonnet, finish, fineRings, gat, hairCap, head, headband, legs, pauldrons, pelvis, ponytail, skirtPanels, topknot, torso, torsoFront, torsoRings, type Build, type CharAsset } from './chars';
 
 type Worn = Partial<Record<Slot, WornPiece>>;
@@ -1169,10 +1170,18 @@ function trim() {
   }
 }
 
-/** pc_<직업>_<모습>#<gearVisualKey>. 뒤를 생략하면 처음 입는 옷차림이다. */
-export function pcAsset(id: string): CharAsset | null {
+/** 주소에 ?human=old를 붙이면 블렌더 사람 모델 대신 예전 코드 모델을 쓴다 */
+const OLD_HUMAN = typeof location !== 'undefined' && new URLSearchParams(location.search).get('human') === 'old';
+
+/** pc_<직업>_<모습>#<gearVisualKey>. 뒤를 생략하면 처음 입는 옷차림이다. old면 블렌더 모델이 있어도 코드 모델 */
+export function pcAsset(id: string, old = false): CharAsset | null {
   const m = /^pc_(musa|dosa|gungsa)_([abc])(?:#(.*))?$/.exec(id);
   if (!m) return null;
+  // 블렌더 사람 모델(시제품: 무사 한 벌). 아직 모습·장비별 외형은 없다
+  if (!old && !OLD_HUMAN) {
+    const sk = skinnedAsset(`pc_${m[1]}`);
+    if (sk) return sk;
+  }
   const hit = cache.get(id);
   if (hit) {
     // 최근에 쓴 것을 뒤로
